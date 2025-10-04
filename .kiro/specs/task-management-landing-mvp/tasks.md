@@ -1,4 +1,4 @@
-# Implementation Plan - TaskFlow MVP
+# Implementation Plan - Anclora Kairon MVP
 
 ## 🎯 ETAPA 1: FOUNDATION & LANDING (Semana 1-2)
 *Objetivo: Primera impresión impactante y setup sin fricción*

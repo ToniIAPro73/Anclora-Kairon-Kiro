@@ -1,6 +1,7 @@
 // Responsive Navigation Component
 import ThemeToggle from '../../../shared/components/ThemeToggle/ThemeToggle.js'
 import LanguageSelector from '../../../shared/components/LanguageSelector/LanguageSelector.js'
+import { authModalVanilla } from '../../../shared/components/AuthModalVanilla.js'
 
 import i18n from '../../../shared/utils/i18n.js'
 
@@ -53,9 +54,9 @@ export default class Navigation {
             <div class="hidden md:flex items-center space-x-4 overflow-visible">
               <div id="nav-theme-toggle"></div>
               <div id="nav-language-selector"></div>
-              <a href="#app" class="bg-gradient-action text-negro-azulado px-6 py-2 rounded-anclora-sm font-bold hover:transform hover:-translate-y-1 transition-all duration-300 shadow-anclora-button">
+              <button id="desktop-login-btn" class="bg-gradient-action text-negro-azulado px-6 py-2 rounded-anclora-sm font-bold hover:transform hover:-translate-y-1 transition-all duration-300 shadow-anclora-button">
                 ${this.translations.login}
-              </a>
+              </button>
             </div>
             
             <!-- Mobile menu button -->
@@ -89,9 +90,9 @@ export default class Navigation {
                 <div id="mobile-theme-toggle"></div>
                 <div id="mobile-language-selector"></div>
               </div>
-              <a href="#app" class="bg-gradient-action text-negro-azulado px-4 py-2 rounded-anclora-sm font-bold text-sm">
+              <button id="mobile-login-btn" class="bg-gradient-action text-negro-azulado px-4 py-2 rounded-anclora-sm font-bold text-sm">
                 ${this.translations.login}
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -136,6 +137,24 @@ export default class Navigation {
         }
       })
     })
+    
+    // Add login button event listeners
+    const desktopLoginBtn = this.container.querySelector('#desktop-login-btn')
+    const mobileLoginBtn = this.container.querySelector('#mobile-login-btn')
+    
+    if (desktopLoginBtn) {
+      desktopLoginBtn.addEventListener('click', () => authModalVanilla.open('login'))
+    }
+    
+    if (mobileLoginBtn) {
+      mobileLoginBtn.addEventListener('click', () => {
+        authModalVanilla.open('login')
+        // Close mobile menu
+        this.isMenuOpen = false
+        this.container.querySelector('.mobile-menu').classList.add('hidden')
+        this.container.querySelector('.hamburger').classList.remove('open')
+      })
+    }
   }
 
   setupLanguageListener() {

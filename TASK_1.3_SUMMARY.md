@@ -15,7 +15,7 @@
 - **Menú hamburguesa**: Animación suave para móviles
 - **Navegación fija**: Header transparente con backdrop blur
 - **Enlaces suaves**: Scroll suave a secciones
-- **Branding**: Logo TaskFlow con tipografía Libre Baskerville
+- **Branding**: Logo Anclora Kairon con tipografía Libre Baskerville
 
 ### 🌙 Theme Toggle Component
 - **Detección automática**: Respeta preferencias del sistema

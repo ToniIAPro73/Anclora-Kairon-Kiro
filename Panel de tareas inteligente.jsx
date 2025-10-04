@@ -738,7 +738,7 @@ const Dashboard = ({ user, onLogout, darkMode, toggleDarkMode }) => {
 
     const sidebarContent = (
          <div className="p-4 space-y-2">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-8 px-2">TaskFlow</h1>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-8 px-2">Anclora Kairon</h1>
             <SidebarLink icon={<HomeIcon className="w-6 h-6" />} text="Qué tengo para hoy" sectionName="Hoy" />
             <SidebarLink icon={<StarIcon className="w-6 h-6" />} text="Tareas importantes" sectionName="Importantes" />
             <SidebarLink icon={<CalendarIcon className="w-6 h-6" />} text="Qué tengo planeado" sectionName="Planeado" />

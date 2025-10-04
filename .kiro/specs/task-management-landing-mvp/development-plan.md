@@ -1,4 +1,4 @@
-# Plan de Desarrollo por Etapas - TaskFlow MVP
+# Plan de Desarrollo por Etapas - Anclora Kairon MVP
 
 ## 🎯 **ETAPA 1: FOUNDATION & LANDING (Semana 1-2)**
 *Objetivo: Crear primera impresión impactante y setup sin fricción*
@@ -32,7 +32,7 @@
 - [ ] **1.3.2** Create features showcase and social proof
   - Build features section highlighting pain points solved vs competitors
   - Create testimonials/case studies section with Anclora styling
-  - Add comparison table showing TaskFlow advantages
+  - Add comparison table showing Anclora Kairon advantages
   - Implement primary and secondary CTA buttons with gradient effects and hover animations
   - _Requirements: R1.1_
 

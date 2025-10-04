@@ -1,6 +1,6 @@
 # Anclora Kairon Design System
 
-Sistema de diseño completo para TaskFlow MVP siguiendo los principios de Anclora Kairon.
+Sistema de diseño completo para Anclora Kairon MVP siguiendo los principios del ecosistema Anclora.
 
 ## 🎨 Paleta de Colores
 

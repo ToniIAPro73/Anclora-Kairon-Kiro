@@ -1,7 +1,7 @@
 {
-  "name": "taskflow-mvp",
+  "name": "anclora-kairon-mvp",
   "version": "1.0.0",
-  "description": "TaskFlow MVP - Landing page and enhanced task management application",
+  "description": "Anclora Kairon MVP - Landing page and enhanced task management application",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,11 +1,11 @@
-# TaskFlow MVP
+# Anclora Kairon MVP
 
-TaskFlow MVP es una aplicación de gestión de proyectos con landing page profesional y funcionalidades avanzadas de colaboración, siguiendo el sistema de diseño Anclora Kairon.
+Anclora Kairon MVP es una aplicación de gestión de proyectos con landing page profesional y funcionalidades avanzadas de colaboración, siguiendo el sistema de diseño del ecosistema Anclora.
 
 ## 🏗️ Estructura del Proyecto
 
 ```
-taskflow-mvp/
+anclora-kairon-mvp/
 ├── src/
 │   ├── landing/                 # Landing page
 │   │   ├── index.html

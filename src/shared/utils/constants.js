@@ -12,9 +12,9 @@ export const LANGUAGES = {
 }
 
 export const STORAGE_KEYS = {
-  THEME: 'taskflow-theme',
-  LANGUAGE: 'taskflow-language',
-  USER_PREFERENCES: 'taskflow-user-preferences'
+  THEME: 'anclora-theme',
+  LANGUAGE: 'anclora-language',
+  USER_PREFERENCES: 'anclora-user-preferences'
 }
 
 export const API_ENDPOINTS = {

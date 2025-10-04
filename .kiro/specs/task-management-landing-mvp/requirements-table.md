@@ -1,4 +1,4 @@
-# Tabla Completa de Requerimientos TaskFlow MVP
+# Tabla Completa de Requerimientos Anclora Kairon MVP
 
 ## Matriz de Funcionalidades vs Pain Points
 
@@ -143,7 +143,7 @@
 
 ## Diferenciadores Clave vs Competencia
 
-| Aspecto | TaskFlow | Jira | Linear | Notion |
+| Aspecto | Anclora Kairon | Jira | Linear | Notion |
 |---------|----------|------|--------|--------|
 | **Setup Time** | <60 seg | >30 min | ~10 min | ~15 min |
 | **Learning Curve** | <1 día | >1 semana | ~3 días | ~1 semana |

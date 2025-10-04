@@ -1,5 +1,6 @@
 // Hero Section Component with value proposition
 import Button from '../../../shared/components/Button/Button.js'
+import { authModalVanilla } from '../../../shared/components/AuthModalVanilla.js'
 
 import i18n from '../../../shared/utils/i18n.js'
 
@@ -91,22 +92,11 @@ export default class HeroSection {
     const secondaryCTA = this.container.querySelector('#cta-secondary')
     
     primaryCTA.addEventListener('click', () => {
-      // Scroll to features or redirect to app
-      const featuresSection = document.getElementById('features')
-      if (featuresSection) {
-        featuresSection.scrollIntoView({ behavior: 'smooth' })
-      } else {
-        window.location.href = '#app'
-      }
+      authModalVanilla.open('register')
     })
     
     secondaryCTA.addEventListener('click', () => {
-      // Show demo modal or redirect to demo
-      alert('🎬 Demo disponible próximamente!\n\nPor ahora puedes explorar las características más abajo.')
-      const featuresSection = document.getElementById('features')
-      if (featuresSection) {
-        featuresSection.scrollIntoView({ behavior: 'smooth' })
-      }
+      this.openDemoModal()
     })
     
     // Add parallax effect on scroll
@@ -119,6 +109,20 @@ export default class HeroSection {
         parallax.style.transform = `translateY(${scrolled * speed}px)`
       }
     })
+  }
+
+  openDemoModal() {
+    // For now, show alert - later implement demo modal
+    const currentLang = i18n.getCurrentLanguage()
+    const message = currentLang === 'es'
+      ? '🎬 Demo disponible próximamente!\n\nEstamos preparando una demostración interactiva. Por ahora puedes explorar las características más abajo.'
+      : '🎬 Demo coming soon!\n\nWe\'re preparing an interactive demonstration. For now, you can explore the features below.'
+    
+    alert(message)
+    const featuresSection = document.getElementById('features')
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
   setupLanguageListener() {
@@ -138,34 +142,13 @@ export default class HeroSection {
     
     if (primaryCTA) {
       primaryCTA.addEventListener('click', () => {
-        // Show beta signup modal or form
-        const currentLang = i18n.getCurrentLanguage()
-        const message = currentLang === 'es' 
-          ? '🚀 ¡Gracias por tu interés!\n\nEn breve tendremos el formulario de registro para la beta privada.\n\nMientras tanto, puedes explorar las características más abajo.'
-          : '🚀 Thanks for your interest!\n\nWe\'ll have the beta registration form ready soon.\n\nIn the meantime, you can explore the features below.'
-        
-        alert(message)
-        
-        // Scroll to features section
-        const featuresSection = document.getElementById('features')
-        if (featuresSection) {
-          featuresSection.scrollIntoView({ behavior: 'smooth' })
-        }
+        authModalVanilla.open('register')
       })
     }
     
     if (secondaryCTA) {
       secondaryCTA.addEventListener('click', () => {
-        const currentLang = i18n.getCurrentLanguage()
-        const message = currentLang === 'es'
-          ? '🎬 Demo disponible próximamente!\n\nEstamos preparando una demostración interactiva. Por ahora puedes explorar las características más abajo.'
-          : '🎬 Demo coming soon!\n\nWe\'re preparing an interactive demonstration. For now, you can explore the features below.'
-        
-        alert(message)
-        const featuresSection = document.getElementById('features')
-        if (featuresSection) {
-          featuresSection.scrollIntoView({ behavior: 'smooth' })
-        }
+        this.openDemoModal()
       })
     }
   }

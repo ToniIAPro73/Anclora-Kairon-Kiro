@@ -2,7 +2,7 @@
 
 ## Overview
 
-Este documento define el diseño técnico para expandir la aplicación TaskFlow existente con una landing page profesional y un MVP mejorado de gestión de tareas. La solución seguirá principios API-First y Mobile-First, implementando la guía visual del ecosistema Anclora con funcionalidades avanzadas de colaboración, proyectos y asistente IA.
+Este documento define el diseño técnico para expandir la aplicación Anclora Kairon existente con una landing page profesional y un MVP mejorado de gestión de tareas. La solución seguirá principios API-First y Mobile-First, implementando la guía visual del ecosistema Anclora con funcionalidades avanzadas de colaboración, proyectos y asistente IA.
 
 ## Architecture
 

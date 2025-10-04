@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Esta especificación define los requisitos para expandir la aplicación actual de gestión de tareas "TaskFlow" con una landing page profesional y un MVP mejorado que resuelva los principales dolores de los usuarios de herramientas de gestión de proyectos. Basándome en el análisis de OpenProject y Plane, el objetivo es crear una experiencia simplificada pero poderosa que elimine la complejidad innecesaria mientras proporciona las funcionalidades esenciales para equipos productivos.
+Esta especificación define los requisitos para expandir la aplicación actual de gestión de tareas "Anclora Kairon" con una landing page profesional y un MVP mejorado que resuelva los principales dolores de los usuarios de herramientas de gestión de proyectos. Basándome en el análisis de OpenProject y Plane, el objetivo es crear una experiencia simplificada pero poderosa que elimine la complejidad innecesaria mientras proporciona las funcionalidades esenciales para equipos productivos.
 
-## Pain Points Identificados que TaskFlow Resolverá
+## Pain Points Identificados que Anclora Kairon Resolverá
 
 1. **Complejidad excesiva**: Herramientas actuales abruman con demasiadas opciones
 2. **Setup lento**: Configuración inicial compleja y tediosa  

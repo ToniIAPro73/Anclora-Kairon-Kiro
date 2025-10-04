@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth Modal - Anclora Kairon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Anclora color palette */
+        :root {
+            --azul-profundo: #23436B;
+            --azul-claro: #2EAFC4;
+            --teal-secundario: #37B5A4;
+            --ambar-suave: #FFC979;
+            --gris-claro: #F6F7F9;
+            --negro-azulado: #162032;
+            --blanco: #FFFFFF;
+        }
+        
+        .bg-gradient-hero {
+            background: linear-gradient(120deg, #23436B 0%, #2EAFC4 100%);
+        }
+        
+        .bg-gradient-action {
+            background: linear-gradient(90deg, #2EAFC4 0%, #FFC979 100%);
+        }
+    </style>
+</head>
+<body class="bg-gradient-hero min-h-screen flex items-center justify-center">
+    <div class="text-center text-white max-w-2xl mx-auto px-6">
+        <div class="mb-12">
+            <h1 class="text-5xl font-bold mb-4 leading-tight">Anclora Kairon</h1>
+            <p class="text-xl opacity-90 mb-8">Sistema de Autenticación Mejorado</p>
+        </div>
+        
+        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 mb-8">
+            <h2 class="text-2xl font-bold mb-6 text-white">Prueba el Modal de Autenticación</h2>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <button id="test-login" class="bg-white/20 hover:bg-white/30 text-white px-8 py-4 rounded-xl font-semibold text-lg border border-white/30 hover:border-white/50 transition-all duration-300 backdrop-blur-sm">
+                    🔑 Probar Login
+                </button>
+                
+                <button id="test-register" class="bg-gradient-action text-[#162032] px-8 py-4 rounded-xl font-bold text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                    ✨ Probar Registro
+                </button>
+            </div>
+            
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                <h3 class="font-bold mb-4 text-lg text-white">🧪 Credenciales de Prueba</h3>
+                <div class="space-y-2 text-white/90">
+                    <p class="font-mono bg-white/10 px-3 py-2 rounded-lg">
+                        <strong>Email:</strong> demo@anclora.com
+                    </p>
+                    <p class="font-mono bg-white/10 px-3 py-2 rounded-lg">
+                        <strong>Password:</strong> demo123
+                    </p>
+                </div>
+                <p class="text-sm text-white/70 mt-4">
+                    Los botones de Google y GitHub también funcionan con usuarios mock
+                </p>
+            </div>
+        </div>
+        
+        <div class="text-white/70 text-sm">
+            <p>✅ Modal 100% legible con mejor contraste</p>
+            <p>✅ Tipografía mejorada y espaciado optimizado</p>
+            <p>✅ Estados de carga y error mejorados</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the auth modal
+        import { authModalVanilla } from './src/shared/components/AuthModalVanilla.js';
+        
+        // Test buttons
+        document.getElementById('test-login').addEventListener('click', () => {
+            authModalVanilla.open('login');
+        });
+        
+        document.getElementById('test-register').addEventListener('click', () => {
+            authModalVanilla.open('register');
+        });
+        
+        console.log('🚀 Auth modal test page loaded - Improved legibility version');
+    </script>
+</body>
+</html>
