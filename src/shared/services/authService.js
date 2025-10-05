@@ -704,39 +704,282 @@ class AuthService {
   }
 
   /**
-   * Reset password
+   * Reset password with enhanced error handling and diagnostics
    * @param {string} email - User email
-   * @returns {Promise<boolean>} - Success status
+   * @param {Object} options - Additional options (language, diagnostics, etc.)
+   * @returns {Promise<Object>} - Detailed result with success status and diagnostics
    */
-  async resetPassword(email) {
+  async resetPassword(email, options = {}) {
+    const startTime = Date.now();
+    const language = options.language || 'es';
+    const enableDiagnostics = options.enableDiagnostics !== false;
+    
+    const context = {
+      operation: 'reset_password',
+      email: email,
+      language: language,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+
+    const messages = {
+      es: {
+        success: 'Email de recuperación enviado. Revisa tu bandeja de entrada y carpeta de spam.',
+        rateLimited: 'Demasiados intentos. Espera 15 minutos e intenta nuevamente.',
+        userNotFound: 'No encontramos una cuenta con este email. ¿Quieres registrarte?',
+        networkError: 'Error de conexión. Verifica tu internet e intenta nuevamente.',
+        configError: 'Error de configuración del sistema. Contacta al soporte.',
+        unknownError: 'Error inesperado. Contacta al soporte si persiste.',
+        checkSpam: 'Si no ves el email, revisa tu carpeta de spam y promociones.',
+        emailInstructions: 'El enlace de recuperación expira en 1 hora.'
+      },
+      en: {
+        success: 'Recovery email sent. Check your inbox and spam folder.',
+        rateLimited: 'Too many attempts. Please wait 15 minutes and try again.',
+        userNotFound: 'No account found with this email. Would you like to sign up?',
+        networkError: 'Connection error. Check your internet and try again.',
+        configError: 'System configuration error. Please contact support.',
+        unknownError: 'Unexpected error. Contact support if it persists.',
+        checkSpam: 'If you don\'t see the email, check your spam and promotions folder.',
+        emailInstructions: 'The recovery link expires in 1 hour.'
+      }
+    };
+
+    const msg = messages[language] || messages.es;
+
     try {
+      // Step 1: Validate email format
+      if (!email || typeof email !== 'string') {
+        throw new Error('Email is required');
+      }
+
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      if (!emailRegex.test(email.trim())) {
+        throw new Error('Invalid email format');
+      }
+
+      // Step 2: Check connectivity before attempting reset
+      if (enableDiagnostics) {
+        const connectivityResult = await this.checkConnectivityBeforeAuth('reset_password');
+        if (!connectivityResult.canProceed) {
+          const error = new Error(connectivityResult.error || 'Connection check failed');
+          error.type = 'NETWORK_ERROR';
+          throw error;
+        }
+      }
+
+      // Step 3: Attempt password reset
       if (this.isSupabaseEnabled) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        console.log('Sending password reset email to:', email);
+        
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: `${window.location.origin}/auth/reset-password`
         });
 
         if (error) {
-          throw new Error(error.message);
+          console.error('Supabase resetPasswordForEmail error:', error);
+          
+          // Classify Supabase errors
+          let errorType = 'UNKNOWN_ERROR';
+          let userMessage = msg.unknownError;
+
+          if (error.message.includes('rate limit') || error.message.includes('too many')) {
+            errorType = 'RATE_LIMITED';
+            userMessage = msg.rateLimited;
+          } else if (error.message.includes('not found') || error.message.includes('user not found')) {
+            errorType = 'USER_NOT_FOUND';
+            userMessage = msg.userNotFound;
+          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorType = 'NETWORK_ERROR';
+            userMessage = msg.networkError;
+          } else if (error.message.includes('config') || error.message.includes('smtp')) {
+            errorType = 'CONFIG_ERROR';
+            userMessage = msg.configError;
+          }
+
+          const enhancedError = new Error(userMessage);
+          enhancedError.type = errorType;
+          enhancedError.originalError = error;
+          throw enhancedError;
         }
 
-        return true;
+        // Log successful reset request
+        const duration = Date.now() - startTime;
+        errorLogger.logPerformanceMetric('reset_password', duration, true, {
+          provider: 'supabase',
+          email: email,
+          hasRedirectTo: true
+        });
+
+        console.log('✅ Password reset email sent successfully');
+
+        return {
+          success: true,
+          message: msg.success,
+          instructions: [
+            msg.checkSpam,
+            msg.emailInstructions,
+            'Busca emails de: noreply@supabase.co',
+            'Si no llega en 5 minutos, revisa la carpeta de spam'
+          ],
+          diagnostics: enableDiagnostics ? {
+            emailSent: true,
+            provider: 'supabase',
+            timestamp: new Date().toISOString(),
+            redirectUrl: `${window.location.origin}/auth/reset-password`,
+            duration: Date.now() - startTime
+          } : null
+        };
+
       } else {
         // Fallback to mock implementation
+        console.log('Using mock implementation for password reset');
+        
         const response = await this.mockApiCall('/auth/reset-password', {
           method: 'POST',
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email: email.trim() })
         });
 
         if (response.success) {
-          return true;
+          // Log successful mock reset
+          const duration = Date.now() - startTime;
+          errorLogger.logPerformanceMetric('reset_password', duration, true, {
+            provider: 'mock',
+            email: email
+          });
+
+          return {
+            success: true,
+            message: msg.success,
+            instructions: [
+              'Modo de desarrollo: Email simulado',
+              'En producción recibirías un email real',
+              msg.emailInstructions
+            ],
+            diagnostics: enableDiagnostics ? {
+              emailSent: true,
+              provider: 'mock',
+              timestamp: new Date().toISOString(),
+              duration: Date.now() - startTime
+            } : null
+          };
         } else {
           throw new Error(response.message || 'Error al enviar email de recuperación');
         }
       }
+
     } catch (error) {
+      // Log reset password error with context
+      errorLogger.logError(error, context, errorLogger.SEVERITY_LEVELS.MEDIUM);
+      
+      // Log failed reset performance
+      const duration = Date.now() - startTime;
+      errorLogger.logPerformanceMetric('reset_password', duration, false, {
+        provider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+        email: email,
+        errorType: error.type || 'UNKNOWN_ERROR',
+        errorMessage: error.message
+      });
+
       console.error('Reset password error:', error);
-      throw error;
+
+      // Return structured error result
+      return {
+        success: false,
+        error: {
+          type: error.type || 'UNKNOWN_ERROR',
+          message: error.message || msg.unknownError,
+          originalError: error.originalError || error
+        },
+        troubleshooting: this.generatePasswordResetTroubleshooting(error, email, language),
+        diagnostics: enableDiagnostics ? {
+          emailSent: false,
+          provider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+          timestamp: new Date().toISOString(),
+          duration: Date.now() - startTime,
+          errorDetails: {
+            type: error.type,
+            message: error.message,
+            stack: error.stack
+          }
+        } : null
+      };
     }
+  }
+
+  /**
+   * Generate troubleshooting steps for password reset issues
+   * @param {Error} error - The error that occurred
+   * @param {string} email - Email address used
+   * @param {string} language - Language for messages
+   * @returns {Array} - Array of troubleshooting steps
+   */
+  generatePasswordResetTroubleshooting(error, email, language = 'es') {
+    const troubleshooting = {
+      es: {
+        RATE_LIMITED: [
+          'Espera 15-30 minutos antes de intentar nuevamente',
+          'Usa una conexión de internet diferente si es urgente',
+          'Verifica que estés usando el email correcto'
+        ],
+        USER_NOT_FOUND: [
+          'Verifica que el email esté escrito correctamente',
+          'Prueba con variaciones del email (gmail.com vs googlemail.com)',
+          'Considera registrar una nueva cuenta si no tienes una'
+        ],
+        NETWORK_ERROR: [
+          'Verifica tu conexión a internet',
+          'Intenta desde otra red (datos móviles)',
+          'Desactiva VPN temporalmente',
+          'Revisa el estado de Supabase en status.supabase.com'
+        ],
+        CONFIG_ERROR: [
+          'Este es un problema del sistema, no tuyo',
+          'Contacta al soporte técnico',
+          'Incluye la hora exacta del error'
+        ],
+        UNKNOWN_ERROR: [
+          'Revisa tu carpeta de spam en el email',
+          'Espera 5-10 minutos por si hay retraso',
+          'Intenta con otro navegador',
+          'Contacta soporte si persiste'
+        ]
+      },
+      en: {
+        RATE_LIMITED: [
+          'Wait 15-30 minutes before trying again',
+          'Use a different internet connection if urgent',
+          'Verify you\'re using the correct email'
+        ],
+        USER_NOT_FOUND: [
+          'Verify the email is spelled correctly',
+          'Try email variations (gmail.com vs googlemail.com)',
+          'Consider registering a new account if you don\'t have one'
+        ],
+        NETWORK_ERROR: [
+          'Check your internet connection',
+          'Try from another network (mobile data)',
+          'Temporarily disable VPN',
+          'Check Supabase status at status.supabase.com'
+        ],
+        CONFIG_ERROR: [
+          'This is a system issue, not yours',
+          'Contact technical support',
+          'Include the exact time of the error'
+        ],
+        UNKNOWN_ERROR: [
+          'Check your email spam folder',
+          'Wait 5-10 minutes in case of delay',
+          'Try with another browser',
+          'Contact support if it persists'
+        ]
+      }
+    };
+
+    const steps = troubleshooting[language] || troubleshooting.es;
+    const errorType = error.type || 'UNKNOWN_ERROR';
+    
+    return steps[errorType] || steps.UNKNOWN_ERROR;
   }
 
   /**
