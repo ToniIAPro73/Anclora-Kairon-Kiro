@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Enhanced Auth Modal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1f2937 0%, #334155 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">Enhanced Auth Modal Test</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Modal Actions</h2>
+                <div class="space-y-3">
+                    <button id="open-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors">
+                        Open Login Modal
+                    </button>
+                    <button id="open-register" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors">
+                        Open Register Modal
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Error Simulation</h2>
+                <div class="space-y-3">
+                    <button id="simulate-network-error" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors">
+                        Simulate Network Error
+                    </button>
+                    <button id="simulate-invalid-credentials" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded transition-colors">
+                        Simulate Invalid Credentials
+                    </button>
+                    <button id="simulate-user-exists" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded transition-colors">
+                        Simulate User Exists
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="test-results" class="space-y-2 text-sm">
+                <p class="text-gray-400">Click buttons above to test enhanced auth modal functionality...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import modules -->
+    <script type="module">
+        import AuthModalVanilla from './src/shared/components/AuthModalVanilla.js';
+        import { authService } from './src/shared/services/authService.js';
+        import i18n from './src/shared/utils/i18n.js';
+
+        // Initialize i18n
+        await i18n.init();
+
+        // Create modal instance
+        const authModal = new AuthModalVanilla();
+        
+        // Test results container
+        const testResults = document.getElementById('test-results');
+        
+        function addTestResult(message, type = 'info') {
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400'
+            };
+            
+            const result = document.createElement('p');
+            result.className = colors[type] || colors.info;
+            result.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            testResults.appendChild(result);
+            testResults.scrollTop = testResults.scrollHeight;
+        }
+
+        // Modal action handlers
+        document.getElementById('open-login').addEventListener('click', () => {
+            addTestResult('Opening login modal...', 'info');
+            authModal.open('login');
+        });
+
+        document.getElementById('open-register').addEventListener('click', () => {
+            addTestResult('Opening register modal...', 'info');
+            authModal.open('register');
+        });
+
+        // Error simulation handlers
+        document.getElementById('simulate-network-error').addEventListener('click', () => {
+            addTestResult('Simulating network error...', 'warning');
+            // Mock network error in authService
+            const originalLogin = authService.loginWithConnectionRetry;
+            authService.loginWithConnectionRetry = async () => {
+                throw new Error('Network error: Could not connect to server');
+            };
+            
+            // Restore after 10 seconds
+            setTimeout(() => {
+                authService.loginWithConnectionRetry = originalLogin;
+                addTestResult('Network error simulation ended', 'info');
+            }, 10000);
+            
+            authModal.open('login');
+        });
+
+        document.getElementById('simulate-invalid-credentials').addEventListener('click', () => {
+            addTestResult('Simulating invalid credentials error...', 'warning');
+            // Mock invalid credentials error
+            const originalLogin = authService.loginWithConnectionRetry;
+            authService.loginWithConnectionRetry = async () => {
+                return {
+                    success: false,
+                    error: new Error('AUTH_INVALID_CREDENTIALS'),
+                    canRetry: true
+                };
+            };
+            
+            // Restore after 10 seconds
+            setTimeout(() => {
+                authService.loginWithConnectionRetry = originalLogin;
+                addTestResult('Invalid credentials simulation ended', 'info');
+            }, 10000);
+            
+            authModal.open('login');
+        });
+
+        document.getElementById('simulate-user-exists').addEventListener('click', () => {
+            addTestResult('Simulating user exists error...', 'warning');
+            // Mock user exists error
+            const originalRegister = authService.registerWithConnectionRetry;
+            authService.registerWithConnectionRetry = async () => {
+                return {
+                    success: false,
+                    error: new Error('AUTH_USER_EXISTS'),
+                    canRetry: false
+                };
+            };
+            
+            // Restore after 10 seconds
+            setTimeout(() => {
+                authService.registerWithConnectionRetry = originalRegister;
+                addTestResult('User exists simulation ended', 'info');
+            }, 10000);
+            
+            authModal.open('register');
+        });
+
+        // Log modal events
+        const originalClose = authModal.close;
+        authModal.close = function() {
+            addTestResult('Modal closed', 'success');
+            originalClose.call(this);
+        };
+
+        addTestResult('Enhanced Auth Modal test page loaded successfully', 'success');
+    </script>
+</body>
+</html>

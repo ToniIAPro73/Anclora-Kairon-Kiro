@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Feedback System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">User Feedback System Test</h1>
+        
+        <!-- Test Container -->
+        <div id="test-container" class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Area</h2>
+            <p class="text-gray-600 mb-4">This area will show feedback messages</p>
+        </div>
+        
+        <!-- Control Buttons -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold mb-4">Test Controls</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Loading Tests -->
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-700">Loading States</h3>
+                    <button id="show-loading-login" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Show Login Loading
+                    </button>
+                    <button id="show-loading-register" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Show Register Loading
+                    </button>
+                    <button id="hide-loading" class="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                        Hide Loading
+                    </button>
+                </div>
+                
+                <!-- Error Tests -->
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-700">Error States</h3>
+                    <button id="show-error-network" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        Show Network Error
+                    </button>
+                    <button id="show-error-credentials" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        Show Invalid Credentials
+                    </button>
+                    <button id="show-error-retry" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        Show Error with Retry
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Success Tests -->
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-700">Success States</h3>
+                    <button id="show-success-login" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Show Login Success
+                    </button>
+                    <button id="show-success-register" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Show Register Success
+                    </button>
+                </div>
+                
+                <!-- Global Tests -->
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-700">Global Feedback</h3>
+                    <button id="show-global-loading" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Show Global Loading
+                    </button>
+                    <button id="show-global-error" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Show Global Error
+                    </button>
+                    <button id="clear-all" class="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Language Toggle -->
+            <div class="mt-6 pt-4 border-t">
+                <h3 class="font-medium text-gray-700 mb-2">Language</h3>
+                <button id="toggle-language" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                    Switch to English
+                </button>
+                <span id="current-language" class="ml-2 text-sm text-gray-600">Current: Español</span>
+            </div>
+        </div>
+        
+        <!-- State Display -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+            <h2 class="text-xl font-semibold mb-4">Current State</h2>
+            <pre id="state-display" class="bg-gray-100 p-4 rounded text-sm overflow-auto"></pre>
+        </div>
+    </div>
+
+    <script type="module">
+        import { UserFeedbackSystem } from './src/shared/services/userFeedbackSystem.js';
+        import i18n from './src/shared/utils/i18n.js';
+        
+        // Initialize i18n
+        i18n.init();
+        
+        // Create feedback system instance
+        const feedbackSystem = new UserFeedbackSystem();
+        const testContainer = document.getElementById('test-container');
+        const stateDisplay = document.getElementById('state-display');
+        
+        // Update state display
+        function updateStateDisplay() {
+            const state = feedbackSystem.getCurrentState();
+            stateDisplay.textContent = JSON.stringify(state, null, 2);
+        }
+        
+        // Initial state display
+        updateStateDisplay();
+        
+        // Loading tests
+        document.getElementById('show-loading-login').addEventListener('click', () => {
+            feedbackSystem.showLoading('login', null, testContainer);
+            updateStateDisplay();
+        });
+        
+        document.getElementById('show-loading-register').addEventListener('click', () => {
+            feedbackSystem.showLoading('register', null, testContainer);
+            updateStateDisplay();
+        });
+        
+        document.getElementById('hide-loading').addEventListener('click', () => {
+            feedbackSystem.hideLoading(testContainer);
+            updateStateDisplay();
+        });
+        
+        // Error tests
+        document.getElementById('show-error-network').addEventListener('click', () => {
+            feedbackSystem.showError('NETWORK_ERROR', { targetElement: testContainer });
+            updateStateDisplay();
+        });
+        
+        document.getElementById('show-error-credentials').addEventListener('click', () => {
+            feedbackSystem.showError('AUTH_INVALID_CREDENTIALS', { targetElement: testContainer });
+            updateStateDisplay();
+        });
+        
+        document.getElementById('show-error-retry').addEventListener('click', () => {
+            feedbackSystem.showError('NETWORK_ERROR', {
+                targetElement: testContainer,
+                canRetry: true,
+                retryCallback: () => {
+                    console.log('Retry clicked!');
+                    feedbackSystem.showLoading('retrying', null, testContainer);
+                    setTimeout(() => {
+                        feedbackSystem.showSuccess('login', testContainer);
+                        updateStateDisplay();
+                    }, 2000);
+                }
+            });
+            updateStateDisplay();
+        });
+        
+        // Success tests
+        document.getElementById('show-success-login').addEventListener('click', () => {
+            feedbackSystem.showSuccess('login', testContainer);
+            updateStateDisplay();
+        });
+        
+        document.getElementById('show-success-register').addEventListener('click', () => {
+            feedbackSystem.showSuccess('register', testContainer);
+            updateStateDisplay();
+        });
+        
+        // Global tests
+        document.getElementById('show-global-loading').addEventListener('click', () => {
+            feedbackSystem.showLoading('login');
+            updateStateDisplay();
+        });
+        
+        document.getElementById('show-global-error').addEventListener('click', () => {
+            feedbackSystem.showError('SERVER_ERROR', {
+                canRetry: true,
+                retryCallback: () => {
+                    console.log('Global retry clicked!');
+                    feedbackSystem.hideError();
+                    updateStateDisplay();
+                }
+            });
+            updateStateDisplay();
+        });
+        
+        document.getElementById('clear-all').addEventListener('click', () => {
+            feedbackSystem.clearAll(testContainer);
+            updateStateDisplay();
+        });
+        
+        // Language toggle
+        document.getElementById('toggle-language').addEventListener('click', () => {
+            const currentLang = i18n.getCurrentLanguage();
+            const newLang = currentLang === 'es' ? 'en' : 'es';
+            i18n.setLanguage(newLang);
+            
+            const toggleBtn = document.getElementById('toggle-language');
+            const langDisplay = document.getElementById('current-language');
+            
+            if (newLang === 'en') {
+                toggleBtn.textContent = 'Switch to Español';
+                langDisplay.textContent = 'Current: English';
+            } else {
+                toggleBtn.textContent = 'Switch to English';
+                langDisplay.textContent = 'Current: Español';
+            }
+        });
+        
+        // Listen for language changes to update feedback messages
+        window.addEventListener('languageChanged', () => {
+            updateStateDisplay();
+        });
+    </script>
+</body>
+</html>

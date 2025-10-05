@@ -2,6 +2,7 @@ import { validateEmail, validatePassword, validateRegistrationForm, validateLogi
 import { authService } from '../services/authService.js';
 import { connectionMonitor, CONNECTION_STATUS } from '../services/connectionMonitor.js';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator.js';
+import { UserFeedbackSystem } from '../services/userFeedbackSystem.js';
 import i18n from '../utils/i18n.js';
 
 /**
@@ -17,6 +18,7 @@ export default class AuthModalVanilla {
     this.backdropElement = null;
     this.translations = i18n.getTranslations();
     this.connectionIndicator = null;
+    this.feedbackSystem = new UserFeedbackSystem();
     this.setupLanguageListener();
     this.setupConnectionMonitoring();
   }
@@ -485,7 +487,7 @@ export default class AuthModalVanilla {
   }
 
   /**
-   * Setup form submission handlers
+   * Setup form submission handlers with enhanced error handling
    */
   setupFormHandlers() {
     // Login form
@@ -495,6 +497,9 @@ export default class AuthModalVanilla {
         e.preventDefault();
         await this.handleLogin(e.target);
       });
+      
+      // Clear errors when user starts typing
+      this.setupInputErrorClearing(loginForm, 'login');
     }
 
     // Register form
@@ -504,6 +509,9 @@ export default class AuthModalVanilla {
         e.preventDefault();
         await this.handleRegister(e.target);
       });
+      
+      // Clear errors when user starts typing
+      this.setupInputErrorClearing(registerForm, 'register');
     }
 
     // Forgot password form
@@ -513,7 +521,42 @@ export default class AuthModalVanilla {
         e.preventDefault();
         await this.handleForgotPassword(e.target);
       });
+      
+      // Clear errors when user starts typing
+      this.setupInputErrorClearing(forgotForm, 'forgot');
     }
+  }
+
+  /**
+   * Setup input event listeners to clear errors when user starts typing
+   */
+  setupInputErrorClearing(form, formType) {
+    const inputs = form.querySelectorAll('input');
+    inputs.forEach(input => {
+      input.addEventListener('input', () => {
+        // Clear individual field error
+        const errorDiv = input.parentElement.querySelector('.error-message');
+        if (errorDiv && !errorDiv.classList.contains('hidden')) {
+          input.classList.remove('border-red-400', 'focus:border-red-400', 'focus:ring-red-400');
+          input.classList.add('border-[#2EAFC4]/30', 'focus:border-[#2EAFC4]', 'focus:ring-[#2EAFC4]');
+          errorDiv.classList.add('hidden');
+          errorDiv.textContent = '';
+        }
+        
+        // Clear general form errors after user starts correcting
+        const container = form.parentElement;
+        this.feedbackSystem.hideError(container);
+      });
+      
+      // Also clear on focus for better UX
+      input.addEventListener('focus', () => {
+        const errorDiv = input.parentElement.querySelector('.error-message');
+        if (errorDiv && !errorDiv.classList.contains('hidden')) {
+          input.classList.remove('border-red-400', 'focus:border-red-400', 'focus:ring-red-400');
+          input.classList.add('border-[#2EAFC4]/30', 'focus:border-[#2EAFC4]', 'focus:ring-[#2EAFC4]');
+        }
+      });
+    });
   }
 
   /**
@@ -574,7 +617,7 @@ export default class AuthModalVanilla {
   }
 
   /**
-   * Handle login form submission with connection monitoring
+   * Handle login form submission with enhanced error handling
    */
   async handleLogin(form) {
     const formData = new FormData(form);
@@ -589,9 +632,9 @@ export default class AuthModalVanilla {
       return;
     }
 
-    const submitBtn = document.getElementById('login-submit');
-    submitBtn.disabled = true;
-    submitBtn.textContent = this.translations.authLoggingIn;
+    // Show loading state using UserFeedbackSystem
+    const loginContainer = document.querySelector('#login-form').parentElement;
+    this.feedbackSystem.showLoading('login', null, loginContainer);
 
     try {
       // Use enhanced login with connection retry
@@ -602,28 +645,40 @@ export default class AuthModalVanilla {
       });
 
       if (result.success) {
-        // Show success message if connection was restored during process
+        // Show success message
+        this.feedbackSystem.showSuccess('login', loginContainer, 2000);
+        
+        // Show connection restored message if applicable
         if (result.connectivityRestored) {
           this.showConnectionRestoredMessage();
         }
         
-        this.close();
-        // Redirect to app
-        window.location.href = '/app';
+        // Close modal after brief delay to show success
+        setTimeout(() => {
+          this.close();
+          window.location.href = '/app';
+        }, 1500);
       } else {
-        // Handle enhanced error with connection context
-        this.showEnhancedError('login', result.error, result);
+        // Handle enhanced error with retry options
+        this.feedbackSystem.showError(result.error, {
+          canRetry: result.canRetry !== false,
+          retryCallback: () => this.handleLogin(form),
+          targetElement: loginContainer,
+          waitTime: result.waitTime
+        });
       }
     } catch (error) {
-      this.showError('login', error.message);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = this.translations.authLoginButton;
+      // Handle unexpected errors
+      this.feedbackSystem.showError(error, {
+        canRetry: true,
+        retryCallback: () => this.handleLogin(form),
+        targetElement: loginContainer
+      });
     }
   }
 
   /**
-   * Handle register form submission with connection monitoring
+   * Handle register form submission with enhanced error handling
    */
   async handleRegister(form) {
     const formData = new FormData(form);
@@ -640,9 +695,9 @@ export default class AuthModalVanilla {
       return;
     }
 
-    const submitBtn = document.getElementById('register-submit');
-    submitBtn.disabled = true;
-    submitBtn.textContent = this.translations.authCreatingAccount;
+    // Show loading state using UserFeedbackSystem
+    const registerContainer = document.querySelector('#register-form').parentElement;
+    this.feedbackSystem.showLoading('register', null, registerContainer);
 
     try {
       // Use enhanced register with connection retry
@@ -653,62 +708,85 @@ export default class AuthModalVanilla {
       });
 
       if (result.success) {
-        // Show success message if connection was restored during process
+        // Show success message
+        this.feedbackSystem.showSuccess('register', registerContainer, 3000);
+        
+        // Show connection restored message if applicable
         if (result.connectivityRestored) {
           this.showConnectionRestoredMessage();
         }
         
-        this.close();
-        // Redirect to app
-        window.location.href = '/app';
+        // Close modal after brief delay to show success
+        setTimeout(() => {
+          this.close();
+          // Redirect to onboarding or app
+          window.location.href = '/app';
+        }, 2000);
       } else {
-        // Handle enhanced error with connection context
-        this.showEnhancedError('register', result.error, result);
+        // Handle enhanced error with retry options
+        this.feedbackSystem.showError(result.error, {
+          canRetry: result.canRetry !== false,
+          retryCallback: () => this.handleRegister(form),
+          targetElement: registerContainer,
+          waitTime: result.waitTime
+        });
       }
     } catch (error) {
-      this.showError('register', error.message);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = this.translations.authRegisterButton;
+      // Handle unexpected errors
+      this.feedbackSystem.showError(error, {
+        canRetry: true,
+        retryCallback: () => this.handleRegister(form),
+        targetElement: registerContainer
+      });
     }
   }
 
   /**
-   * Handle forgot password form submission
+   * Handle forgot password form submission with enhanced error handling
    */
   async handleForgotPassword(form) {
     const formData = new FormData(form);
     const email = formData.get('email');
 
     if (!validateEmail(email)) {
-      this.showError('forgot', 'Ingresa un email válido');
+      const forgotContainer = form.parentElement;
+      this.feedbackSystem.showError('INVALID_EMAIL_FORMAT', {
+        canRetry: false,
+        targetElement: forgotContainer
+      });
       return;
     }
 
-    const submitBtn = document.getElementById('forgot-submit');
-    submitBtn.disabled = true;
-    submitBtn.textContent = this.translations.authSending;
+    // Show loading state
+    const forgotContainer = form.parentElement;
+    this.feedbackSystem.showLoading('forgotPassword', null, forgotContainer);
 
     try {
       await authService.resetPassword(email);
       // Show success message
-      this.showForgotPasswordSuccess(email);
+      this.feedbackSystem.showSuccess('forgotPassword', forgotContainer, 5000);
     } catch (error) {
-      this.showError('forgot', error.message);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = this.translations.authSendRecoveryLink;
+      // Handle error with retry option
+      this.feedbackSystem.showError(error, {
+        canRetry: true,
+        retryCallback: () => this.handleForgotPassword(form),
+        targetElement: forgotContainer
+      });
     }
   }
 
   /**
-   * Handle Google OAuth
+   * Handle Google OAuth with enhanced error handling
    */
   async handleGoogleAuth() {
     const googleBtn = document.getElementById('google-login') || document.getElementById('google-register');
     if (!googleBtn) return;
 
     const originalText = googleBtn.innerHTML;
+    const container = googleBtn.closest('.space-y-5, .space-y-6');
+    
+    // Show loading state
+    this.feedbackSystem.showLoading('login', this.translations.authConnecting, container);
     googleBtn.disabled = true;
     googleBtn.innerHTML = `
       <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -719,23 +797,34 @@ export default class AuthModalVanilla {
 
     try {
       await authService.loginWithGoogle();
-      this.close();
-      window.location.href = '/app';
+      this.feedbackSystem.showSuccess('login', container, 1500);
+      setTimeout(() => {
+        this.close();
+        window.location.href = '/app';
+      }, 1000);
     } catch (error) {
-      this.showError(this.activeTab, error.message);
+      this.feedbackSystem.showError(error, {
+        canRetry: true,
+        retryCallback: () => this.handleGoogleAuth(),
+        targetElement: container
+      });
       googleBtn.disabled = false;
       googleBtn.innerHTML = originalText;
     }
   }
 
   /**
-   * Handle GitHub OAuth
+   * Handle GitHub OAuth with enhanced error handling
    */
   async handleGitHubAuth() {
     const githubBtn = document.getElementById('github-login') || document.getElementById('github-register');
     if (!githubBtn) return;
 
     const originalText = githubBtn.innerHTML;
+    const container = githubBtn.closest('.space-y-5, .space-y-6');
+    
+    // Show loading state
+    this.feedbackSystem.showLoading('login', this.translations.authConnecting, container);
     githubBtn.disabled = true;
     githubBtn.innerHTML = `
       <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -746,39 +835,108 @@ export default class AuthModalVanilla {
 
     try {
       await authService.loginWithGitHub();
-      this.close();
-      window.location.href = '/app';
+      this.feedbackSystem.showSuccess('login', container, 1500);
+      setTimeout(() => {
+        this.close();
+        window.location.href = '/app';
+      }, 1000);
     } catch (error) {
-      this.showError(this.activeTab, error.message);
+      this.feedbackSystem.showError(error, {
+        canRetry: true,
+        retryCallback: () => this.handleGitHubAuth(),
+        targetElement: container
+      });
       githubBtn.disabled = false;
       githubBtn.innerHTML = originalText;
     }
   }
 
   /**
-   * Show form validation errors
+   * Show form validation errors with enhanced styling
    */
   showFormErrors(formType, errors) {
+    // Clear any existing feedback
+    const container = document.querySelector(`#${formType}-form`).parentElement;
+    this.feedbackSystem.hideError(container);
+    this.feedbackSystem.hideLoading(container);
+    
+    // Show individual field errors
     Object.keys(errors).forEach(field => {
       const input = document.getElementById(`${formType}-${field}`);
       const errorDiv = input?.parentElement.querySelector('.error-message');
       
       if (input && errorDiv) {
-        input.classList.add('border-red-300', 'bg-red-50');
+        input.classList.add('border-red-400', 'focus:border-red-400', 'focus:ring-red-400');
+        input.classList.remove('border-[#2EAFC4]/30', 'focus:border-[#2EAFC4]', 'focus:ring-[#2EAFC4]');
         errorDiv.textContent = errors[field];
         errorDiv.classList.remove('hidden');
+        errorDiv.classList.add('fade-in');
       }
     });
+    
+    // Also show a general validation error using the feedback system
+    const firstError = Object.values(errors)[0];
+    if (firstError) {
+      this.feedbackSystem.showError('INVALID_EMAIL_FORMAT', {
+        canRetry: false,
+        targetElement: container
+      });
+    }
   }
 
   /**
-   * Show general error message
+   * Clear form validation errors
    */
-  showError(formType, message) {
-    const errorDiv = document.getElementById(`${formType}-error`);
-    if (errorDiv) {
-      errorDiv.querySelector('p').textContent = message;
-      errorDiv.classList.remove('hidden');
+  clearFormErrors(formType) {
+    const form = document.getElementById(`${formType}-form`);
+    if (!form) return;
+    
+    // Clear individual field errors
+    const inputs = form.querySelectorAll('input');
+    inputs.forEach(input => {
+      input.classList.remove('border-red-400', 'focus:border-red-400', 'focus:ring-red-400');
+      input.classList.add('border-[#2EAFC4]/30', 'focus:border-[#2EAFC4]', 'focus:ring-[#2EAFC4]');
+      
+      const errorDiv = input.parentElement.querySelector('.error-message');
+      if (errorDiv) {
+        errorDiv.classList.add('hidden');
+        errorDiv.classList.remove('fade-in');
+        errorDiv.textContent = '';
+      }
+    });
+    
+    // Clear feedback system errors
+    const container = form.parentElement;
+    this.feedbackSystem.hideError(container);
+  }
+
+  /**
+   * Show connection restored message
+   */
+  showConnectionRestoredMessage() {
+    const message = i18n.getCurrentLanguage() === 'es' 
+      ? 'Conexión restaurada. Continuando...'
+      : 'Connection restored. Continuing...';
+    
+    this.feedbackSystem.showSuccess(message, null, 2000);
+  }
+
+  /**
+   * Add connection status indicator to modal
+   */
+  addConnectionStatusToModal() {
+    if (this.connectionIndicator && this.modalElement) {
+      // Create container for connection status if it doesn't exist
+      let statusContainer = this.modalElement.querySelector('#auth-modal-connection-status');
+      if (!statusContainer) {
+        statusContainer = document.createElement('div');
+        statusContainer.id = 'auth-modal-connection-status';
+        statusContainer.className = 'absolute top-16 right-5 z-20';
+        this.modalElement.appendChild(statusContainer);
+      }
+      
+      // Initialize the connection indicator in the modal
+      this.connectionIndicator.init();
     }
   }
 
