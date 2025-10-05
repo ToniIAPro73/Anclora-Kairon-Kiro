@@ -36,6 +36,18 @@
         <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 mb-8">
             <h2 class="text-2xl font-bold mb-6 text-white">Prueba el Modal de Autenticación</h2>
             
+            <!-- Language Selector -->
+            <div class="flex justify-center mb-6">
+                <div class="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/30">
+                    <button id="lang-es" class="px-4 py-2 rounded-lg text-white font-semibold transition-all duration-200 bg-white/20">
+                        🇪🇸 Español
+                    </button>
+                    <button id="lang-en" class="px-4 py-2 rounded-lg text-white font-semibold transition-all duration-200 hover:bg-white/20">
+                        🇺🇸 English
+                    </button>
+                </div>
+            </div>
+            
             <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <button id="test-login" class="bg-white/20 hover:bg-white/30 text-white px-8 py-4 rounded-xl font-semibold text-lg border border-white/30 hover:border-white/50 transition-all duration-300 backdrop-blur-sm">
                     🔑 Probar Login
@@ -70,8 +82,43 @@
     </div>
 
     <script type="module">
-        // Import the auth modal
+        // Import the auth modal and i18n
         import { authModalVanilla } from './src/shared/components/AuthModalVanilla.js';
+        import i18n from './src/shared/utils/i18n.js';
+        
+        // Initialize i18n
+        i18n.init();
+        
+        // Language selector
+        const langEs = document.getElementById('lang-es');
+        const langEn = document.getElementById('lang-en');
+        
+        function updateLanguageButtons(currentLang) {
+            if (currentLang === 'es') {
+                langEs.classList.add('bg-white/20');
+                langEs.classList.remove('hover:bg-white/20');
+                langEn.classList.remove('bg-white/20');
+                langEn.classList.add('hover:bg-white/20');
+            } else {
+                langEn.classList.add('bg-white/20');
+                langEn.classList.remove('hover:bg-white/20');
+                langEs.classList.remove('bg-white/20');
+                langEs.classList.add('hover:bg-white/20');
+            }
+        }
+        
+        // Set initial language state
+        updateLanguageButtons(i18n.getCurrentLanguage());
+        
+        langEs.addEventListener('click', () => {
+            i18n.setLanguage('es');
+            updateLanguageButtons('es');
+        });
+        
+        langEn.addEventListener('click', () => {
+            i18n.setLanguage('en');
+            updateLanguageButtons('en');
+        });
         
         // Test buttons
         document.getElementById('test-login').addEventListener('click', () => {
@@ -82,7 +129,7 @@
             authModalVanilla.open('register');
         });
         
-        console.log('🚀 Auth modal test page loaded - Improved legibility version');
+        console.log('🚀 Auth modal test page loaded - i18n version');
     </script>
 </body>
 </html>
