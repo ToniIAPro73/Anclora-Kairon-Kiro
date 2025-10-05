@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Onboarding - Anclora Kairon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --azul-profundo: #23436B;
+            --azul-claro: #2EAFC4;
+            --teal-secundario: #37B5A4;
+            --ambar-suave: #FFC979;
+            --gris-claro: #F6F7F9;
+            --negro-azulado: #162032;
+            --blanco: #FFFFFF;
+            --gradient-hero: linear-gradient(120deg, #23436B 0%, #2EAFC4 100%);
+            --gradient-action: linear-gradient(90deg, #2EAFC4 0%, #FFC979 100%);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--negro-azulado);
+            color: var(--gris-claro);
+            margin: 0;
+            padding: 0;
+        }
+
+        .btn-primary {
+            background: var(--gradient-action);
+            color: var(--negro-azulado);
+            border: none;
+            border-radius: 12px;
+            padding: 16px 32px;
+            font-weight: 700;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(46, 175, 196, 0.3);
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 175, 196, 0.4);
+        }
+
+        .card {
+            background: rgba(46, 175, 196, 0.15);
+            border: 1px solid rgba(46, 175, 196, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            color: #FCA5A5;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            color: #6EE7B7;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="card p-12 max-w-2xl w-full">
+            <div class="text-center mb-8">
+                <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-r from-[#2EAFC4] to-[#FFC979] rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-[#162032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-bold mb-4" style="font-family: 'Libre Baskerville', serif;">
+                    Guía para Ejecutar el Onboarding
+                </h1>
+                <p class="text-xl opacity-80">
+                    Sigue estos pasos para probar el onboarding
+                </p>
+            </div>
+
+            <div id="instructions" class="space-y-6">
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-[#2EAFC4]">📋 Paso a Paso</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-[#2EAFC4] text-[#162032] rounded-full flex items-center justify-center font-bold text-sm">1</div>
+                            <div>
+                                <h3 class="font-bold text-[#F6F7F9] mb-2">Iniciar Servidor Local</h3>
+                                <p class="text-[#F6F7F9]/80 mb-2">Abre tu terminal y ejecuta uno de estos comandos:</p>
+                                <div class="bg-black/30 p-3 rounded-lg font-mono text-sm">
+                                    <div class="mb-2"><span class="text-[#2EAFC4]"># Opción 1 - Con npm (si tienes Node.js)</span></div>
+                                    <div class="mb-2">npm run dev</div>
+                                    <div class="mb-2"><span class="text-[#2EAFC4]"># Opción 2 - Con Python</span></div>
+                                    <div class="mb-2">python -m http.server 8000</div>
+                                    <div class="mb-2"><span class="text-[#2EAFC4]"># Opción 3 - Con Live Server (VS Code)</span></div>
+                                    <div>Clic derecho → "Open with Live Server"</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-[#2EAFC4] text-[#162032] rounded-full flex items-center justify-center font-bold text-sm">2</div>
+                            <div>
+                                <h3 class="font-bold text-[#F6F7F9] mb-2">Abrir en Navegador</h3>
+                                <p class="text-[#F6F7F9]/80 mb-2">Ve a una de estas URLs:</p>
+                                <div class="bg-black/30 p-3 rounded-lg font-mono text-sm">
+                                    <div class="mb-1">http://localhost:5173/test-onboarding-simple.html</div>
+                                    <div class="mb-1">http://localhost:8000/test-onboarding-simple.html</div>
+                                    <div>http://127.0.0.1:5500/test-onboarding-simple.html</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-[#2EAFC4] text-[#162032] rounded-full flex items-center justify-center font-bold text-sm">3</div>
+                            <div>
+                                <h3 class="font-bold text-[#F6F7F9] mb-2">Ejecutar Onboarding</h3>
+                                <p class="text-[#F6F7F9]/80">Haz clic en el botón "🚀 Iniciar Onboarding" y completa los 4 pasos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-[#FFC979]">⚡ Método Rápido</h2>
+                    <p class="text-[#F6F7F9]/80 mb-4">Si tienes VS Code con Live Server:</p>
+                    <ol class="list-decimal list-inside space-y-2 text-[#F6F7F9]/80">
+                        <li>Abre <code class="bg-black/30 px-2 py-1 rounded">test-onboarding-simple.html</code> en VS Code</li>
+                        <li>Clic derecho → "Open with Live Server"</li>
+                        <li>Se abrirá automáticamente en tu navegador</li>
+                        <li>Haz clic en "🚀 Iniciar Onboarding"</li>
+                    </ol>
+                </div>
+
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-[#37B5A4]">🔧 Solución de Problemas</h2>
+                    <div class="space-y-3 text-[#F6F7F9]/80">
+                        <div>
+                            <strong>Error de CORS/Módulos:</strong> Necesitas un servidor HTTP, no puedes abrir el archivo directamente.
+                        </div>
+                        <div>
+                            <strong>Archivos no encontrados:</strong> Asegúrate de estar en la carpeta raíz del proyecto.
+                        </div>
+                        <div>
+                            <strong>JavaScript no funciona:</strong> Revisa la consola del navegador (F12) para ver errores.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button id="test-direct" class="btn-primary">
+                        🧪 Probar Onboarding Directo (Solo si tienes servidor)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('test-direct').addEventListener('click', async () => {
+            try {
+                // Try to load the modules dynamically
+                const { authService } = await import('./src/shared/services/authService.js');
+                const { onboardingWizard } = await import('./src/shared/components/OnboardingWizard.js');
+                
+                // Make authService available globally
+                window.authService = authService;
+                
+                // Open onboarding
+                onboardingWizard.open();
+                
+            } catch (error) {
+                console.error('Error loading modules:', error);
+                alert('❌ Error: Necesitas un servidor HTTP para ejecutar el onboarding.\n\nSigue los pasos de arriba para iniciar un servidor local.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,18 +1,94 @@
+import { supabase } from '../config/supabase.js';
+
 /**
  * Authentication service for handling user authentication
- * This is a mock implementation for MVP - replace with real API calls
+ * Uses Supabase Auth with fallback to mock implementation
  */
 
 class AuthService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
     this.currentUser = null;
-    this.token = localStorage.getItem('auth_token');
+    this.session = null;
+    this.isSupabaseEnabled = !!supabase;
     
-    // Initialize user from token if exists
-    if (this.token) {
-      this.getCurrentUser();
+    // Initialize auth state
+    this.initializeAuth();
+  }
+
+  /**
+   * Initialize authentication state
+   */
+  async initializeAuth() {
+    if (this.isSupabaseEnabled) {
+      // Get initial session
+      const { data: { session } } = await supabase.auth.getSession();
+      this.session = session;
+      this.currentUser = session?.user || null;
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event, session);
+        this.session = session;
+        this.currentUser = session?.user || null;
+        
+        // Handle auth events
+        if (event === 'SIGNED_IN') {
+          this.handleSignIn(session);
+        } else if (event === 'SIGNED_OUT') {
+          this.handleSignOut();
+        }
+      });
+    } else {
+      // Fallback to localStorage for mock implementation
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        this.getCurrentUser();
+      }
     }
+  }
+
+  /**
+   * Handle successful sign in
+   */
+  async handleSignIn(session) {
+    if (!session?.user) return;
+
+    // Check if user profile exists, create if not
+    const { data: userProfile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // User profile doesn't exist, create it
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.name || session.user.email,
+          avatar_url: session.user.user_metadata?.avatar_url
+        });
+
+      if (insertError) {
+        console.error('Error creating user profile:', insertError);
+      }
+    }
+
+    // Mark as new user if first time
+    if (!userProfile?.onboarding_completed) {
+      localStorage.setItem('is_new_user', 'true');
+    }
+  }
+
+  /**
+   * Handle sign out
+   */
+  handleSignOut() {
+    localStorage.removeItem('is_new_user');
+    localStorage.removeItem('onboarding_completed');
+    localStorage.removeItem('user_onboarding_data');
   }
 
   /**
@@ -23,20 +99,32 @@ class AuthService {
    */
   async login(email, password) {
     try {
-      // Mock API call - replace with real implementation
-      const response = await this.mockApiCall('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password })
-      });
+      if (this.isSupabaseEnabled) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
 
-      if (response.success) {
-        this.token = response.token;
-        this.currentUser = response.user;
-        localStorage.setItem('auth_token', this.token);
-        localStorage.setItem('user_data', JSON.stringify(this.currentUser));
-        return response.user;
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return data.user;
       } else {
-        throw new Error(response.message || 'Error al iniciar sesión');
+        // Fallback to mock implementation
+        const response = await this.mockApiCall('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password })
+        });
+
+        if (response.success) {
+          this.currentUser = response.user;
+          localStorage.setItem('auth_token', response.token);
+          localStorage.setItem('user_data', JSON.stringify(this.currentUser));
+          return response.user;
+        } else {
+          throw new Error(response.message || 'Error al iniciar sesión');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -53,20 +141,41 @@ class AuthService {
    */
   async register(name, email, password) {
     try {
-      // Mock API call - replace with real implementation
-      const response = await this.mockApiCall('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ name, email, password })
-      });
+      if (this.isSupabaseEnabled) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: name
+            }
+          }
+        });
 
-      if (response.success) {
-        this.token = response.token;
-        this.currentUser = response.user;
-        localStorage.setItem('auth_token', this.token);
-        localStorage.setItem('user_data', JSON.stringify(this.currentUser));
-        return response.user;
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Mark user as new for onboarding
+        localStorage.setItem('is_new_user', 'true');
+
+        return data.user;
       } else {
-        throw new Error(response.message || 'Error al crear la cuenta');
+        // Fallback to mock implementation
+        const response = await this.mockApiCall('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password })
+        });
+
+        if (response.success) {
+          this.currentUser = response.user;
+          localStorage.setItem('auth_token', response.token);
+          localStorage.setItem('user_data', JSON.stringify(this.currentUser));
+          localStorage.setItem('is_new_user', 'true');
+          return response.user;
+        } else {
+          throw new Error(response.message || 'Error al crear la cuenta');
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -80,20 +189,35 @@ class AuthService {
    */
   async loginWithGoogle() {
     try {
-      // Mock implementation for development
-      const response = await this.mockApiCall('/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ provider: 'google' })
-      });
+      if (this.isSupabaseEnabled) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
 
-      if (response.success) {
-        this.token = response.token;
-        this.currentUser = response.user;
-        localStorage.setItem('auth_token', this.token);
-        localStorage.setItem('user_data', JSON.stringify(this.currentUser));
-        return response.user;
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // OAuth redirect will handle the rest
+        return data;
       } else {
-        throw new Error(response.message || 'Error en autenticación con Google');
+        // Fallback to mock implementation
+        const response = await this.mockApiCall('/auth/google', {
+          method: 'POST',
+          body: JSON.stringify({ provider: 'google' })
+        });
+
+        if (response.success) {
+          this.currentUser = response.user;
+          localStorage.setItem('auth_token', response.token);
+          localStorage.setItem('user_data', JSON.stringify(this.currentUser));
+          return response.user;
+        } else {
+          throw new Error(response.message || 'Error en autenticación con Google');
+        }
       }
     } catch (error) {
       console.error('Google login error:', error);
@@ -107,20 +231,35 @@ class AuthService {
    */
   async loginWithGitHub() {
     try {
-      // Mock implementation for development
-      const response = await this.mockApiCall('/auth/github', {
-        method: 'POST',
-        body: JSON.stringify({ provider: 'github' })
-      });
+      if (this.isSupabaseEnabled) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'github',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
 
-      if (response.success) {
-        this.token = response.token;
-        this.currentUser = response.user;
-        localStorage.setItem('auth_token', this.token);
-        localStorage.setItem('user_data', JSON.stringify(this.currentUser));
-        return response.user;
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // OAuth redirect will handle the rest
+        return data;
       } else {
-        throw new Error(response.message || 'Error en autenticación con GitHub');
+        // Fallback to mock implementation
+        const response = await this.mockApiCall('/auth/github', {
+          method: 'POST',
+          body: JSON.stringify({ provider: 'github' })
+        });
+
+        if (response.success) {
+          this.currentUser = response.user;
+          localStorage.setItem('auth_token', response.token);
+          localStorage.setItem('user_data', JSON.stringify(this.currentUser));
+          return response.user;
+        } else {
+          throw new Error(response.message || 'Error en autenticación con GitHub');
+        }
       }
     } catch (error) {
       console.error('GitHub login error:', error);
@@ -135,15 +274,28 @@ class AuthService {
    */
   async resetPassword(email) {
     try {
-      const response = await this.mockApiCall('/auth/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({ email })
-      });
+      if (this.isSupabaseEnabled) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/reset-password`
+        });
 
-      if (response.success) {
+        if (error) {
+          throw new Error(error.message);
+        }
+
         return true;
       } else {
-        throw new Error(response.message || 'Error al enviar email de recuperación');
+        // Fallback to mock implementation
+        const response = await this.mockApiCall('/auth/reset-password', {
+          method: 'POST',
+          body: JSON.stringify({ email })
+        });
+
+        if (response.success) {
+          return true;
+        } else {
+          throw new Error(response.message || 'Error al enviar email de recuperación');
+        }
       }
     } catch (error) {
       console.error('Reset password error:', error);
@@ -154,12 +306,27 @@ class AuthService {
   /**
    * Logout user
    */
-  logout() {
-    this.token = null;
-    this.currentUser = null;
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    window.location.href = '/';
+  async logout() {
+    try {
+      if (this.isSupabaseEnabled) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Logout error:', error);
+        }
+      } else {
+        // Mock implementation cleanup
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+      }
+
+      this.currentUser = null;
+      this.session = null;
+      this.handleSignOut();
+      
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   }
 
   /**
@@ -167,22 +334,27 @@ class AuthService {
    * @returns {object|null} - Current user data
    */
   getCurrentUser() {
-    if (this.currentUser) {
+    if (this.isSupabaseEnabled) {
       return this.currentUser;
-    }
-
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        this.currentUser = JSON.parse(userData);
+    } else {
+      // Fallback to localStorage for mock implementation
+      if (this.currentUser) {
         return this.currentUser;
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        this.logout();
       }
-    }
 
-    return null;
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        try {
+          this.currentUser = JSON.parse(userData);
+          return this.currentUser;
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          this.logout();
+        }
+      }
+
+      return null;
+    }
   }
 
   /**
@@ -190,7 +362,43 @@ class AuthService {
    * @returns {boolean} - Authentication status
    */
   isAuthenticated() {
-    return !!this.token && !!this.getCurrentUser();
+    if (this.isSupabaseEnabled) {
+      return !!this.session && !!this.currentUser;
+    } else {
+      return !!localStorage.getItem('auth_token') && !!this.getCurrentUser();
+    }
+  }
+
+  /**
+   * Check if user is new and needs onboarding
+   * @returns {boolean} - New user status
+   */
+  isNewUser() {
+    return localStorage.getItem('is_new_user') === 'true';
+  }
+
+  /**
+   * Mark onboarding as completed
+   */
+  async completeOnboarding() {
+    localStorage.removeItem('is_new_user');
+    localStorage.setItem('onboarding_completed', 'true');
+
+    // Update user profile in Supabase
+    if (this.isSupabaseEnabled && this.currentUser) {
+      try {
+        const { error } = await supabase
+          .from('users')
+          .update({ onboarding_completed: true })
+          .eq('id', this.currentUser.id);
+
+        if (error) {
+          console.error('Error updating onboarding status:', error);
+        }
+      } catch (error) {
+        console.error('Error updating onboarding status:', error);
+      }
+    }
   }
 
   /**
@@ -198,7 +406,11 @@ class AuthService {
    * @returns {string|null} - Auth token
    */
   getToken() {
-    return this.token;
+    if (this.isSupabaseEnabled) {
+      return this.session?.access_token || null;
+    } else {
+      return localStorage.getItem('auth_token');
+    }
   }
 
   /**

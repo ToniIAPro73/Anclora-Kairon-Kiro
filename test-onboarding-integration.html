@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Onboarding Integration - Anclora Kairon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --azul-profundo: #23436B;
+            --azul-claro: #2EAFC4;
+            --teal-secundario: #37B5A4;
+            --ambar-suave: #FFC979;
+            --gris-claro: #F6F7F9;
+            --negro-azulado: #162032;
+            --blanco: #FFFFFF;
+            --gradient-hero: linear-gradient(120deg, #23436B 0%, #2EAFC4 100%);
+            --gradient-action: linear-gradient(90deg, #2EAFC4 0%, #FFC979 100%);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--negro-azulado);
+            color: var(--gris-claro);
+            margin: 0;
+            padding: 0;
+        }
+
+        .btn-primary {
+            background: var(--gradient-action);
+            color: var(--negro-azulado);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 28px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(46, 175, 196, 0.3);
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 175, 196, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--azul-claro);
+            border: 2px solid var(--azul-claro);
+            border-radius: 12px;
+            padding: 10px 26px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(46, 175, 196, 0.1);
+        }
+
+        .card {
+            background: rgba(46, 175, 196, 0.15);
+            border: 1px solid rgba(46, 175, 196, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="card p-8 max-w-2xl w-full">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold mb-4" style="font-family: 'Libre Baskerville', serif;">
+                    Test de Integración Onboarding
+                </h1>
+                <p class="text-lg opacity-80">
+                    Prueba el flujo completo de registro y onboarding
+                </p>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Estado actual -->
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Estado Actual</h2>
+                    <div class="space-y-2 text-sm">
+                        <div>
+                            <span class="opacity-70">Usuario autenticado:</span>
+                            <span id="auth-status" class="font-semibold">No</span>
+                        </div>
+                        <div>
+                            <span class="opacity-70">Usuario nuevo:</span>
+                            <span id="new-user-status" class="font-semibold">No</span>
+                        </div>
+                        <div>
+                            <span class="opacity-70">Onboarding completado:</span>
+                            <span id="onboarding-status" class="font-semibold">No</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones de prueba -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="simulate-register" class="btn-primary w-full">
+                        Simular Registro
+                    </button>
+                    <button id="open-onboarding" class="btn-secondary w-full">
+                        Abrir Onboarding
+                    </button>
+                    <button id="simulate-login" class="btn-secondary w-full">
+                        Simular Login
+                    </button>
+                    <button id="clear-data" class="btn-secondary w-full">
+                        Limpiar Datos
+                    </button>
+                </div>
+
+                <!-- Información -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-3">Cómo funciona el Onboarding</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-sm opacity-80">
+                        <li>El usuario se registra exitosamente</li>
+                        <li>El sistema marca al usuario como "nuevo" (is_new_user = true)</li>
+                        <li>Al cargar la aplicación, se detecta si es usuario nuevo</li>
+                        <li>Si es nuevo, se abre automáticamente el onboarding</li>
+                        <li>Al completar el onboarding, se marca como completado</li>
+                        <li>El usuario es redirigido al dashboard</li>
+                    </ol>
+                </div>
+
+                <!-- Código de integración -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-3">Código de Integración</h3>
+                    <pre class="text-xs bg-black/30 p-4 rounded-lg overflow-x-auto"><code>// En tu aplicación principal
+import { authService } from './src/shared/services/authService.js';
+import { onboardingWizard } from './src/shared/components/OnboardingWizard.js';
+
+// Después del login/registro exitoso
+if (authService.isAuthenticated() && authService.isNewUser()) {
+    onboardingWizard.open();
+}
+
+// O en el evento de registro exitoso
+authModal.addEventListener('registerSuccess', () => {
+    if (authService.isNewUser()) {
+        onboardingWizard.open();
+    }
+});</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+        import { onboardingWizard } from './src/shared/components/OnboardingWizard.js';
+
+        // Make authService available globally for onboarding
+        window.authService = authService;
+
+        // Update status display
+        function updateStatus() {
+            document.getElementById('auth-status').textContent = 
+                authService.isAuthenticated() ? 'Sí' : 'No';
+            document.getElementById('new-user-status').textContent = 
+                authService.isNewUser() ? 'Sí' : 'No';
+            document.getElementById('onboarding-status').textContent = 
+                localStorage.getItem('onboarding_completed') === 'true' ? 'Sí' : 'No';
+        }
+
+        // Initial status update
+        updateStatus();
+
+        // Event listeners
+        document.getElementById('simulate-register').addEventListener('click', async () => {
+            try {
+                // Show loading state
+                const btn = document.getElementById('simulate-register');
+                const originalText = btn.textContent;
+                btn.textContent = 'Registrando...';
+                btn.disabled = true;
+
+                const user = await authService.register(
+                    'Usuario Prueba',
+                    'test@example.com',
+                    'password123'
+                );
+                
+                console.log('Usuario registrado:', user);
+                updateStatus();
+                
+                // Reset button
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                // Auto-open onboarding for new users
+                if (authService.isNewUser()) {
+                    setTimeout(() => {
+                        onboardingWizard.open();
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Error en registro:', error);
+                alert('Error en registro: ' + error.message);
+                
+                // Reset button
+                const btn = document.getElementById('simulate-register');
+                btn.textContent = 'Simular Registro';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('open-onboarding').addEventListener('click', () => {
+            onboardingWizard.open();
+        });
+
+        document.getElementById('simulate-login').addEventListener('click', async () => {
+            try {
+                const btn = document.getElementById('simulate-login');
+                const originalText = btn.textContent;
+                btn.textContent = 'Iniciando sesión...';
+                btn.disabled = true;
+
+                const user = await authService.login('demo@anclora.com', 'demo123');
+                console.log('Usuario logueado:', user);
+                updateStatus();
+
+                btn.textContent = originalText;
+                btn.disabled = false;
+            } catch (error) {
+                console.error('Error en login:', error);
+                alert('Error en login: ' + error.message);
+                
+                const btn = document.getElementById('simulate-login');
+                btn.textContent = 'Simular Login';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('clear-data').addEventListener('click', () => {
+            localStorage.clear();
+            // Reset auth service state
+            authService.token = null;
+            authService.currentUser = null;
+            updateStatus();
+            console.log('Datos limpiados');
+            alert('Datos limpiados. Ahora puedes probar el registro nuevamente.');
+        });
+
+        // Listen for onboarding completion
+        window.addEventListener('onboardingCompleted', () => {
+            console.log('Onboarding completado');
+            updateStatus();
+        });
+
+        // Auto-check for new users on page load
+        if (authService.isAuthenticated() && authService.isNewUser()) {
+            console.log('Usuario nuevo detectado, abriendo onboarding...');
+            setTimeout(() => {
+                onboardingWizard.open();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

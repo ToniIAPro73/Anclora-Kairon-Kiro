@@ -5,124 +5,168 @@ import i18n from '../utils/i18n.js';
  * Guides new users through project setup with templates and sample data
  */
 export default class OnboardingWizard {
-  constructor() {
-    this.currentStep = 1;
-    this.totalSteps = 4;
-    this.isOpen = false;
-    this.wizardElement = null;
-    this.backdropElement = null;
-    this.translations = i18n.getTranslations();
-    this.userData = {
-      name: '',
-      role: '',
-      projectTemplate: '',
-      teamMembers: [],
-      skipAdvanced: false
-    };
-    this.setupLanguageListener();
-  }
-
-  /**
-   * Open the onboarding wizard
-   */
-  open() {
-    this.isOpen = true;
-    this.currentStep = 1;
-    this.render();
-    this.setupEventListeners();
-    document.body.style.overflow = 'hidden';
-  }
-
-  /**
-   * Close the wizard
-   */
-  close() {
-    this.isOpen = false;
-    document.body.style.overflow = 'unset';
-    if (this.backdropElement) {
-      this.backdropElement.remove();
-      this.backdropElement = null;
-      this.wizardElement = null;
-    }
-  }
-
-  /**
-   * Move to next step
-   */
-  nextStep() {
-    if (this.currentStep < this.totalSteps) {
-      this.currentStep++;
-      this.render();
-      this.setupEventListeners();
-    }
-  }
-
-  /**
-   * Move to previous step
-   */
-  prevStep() {
-    if (this.currentStep > 1) {
-      this.currentStep--;
-      this.render();
-      this.setupEventListeners();
-    }
-  }
-
-  /**
-   * Skip to final step
-   */
-  skipToEnd() {
-    this.userData.skipAdvanced = true;
-    this.currentStep = this.totalSteps;
-    this.render();
-    this.setupEventListeners();
-  }
-
-  /**
-   * Complete onboarding
-   */
-  complete() {
-    // Generate sample data based on selected template
-    this.generateSampleData();
-    
-    // Save user preferences
-    this.saveUserData();
-    
-    // Close wizard and redirect to dashboard
-    this.close();
-    window.location.href = '/app/dashboard';
-  }
-
-  /**
-   * Render the wizard
-   */
-  render() {
-    // Remove existing wizard if any
-    if (this.backdropElement) {
-      this.backdropElement.remove();
+    constructor() {
+        this.currentStep = 1;
+        this.totalSteps = 4;
+        this.isOpen = false;
+        this.wizardElement = null;
+        this.backdropElement = null;
+        this.translations = i18n.getTranslations();
+        this.userData = {
+            name: '',
+            role: '',
+            projectTemplate: '',
+            teamMembers: [],
+            skipAdvanced: false
+        };
+        this.setupLanguageListener();
     }
 
-    // Create backdrop
-    this.backdropElement = document.createElement('div');
-    this.backdropElement.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4';
+    /**
+     * Open the onboarding wizard
+     */
+    open() {
+        this.isOpen = true;
+        this.currentStep = 1;
+        this.render();
+        this.setupEventListeners();
+        document.body.style.overflow = 'hidden';
+    }
 
-    // Create wizard content
-    this.wizardElement = document.createElement('div');
-    this.wizardElement.className = 'relative w-full max-w-2xl bg-[#162032] rounded-2xl shadow-2xl overflow-hidden border border-[#2EAFC4]/30 max-h-[90vh] overflow-y-auto';
+    /**
+     * Close the wizard
+     */
+    close() {
+        this.isOpen = false;
+        document.body.style.overflow = 'unset';
+        if (this.backdropElement) {
+            this.backdropElement.remove();
+            this.backdropElement = null;
+            this.wizardElement = null;
+        }
+    }
 
-    this.wizardElement.innerHTML = this.renderWizardContent();
+    /**
+     * Move to next step
+     */
+    nextStep() {
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.render();
+            this.setupEventListeners();
+        }
+    }
 
-    this.backdropElement.appendChild(this.wizardElement);
-    document.body.appendChild(this.backdropElement);
-  }
+    /**
+     * Move to previous step
+     */
+    prevStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.render();
+            this.setupEventListeners();
+        }
+    }
 
-  /**
-   * Render wizard content based on current step
-   */
-  renderWizardContent() {
-    const progressPercentage = (this.currentStep / this.totalSteps) * 100;
+    /**
+     * Skip to final step
+     */
+    skipToEnd() {
+        this.userData.skipAdvanced = true;
+        this.currentStep = this.totalSteps;
+        this.render();
+        this.setupEventListeners();
+    }
 
-    return `
+    /**
+     * Complete onboarding
+     */
+    complete() {
+        // Generate sample data based on selected template
+        this.generateSampleData();
+
+        // Save user preferences
+        this.saveUserData();
+
+        // Mark onboarding as completed in auth service
+        if (window.authService) {
+            window.authService.completeOnboarding();
+        }
+
+        // Close wizard and redirect to dashboard
+        this.close();
+
+        // Show success message before redirect
+        this.showCompletionMessage();
+    }
+
+    /**
+     * Show completion message and redirect
+     */
+    showCompletionMessage() {
+        // Create a temporary success overlay
+        const successOverlay = document.createElement('div');
+        successOverlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm';
+
+        successOverlay.innerHTML = `
+      <div class="bg-[#162032] rounded-2xl p-8 max-w-md mx-4 text-center border border-[#2EAFC4]/30">
+        <div class="w-16 h-16 mx-auto mb-4 bg-green-900/20 rounded-full flex items-center justify-center border-4 border-green-400/30">
+          <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-[#F6F7F9] mb-2">¡Bienvenido a Anclora Kairon!</h2>
+        <p class="text-[#F6F7F9]/80 mb-4">Tu espacio de trabajo está listo. Redirigiendo al dashboard...</p>
+        <div class="w-full bg-[#202837] rounded-full h-2">
+          <div class="bg-gradient-to-r from-[#2EAFC4] to-[#FFC979] h-2 rounded-full transition-all duration-3000" style="width: 0%; animation: progress 3s ease-in-out forwards;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes progress {
+          to { width: 100%; }
+        }
+      </style>
+    `;
+
+        document.body.appendChild(successOverlay);
+
+        // Redirect after 3 seconds
+        setTimeout(() => {
+            successOverlay.remove();
+            window.location.href = '/app/dashboard';
+        }, 3000);
+    }
+
+    /**
+     * Render the wizard
+     */
+    render() {
+        // Remove existing wizard if any
+        if (this.backdropElement) {
+            this.backdropElement.remove();
+        }
+
+        // Create backdrop
+        this.backdropElement = document.createElement('div');
+        this.backdropElement.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4';
+
+        // Create wizard content
+        this.wizardElement = document.createElement('div');
+        this.wizardElement.className = 'relative w-full max-w-2xl bg-[#162032] rounded-2xl shadow-2xl overflow-hidden border border-[#2EAFC4]/30 max-h-[90vh] overflow-y-auto';
+
+        this.wizardElement.innerHTML = this.renderWizardContent();
+
+        this.backdropElement.appendChild(this.wizardElement);
+        document.body.appendChild(this.backdropElement);
+    }
+
+    /**
+     * Render wizard content based on current step
+     */
+    renderWizardContent() {
+        const progressPercentage = (this.currentStep / this.totalSteps) * 100;
+
+        return `
       <!-- Progress Header -->
       <div class="bg-[#202837] p-6 border-b border-[#2EAFC4]/30">
         <div class="flex items-center justify-between mb-4">
@@ -162,38 +206,38 @@ export default class OnboardingWizard {
           id="next-step" 
           class="px-6 py-3 bg-gradient-to-r from-[#2EAFC4] to-[#FFC979] text-[#162032] font-bold rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300"
         >
-          ${this.currentStep === this.totalSteps ? 
-            (this.translations.onboardingComplete || 'Completar') : 
-            (this.translations.onboardingNext || 'Siguiente')
-          }
+          ${this.currentStep === this.totalSteps ?
+                (this.translations.onboardingComplete || 'Completar') :
+                (this.translations.onboardingNext || 'Siguiente')
+            }
         </button>
       </div>
     `;
-  }
-
-  /**
-   * Render content for current step
-   */
-  renderStepContent() {
-    switch (this.currentStep) {
-      case 1:
-        return this.renderWelcomeStep();
-      case 2:
-        return this.renderTemplateStep();
-      case 3:
-        return this.renderTeamStep();
-      case 4:
-        return this.renderCompleteStep();
-      default:
-        return this.renderWelcomeStep();
     }
-  }
 
-  /**
-   * Step 1: Welcome and basic info
-   */
-  renderWelcomeStep() {
-    return `
+    /**
+     * Render content for current step
+     */
+    renderStepContent() {
+        switch (this.currentStep) {
+            case 1:
+                return this.renderWelcomeStep();
+            case 2:
+                return this.renderTemplateStep();
+            case 3:
+                return this.renderTeamStep();
+            case 4:
+                return this.renderCompleteStep();
+            default:
+                return this.renderWelcomeStep();
+        }
+    }
+
+    /**
+     * Step 1: Welcome and basic info
+     */
+    renderWelcomeStep() {
+        return `
       <div class="text-center mb-8">
         <div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-[#2EAFC4] to-[#FFC979] rounded-full flex items-center justify-center">
           <svg class="w-10 h-10 text-[#162032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,44 +285,44 @@ export default class OnboardingWizard {
         </div>
       </div>
     `;
-  }
+    }
 
-  /**
-   * Step 2: Project template selection
-   */
-  renderTemplateStep() {
-    const templates = [
-      {
-        id: 'software',
-        name: this.translations.templateSoftware || 'Desarrollo de Software',
-        description: this.translations.templateSoftwareDesc || 'Sprints, bugs, features y releases',
-        icon: '💻',
-        color: 'from-blue-500 to-purple-600'
-      },
-      {
-        id: 'marketing',
-        name: this.translations.templateMarketing || 'Marketing',
-        description: this.translations.templateMarketingDesc || 'Campañas, contenido y análisis',
-        icon: '📈',
-        color: 'from-green-500 to-teal-600'
-      },
-      {
-        id: 'design',
-        name: this.translations.templateDesign || 'Diseño',
-        description: this.translations.templateDesignDesc || 'UI/UX, branding y assets creativos',
-        icon: '🎨',
-        color: 'from-pink-500 to-rose-600'
-      },
-      {
-        id: 'general',
-        name: this.translations.templateGeneral || 'Proyecto General',
-        description: this.translations.templateGeneralDesc || 'Tareas, objetivos y seguimiento',
-        icon: '📋',
-        color: 'from-gray-500 to-gray-600'
-      }
-    ];
+    /**
+     * Step 2: Project template selection
+     */
+    renderTemplateStep() {
+        const templates = [
+            {
+                id: 'software',
+                name: this.translations.templateSoftware || 'Desarrollo de Software',
+                description: this.translations.templateSoftwareDesc || 'Sprints, bugs, features y releases',
+                icon: '💻',
+                color: 'from-blue-500 to-purple-600'
+            },
+            {
+                id: 'marketing',
+                name: this.translations.templateMarketing || 'Marketing',
+                description: this.translations.templateMarketingDesc || 'Campañas, contenido y análisis',
+                icon: '📈',
+                color: 'from-green-500 to-teal-600'
+            },
+            {
+                id: 'design',
+                name: this.translations.templateDesign || 'Diseño',
+                description: this.translations.templateDesignDesc || 'UI/UX, branding y assets creativos',
+                icon: '🎨',
+                color: 'from-pink-500 to-rose-600'
+            },
+            {
+                id: 'general',
+                name: this.translations.templateGeneral || 'Proyecto General',
+                description: this.translations.templateGeneralDesc || 'Tareas, objetivos y seguimiento',
+                icon: '📋',
+                color: 'from-gray-500 to-gray-600'
+            }
+        ];
 
-    return `
+        return `
       <div class="text-center mb-8">
         <h2 class="text-2xl font-bold text-[#F6F7F9] mb-4">
           ${this.translations.onboardingTemplateTitle || 'Elige tu template de proyecto'}
@@ -298,13 +342,13 @@ export default class OnboardingWizard {
         `).join('')}
       </div>
     `;
-  }
+    }
 
-  /**
-   * Step 3: Team invitation (optional)
-   */
-  renderTeamStep() {
-    return `
+    /**
+     * Step 3: Team invitation (optional)
+     */
+    renderTeamStep() {
+        return `
       <div class="text-center mb-8">
         <h2 class="text-2xl font-bold text-[#F6F7F9] mb-4">
           ${this.translations.onboardingTeamTitle || 'Invita a tu equipo'}
@@ -347,13 +391,13 @@ export default class OnboardingWizard {
         </div>
       </div>
     `;
-  }
+    }
 
-  /**
-   * Step 4: Completion and summary
-   */
-  renderCompleteStep() {
-    return `
+    /**
+     * Step 4: Completion and summary
+     */
+    renderCompleteStep() {
+        return `
       <div class="text-center">
         <div class="w-20 h-20 mx-auto mb-6 bg-green-900/20 rounded-full flex items-center justify-center border-4 border-green-400/30">
           <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,253 +442,253 @@ export default class OnboardingWizard {
         </div>
       </div>
     `;
-  }
+    }
 
-  /**
-   * Get template name by ID
-   */
-  getTemplateName(templateId) {
-    const templates = {
-      software: this.translations.templateSoftware || 'Desarrollo de Software',
-      marketing: this.translations.templateMarketing || 'Marketing',
-      design: this.translations.templateDesign || 'Diseño',
-      general: this.translations.templateGeneral || 'Proyecto General'
-    };
-    return templates[templateId] || this.translations.templateGeneral || 'Proyecto General';
-  }
+    /**
+     * Get template name by ID
+     */
+    getTemplateName(templateId) {
+        const templates = {
+            software: this.translations.templateSoftware || 'Desarrollo de Software',
+            marketing: this.translations.templateMarketing || 'Marketing',
+            design: this.translations.templateDesign || 'Diseño',
+            general: this.translations.templateGeneral || 'Proyecto General'
+        };
+        return templates[templateId] || this.translations.templateGeneral || 'Proyecto General';
+    }
 
-  /**
-   * Setup event listeners
-   */
-  setupEventListeners() {
-    // Navigation buttons
-    const nextBtn = document.getElementById('next-step');
-    const prevBtn = document.getElementById('prev-step');
-    const skipBtn = document.getElementById('skip-onboarding');
+    /**
+     * Setup event listeners
+     */
+    setupEventListeners() {
+        // Navigation buttons
+        const nextBtn = document.getElementById('next-step');
+        const prevBtn = document.getElementById('prev-step');
+        const skipBtn = document.getElementById('skip-onboarding');
 
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => {
-        if (this.currentStep === this.totalSteps) {
-          this.complete();
-        } else {
-          this.collectStepData();
-          this.nextStep();
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (this.currentStep === this.totalSteps) {
+                    this.complete();
+                } else {
+                    this.collectStepData();
+                    this.nextStep();
+                }
+            });
         }
-      });
-    }
 
-    if (prevBtn) {
-      prevBtn.addEventListener('click', () => this.prevStep());
-    }
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => this.prevStep());
+        }
 
-    if (skipBtn) {
-      skipBtn.addEventListener('click', () => this.skipToEnd());
-    }
+        if (skipBtn) {
+            skipBtn.addEventListener('click', () => this.skipToEnd());
+        }
 
-    // Step-specific event listeners
-    this.setupStepEventListeners();
+        // Step-specific event listeners
+        this.setupStepEventListeners();
 
-    // Close on backdrop click
-    this.backdropElement.addEventListener('click', (e) => {
-      if (e.target === this.backdropElement) {
-        // Don't close onboarding on backdrop click - user should complete it
-      }
-    });
-  }
-
-  /**
-   * Setup event listeners for current step
-   */
-  setupStepEventListeners() {
-    switch (this.currentStep) {
-      case 1:
-        this.setupWelcomeStepListeners();
-        break;
-      case 2:
-        this.setupTemplateStepListeners();
-        break;
-      case 3:
-        this.setupTeamStepListeners();
-        break;
-    }
-  }
-
-  /**
-   * Setup listeners for welcome step
-   */
-  setupWelcomeStepListeners() {
-    const nameInput = document.getElementById('user-name');
-    const roleSelect = document.getElementById('user-role');
-
-    if (nameInput) {
-      nameInput.addEventListener('input', (e) => {
-        this.userData.name = e.target.value;
-      });
-    }
-
-    if (roleSelect) {
-      roleSelect.addEventListener('change', (e) => {
-        this.userData.role = e.target.value;
-      });
-      roleSelect.value = this.userData.role;
-    }
-  }
-
-  /**
-   * Setup listeners for template step
-   */
-  setupTemplateStepListeners() {
-    const templateCards = document.querySelectorAll('.template-card');
-    
-    templateCards.forEach(card => {
-      card.addEventListener('click', () => {
-        // Remove selection from all cards
-        templateCards.forEach(c => {
-          c.classList.remove('border-[#2EAFC4]', 'bg-[#2EAFC4]/10');
-          c.classList.add('border-[#2EAFC4]/30');
+        // Close on backdrop click
+        this.backdropElement.addEventListener('click', (e) => {
+            if (e.target === this.backdropElement) {
+                // Don't close onboarding on backdrop click - user should complete it
+            }
         });
-        
-        // Add selection to clicked card
-        card.classList.remove('border-[#2EAFC4]/30');
-        card.classList.add('border-[#2EAFC4]', 'bg-[#2EAFC4]/10');
-        
-        this.userData.projectTemplate = card.dataset.template;
-      });
-    });
-  }
-
-  /**
-   * Setup listeners for team step
-   */
-  setupTeamStepListeners() {
-    const addMemberBtn = document.getElementById('add-member');
-    const skipTeamBtn = document.getElementById('skip-team');
-
-    if (addMemberBtn) {
-      addMemberBtn.addEventListener('click', () => {
-        this.userData.teamMembers.push('');
-        this.render();
-        this.setupEventListeners();
-      });
     }
 
-    if (skipTeamBtn) {
-      skipTeamBtn.addEventListener('click', () => {
-        this.nextStep();
-      });
+    /**
+     * Setup event listeners for current step
+     */
+    setupStepEventListeners() {
+        switch (this.currentStep) {
+            case 1:
+                this.setupWelcomeStepListeners();
+                break;
+            case 2:
+                this.setupTemplateStepListeners();
+                break;
+            case 3:
+                this.setupTeamStepListeners();
+                break;
+        }
     }
 
-    // Remove member buttons
-    const removeButtons = document.querySelectorAll('.remove-member');
-    removeButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const index = parseInt(e.currentTarget.dataset.index);
-        this.userData.teamMembers.splice(index, 1);
-        this.render();
-        this.setupEventListeners();
-      });
-    });
-
-    // Email inputs
-    const emailInputs = document.querySelectorAll('#team-members-list input[type="email"]');
-    emailInputs.forEach((input, index) => {
-      input.addEventListener('input', (e) => {
-        this.userData.teamMembers[index] = e.target.value;
-      });
-    });
-  }
-
-  /**
-   * Collect data from current step
-   */
-  collectStepData() {
-    switch (this.currentStep) {
-      case 1:
+    /**
+     * Setup listeners for welcome step
+     */
+    setupWelcomeStepListeners() {
         const nameInput = document.getElementById('user-name');
         const roleSelect = document.getElementById('user-role');
-        if (nameInput) this.userData.name = nameInput.value;
-        if (roleSelect) this.userData.role = roleSelect.value;
-        break;
+
+        if (nameInput) {
+            nameInput.addEventListener('input', (e) => {
+                this.userData.name = e.target.value;
+            });
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', (e) => {
+                this.userData.role = e.target.value;
+            });
+            roleSelect.value = this.userData.role;
+        }
     }
-  }
 
-  /**
-   * Generate sample data based on selected template
-   */
-  generateSampleData() {
-    const templates = {
-      software: {
-        project: 'Mi Aplicación Web',
-        tasks: [
-          { title: 'Configurar entorno de desarrollo', status: 'done', priority: 'high' },
-          { title: 'Diseñar base de datos', status: 'in-progress', priority: 'high' },
-          { title: 'Implementar autenticación', status: 'todo', priority: 'medium' },
-          { title: 'Crear API REST', status: 'todo', priority: 'medium' },
-          { title: 'Desarrollar frontend', status: 'todo', priority: 'low' }
-        ]
-      },
-      marketing: {
-        project: 'Campaña de Lanzamiento',
-        tasks: [
-          { title: 'Investigación de mercado', status: 'done', priority: 'high' },
-          { title: 'Crear buyer personas', status: 'in-progress', priority: 'high' },
-          { title: 'Diseñar landing page', status: 'todo', priority: 'medium' },
-          { title: 'Configurar Google Ads', status: 'todo', priority: 'medium' },
-          { title: 'Analizar métricas', status: 'todo', priority: 'low' }
-        ]
-      },
-      design: {
-        project: 'Rediseño de Marca',
-        tasks: [
-          { title: 'Investigación de usuarios', status: 'done', priority: 'high' },
-          { title: 'Crear wireframes', status: 'in-progress', priority: 'high' },
-          { title: 'Diseñar sistema de colores', status: 'todo', priority: 'medium' },
-          { title: 'Crear componentes UI', status: 'todo', priority: 'medium' },
-          { title: 'Prototipo interactivo', status: 'todo', priority: 'low' }
-        ]
-      },
-      general: {
-        project: 'Mi Primer Proyecto',
-        tasks: [
-          { title: 'Definir objetivos', status: 'done', priority: 'high' },
-          { title: 'Planificar tareas', status: 'in-progress', priority: 'high' },
-          { title: 'Asignar responsabilidades', status: 'todo', priority: 'medium' },
-          { title: 'Ejecutar plan', status: 'todo', priority: 'medium' },
-          { title: 'Revisar resultados', status: 'todo', priority: 'low' }
-        ]
-      }
-    };
+    /**
+     * Setup listeners for template step
+     */
+    setupTemplateStepListeners() {
+        const templateCards = document.querySelectorAll('.template-card');
 
-    const selectedTemplate = templates[this.userData.projectTemplate] || templates.general;
-    
-    // Store sample data in localStorage for the app to use
-    localStorage.setItem('onboarding_sample_data', JSON.stringify({
-      project: selectedTemplate.project,
-      tasks: selectedTemplate.tasks,
-      user: this.userData
-    }));
-  }
+        templateCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove selection from all cards
+                templateCards.forEach(c => {
+                    c.classList.remove('border-[#2EAFC4]', 'bg-[#2EAFC4]/10');
+                    c.classList.add('border-[#2EAFC4]/30');
+                });
 
-  /**
-   * Save user data
-   */
-  saveUserData() {
-    localStorage.setItem('user_onboarding_data', JSON.stringify(this.userData));
-    localStorage.setItem('onboarding_completed', 'true');
-  }
+                // Add selection to clicked card
+                card.classList.remove('border-[#2EAFC4]/30');
+                card.classList.add('border-[#2EAFC4]', 'bg-[#2EAFC4]/10');
 
-  /**
-   * Setup language change listener
-   */
-  setupLanguageListener() {
-    window.addEventListener('languageChanged', (e) => {
-      this.translations = e.detail.translations || i18n.getTranslations(e.detail.language);
-      if (this.isOpen) {
-        this.render();
-        this.setupEventListeners();
-      }
-    });
-  }
+                this.userData.projectTemplate = card.dataset.template;
+            });
+        });
+    }
+
+    /**
+     * Setup listeners for team step
+     */
+    setupTeamStepListeners() {
+        const addMemberBtn = document.getElementById('add-member');
+        const skipTeamBtn = document.getElementById('skip-team');
+
+        if (addMemberBtn) {
+            addMemberBtn.addEventListener('click', () => {
+                this.userData.teamMembers.push('');
+                this.render();
+                this.setupEventListeners();
+            });
+        }
+
+        if (skipTeamBtn) {
+            skipTeamBtn.addEventListener('click', () => {
+                this.nextStep();
+            });
+        }
+
+        // Remove member buttons
+        const removeButtons = document.querySelectorAll('.remove-member');
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.currentTarget.dataset.index);
+                this.userData.teamMembers.splice(index, 1);
+                this.render();
+                this.setupEventListeners();
+            });
+        });
+
+        // Email inputs
+        const emailInputs = document.querySelectorAll('#team-members-list input[type="email"]');
+        emailInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                this.userData.teamMembers[index] = e.target.value;
+            });
+        });
+    }
+
+    /**
+     * Collect data from current step
+     */
+    collectStepData() {
+        switch (this.currentStep) {
+            case 1:
+                const nameInput = document.getElementById('user-name');
+                const roleSelect = document.getElementById('user-role');
+                if (nameInput) this.userData.name = nameInput.value;
+                if (roleSelect) this.userData.role = roleSelect.value;
+                break;
+        }
+    }
+
+    /**
+     * Generate sample data based on selected template
+     */
+    generateSampleData() {
+        const templates = {
+            software: {
+                project: 'Mi Aplicación Web',
+                tasks: [
+                    { title: 'Configurar entorno de desarrollo', status: 'done', priority: 'high' },
+                    { title: 'Diseñar base de datos', status: 'in-progress', priority: 'high' },
+                    { title: 'Implementar autenticación', status: 'todo', priority: 'medium' },
+                    { title: 'Crear API REST', status: 'todo', priority: 'medium' },
+                    { title: 'Desarrollar frontend', status: 'todo', priority: 'low' }
+                ]
+            },
+            marketing: {
+                project: 'Campaña de Lanzamiento',
+                tasks: [
+                    { title: 'Investigación de mercado', status: 'done', priority: 'high' },
+                    { title: 'Crear buyer personas', status: 'in-progress', priority: 'high' },
+                    { title: 'Diseñar landing page', status: 'todo', priority: 'medium' },
+                    { title: 'Configurar Google Ads', status: 'todo', priority: 'medium' },
+                    { title: 'Analizar métricas', status: 'todo', priority: 'low' }
+                ]
+            },
+            design: {
+                project: 'Rediseño de Marca',
+                tasks: [
+                    { title: 'Investigación de usuarios', status: 'done', priority: 'high' },
+                    { title: 'Crear wireframes', status: 'in-progress', priority: 'high' },
+                    { title: 'Diseñar sistema de colores', status: 'todo', priority: 'medium' },
+                    { title: 'Crear componentes UI', status: 'todo', priority: 'medium' },
+                    { title: 'Prototipo interactivo', status: 'todo', priority: 'low' }
+                ]
+            },
+            general: {
+                project: 'Mi Primer Proyecto',
+                tasks: [
+                    { title: 'Definir objetivos', status: 'done', priority: 'high' },
+                    { title: 'Planificar tareas', status: 'in-progress', priority: 'high' },
+                    { title: 'Asignar responsabilidades', status: 'todo', priority: 'medium' },
+                    { title: 'Ejecutar plan', status: 'todo', priority: 'medium' },
+                    { title: 'Revisar resultados', status: 'todo', priority: 'low' }
+                ]
+            }
+        };
+
+        const selectedTemplate = templates[this.userData.projectTemplate] || templates.general;
+
+        // Store sample data in localStorage for the app to use
+        localStorage.setItem('onboarding_sample_data', JSON.stringify({
+            project: selectedTemplate.project,
+            tasks: selectedTemplate.tasks,
+            user: this.userData
+        }));
+    }
+
+    /**
+     * Save user data
+     */
+    saveUserData() {
+        localStorage.setItem('user_onboarding_data', JSON.stringify(this.userData));
+        localStorage.setItem('onboarding_completed', 'true');
+    }
+
+    /**
+     * Setup language change listener
+     */
+    setupLanguageListener() {
+        window.addEventListener('languageChanged', (e) => {
+            this.translations = e.detail.translations || i18n.getTranslations(e.detail.language);
+            if (this.isOpen) {
+                this.render();
+                this.setupEventListeners();
+            }
+        });
+    }
 }
 
 // Create singleton instance
