@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Limpiar Auth - Anclora Kairon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #162032;
+            color: #F6F7F9;
+            margin: 0;
+            padding: 0;
+        }
+        .btn {
+            background: linear-gradient(90deg, #2EAFC4 0%, #FFC979 100%);
+            color: #162032;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 8px;
+        }
+        .card {
+            background: rgba(46, 175, 196, 0.15);
+            border: 1px solid rgba(46, 175, 196, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4">
+        <div class="max-w-2xl mx-auto">
+            <div class="card">
+                <h1 class="text-2xl font-bold mb-4">🧹 Debug: Limpiar Autenticación</h1>
+                <p class="mb-6 opacity-80">
+                    Esta página te ayuda a limpiar completamente la sesión de autenticación para probar OAuth desde cero.
+                </p>
+
+                <div class="space-y-4">
+                    <button id="check-status" class="btn">📊 Verificar Estado Actual</button>
+                    <button id="clear-local" class="btn">🗑️ Limpiar localStorage</button>
+                    <button id="clear-session" class="btn">🗑️ Limpiar sessionStorage</button>
+                    <button id="supabase-logout" class="btn">🚪 Logout Supabase</button>
+                    <button id="clear-all" class="btn">🧹 Limpiar TODO</button>
+                    <button id="test-oauth" class="btn">🧪 Probar OAuth</button>
+                </div>
+
+                <div id="status" class="mt-6 p-4 bg-black/20 rounded-lg">
+                    <h3 class="font-bold mb-2">Estado:</h3>
+                    <div id="status-content">Haz clic en "Verificar Estado Actual"</div>
+                </div>
+
+                <div id="logs" class="mt-6 p-4 bg-black/20 rounded-lg">
+                    <h3 class="font-bold mb-2">Logs:</h3>
+                    <div id="log-content" class="text-sm font-mono"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+        import { supabase } from './src/shared/config/supabase.js';
+
+        // Make available globally
+        window.authService = authService;
+        window.supabase = supabase;
+
+        function log(message) {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}<br>`;
+            console.log(message);
+        }
+
+        function updateStatus() {
+            const statusContent = document.getElementById('status-content');
+            
+            const localStorageKeys = Object.keys(localStorage);
+            const sessionStorageKeys = Object.keys(sessionStorage);
+            const isAuth = authService.isAuthenticated();
+            const currentUser = authService.getCurrentUser();
+            
+            statusContent.innerHTML = `
+                <div><strong>Autenticado:</strong> ${isAuth ? '✅ Sí' : '❌ No'}</div>
+                <div><strong>Usuario actual:</strong> ${currentUser ? currentUser.email || 'Sin email' : '❌ Ninguno'}</div>
+                <div><strong>localStorage keys:</strong> ${localStorageKeys.length} (${localStorageKeys.join(', ')})</div>
+                <div><strong>sessionStorage keys:</strong> ${sessionStorageKeys.length} (${sessionStorageKeys.join(', ')})</div>
+                <div><strong>Supabase session:</strong> ${authService.session ? '✅ Activa' : '❌ Ninguna'}</div>
+            `;
+        }
+
+        // Event listeners
+        document.getElementById('check-status').addEventListener('click', () => {
+            log('Verificando estado...');
+            updateStatus();
+        });
+
+        document.getElementById('clear-local').addEventListener('click', () => {
+            localStorage.clear();
+            log('localStorage limpiado');
+            updateStatus();
+        });
+
+        document.getElementById('clear-session').addEventListener('click', () => {
+            sessionStorage.clear();
+            log('sessionStorage limpiado');
+            updateStatus();
+        });
+
+        document.getElementById('supabase-logout').addEventListener('click', async () => {
+            try {
+                if (supabase) {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) {
+                        log(`Error en logout: ${error.message}`);
+                    } else {
+                        log('Logout de Supabase exitoso');
+                    }
+                } else {
+                    log('Supabase no disponible');
+                }
+                
+                // Reset authService state
+                authService.session = null;
+                authService.currentUser = null;
+                
+                updateStatus();
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('clear-all').addEventListener('click', async () => {
+            try {
+                log('Limpiando TODO...');
+                
+                // Clear storage
+                localStorage.clear();
+                sessionStorage.clear();
+                log('Storage limpiado');
+                
+                // Supabase logout
+                if (supabase) {
+                    await supabase.auth.signOut();
+                    log('Supabase logout');
+                }
+                
+                // Reset authService
+                authService.session = null;
+                authService.currentUser = null;
+                log('AuthService reseteado');
+                
+                // Clear cookies (if any)
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                log('Cookies limpiadas');
+                
+                updateStatus();
+                log('✅ TODO limpiado - Ahora puedes probar OAuth');
+                
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('test-oauth').addEventListener('click', () => {
+            log('Redirigiendo a página de prueba...');
+            window.location.href = '/test-auth-complete.html';
+        });
+
+        // Initial status
+        updateStatus();
+        log('Debug page loaded');
+    </script>
+</body>
+</html>

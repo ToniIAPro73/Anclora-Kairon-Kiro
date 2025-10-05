@@ -14,7 +14,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
-    open: '/src/landing/index.html'
+    port: 5173,
+    open: '/test-auth-complete.html'
   }
 })
