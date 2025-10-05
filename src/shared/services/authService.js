@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase.js';
 import { authErrorHandler } from './authErrorHandler.js';
 import { retryManager } from './retryManager.js';
+import { connectionMonitor } from './connectionMonitor.js';
 
 /**
  * Authentication service for handling user authentication
@@ -102,6 +103,12 @@ class AuthService {
    */
   async login(email, password) {
     try {
+      // Check connectivity before attempting login
+      const connectivityResult = await this.checkConnectivityBeforeAuth('login');
+      if (!connectivityResult.canProceed) {
+        throw new Error(connectivityResult.error || 'Connection check failed');
+      }
+
       if (this.isSupabaseEnabled) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -144,6 +151,12 @@ class AuthService {
    */
   async register(name, email, password) {
     try {
+      // Check connectivity before attempting registration
+      const connectivityResult = await this.checkConnectivityBeforeAuth('register');
+      if (!connectivityResult.canProceed) {
+        throw new Error(connectivityResult.error || 'Connection check failed');
+      }
+
       if (this.isSupabaseEnabled) {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -679,6 +692,259 @@ class AuthService {
         context: context
       };
     }
+  }
+
+  /**
+   * Check connectivity before performing auth operations
+   * @param {string} operation - The operation being performed
+   * @returns {Promise<Object>} - Connectivity check result with recommendation
+   */
+  async checkConnectivityBeforeAuth(operation) {
+    try {
+      // Use ConnectionMonitor for comprehensive connectivity check
+      const healthResult = await connectionMonitor.isSupabaseAvailable({
+        timeout: 5000, // 5 second timeout for auth operations
+        retryAttempts: 1 // Single attempt for pre-auth check
+      });
+
+      if (healthResult.available) {
+        return {
+          canProceed: true,
+          status: 'connected',
+          latency: healthResult.latency,
+          timestamp: healthResult.timestamp
+        };
+      } else {
+        // Connection not available, determine if we should retry or fail
+        const errorType = authErrorHandler.classifyError(healthResult.error);
+        const shouldRetry = authErrorHandler.shouldAllowRetry(errorType, 0);
+
+        return {
+          canProceed: false,
+          status: 'disconnected',
+          error: healthResult.error?.message || 'Connection not available',
+          errorType: errorType,
+          shouldRetry: shouldRetry,
+          timestamp: healthResult.timestamp,
+          operation: operation
+        };
+      }
+    } catch (error) {
+      console.error('Connectivity check failed:', error);
+      return {
+        canProceed: false,
+        status: 'error',
+        error: error.message || 'Connectivity check failed',
+        timestamp: new Date().toISOString(),
+        operation: operation
+      };
+    }
+  }
+
+  /**
+   * Enhanced login with automatic retry when connection is restored
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} - Enhanced login result
+   */
+  async loginWithConnectionRetry(email, password, options = {}) {
+    const maxRetries = options.maxRetries || 3;
+    const retryDelay = options.retryDelay || 2000; // 2 seconds
+    const language = options.language || 'es';
+
+    let lastError = null;
+    let connectivityRestored = false;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Check connectivity before each attempt
+        const connectivityResult = await this.checkConnectivityBeforeAuth('login');
+        
+        if (!connectivityResult.canProceed) {
+          lastError = new Error(connectivityResult.error);
+          
+          // If this is not the last attempt, wait for connection to be restored
+          if (attempt < maxRetries) {
+            console.log(`Login attempt ${attempt} failed due to connectivity. Waiting for connection...`);
+            
+            // Wait for connection to be restored or timeout
+            const connectionRestored = await this.waitForConnectionRestore(retryDelay);
+            if (connectionRestored) {
+              connectivityRestored = true;
+              continue; // Retry the login
+            } else {
+              // Connection not restored within timeout, continue to next attempt
+              continue;
+            }
+          } else {
+            // Last attempt failed
+            break;
+          }
+        }
+
+        // Connection is available, attempt login
+        const user = await this.login(email, password);
+        
+        return {
+          success: true,
+          user: user,
+          attempt: attempt,
+          connectivityRestored: connectivityRestored
+        };
+
+      } catch (error) {
+        lastError = error;
+        console.error(`Login attempt ${attempt} failed:`, error);
+
+        // If this is not the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+    }
+
+    // All attempts failed
+    const processedError = authErrorHandler.handleError(lastError, {
+      operation: 'login',
+      email: email,
+      language: language,
+      attemptCount: maxRetries
+    });
+
+    return {
+      success: false,
+      error: processedError,
+      totalAttempts: maxRetries,
+      connectivityRestored: connectivityRestored
+    };
+  }
+
+  /**
+   * Enhanced register with automatic retry when connection is restored
+   * @param {string} name - User name
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} - Enhanced register result
+   */
+  async registerWithConnectionRetry(name, email, password, options = {}) {
+    const maxRetries = options.maxRetries || 3;
+    const retryDelay = options.retryDelay || 2000; // 2 seconds
+    const language = options.language || 'es';
+
+    let lastError = null;
+    let connectivityRestored = false;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Check connectivity before each attempt
+        const connectivityResult = await this.checkConnectivityBeforeAuth('register');
+        
+        if (!connectivityResult.canProceed) {
+          lastError = new Error(connectivityResult.error);
+          
+          // If this is not the last attempt, wait for connection to be restored
+          if (attempt < maxRetries) {
+            console.log(`Register attempt ${attempt} failed due to connectivity. Waiting for connection...`);
+            
+            // Wait for connection to be restored or timeout
+            const connectionRestored = await this.waitForConnectionRestore(retryDelay);
+            if (connectionRestored) {
+              connectivityRestored = true;
+              continue; // Retry the registration
+            } else {
+              // Connection not restored within timeout, continue to next attempt
+              continue;
+            }
+          } else {
+            // Last attempt failed
+            break;
+          }
+        }
+
+        // Connection is available, attempt registration
+        const user = await this.register(name, email, password);
+        
+        return {
+          success: true,
+          user: user,
+          attempt: attempt,
+          connectivityRestored: connectivityRestored
+        };
+
+      } catch (error) {
+        lastError = error;
+        console.error(`Register attempt ${attempt} failed:`, error);
+
+        // If this is not the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+    }
+
+    // All attempts failed
+    const processedError = authErrorHandler.handleError(lastError, {
+      operation: 'register',
+      email: email,
+      language: language,
+      attemptCount: maxRetries
+    });
+
+    return {
+      success: false,
+      error: processedError,
+      totalAttempts: maxRetries,
+      connectivityRestored: connectivityRestored
+    };
+  }
+
+  /**
+   * Wait for connection to be restored
+   * @param {number} timeoutMs - Timeout in milliseconds
+   * @returns {Promise<boolean>} - Whether connection was restored
+   */
+  async waitForConnectionRestore(timeoutMs) {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      const checkInterval = 1000; // Check every second
+
+      const checkConnection = async () => {
+        try {
+          const healthResult = await connectionMonitor.isSupabaseAvailable({
+            timeout: 3000,
+            retryAttempts: 1
+          });
+
+          if (healthResult.available) {
+            resolve(true);
+            return;
+          }
+
+          // Check if timeout exceeded
+          if (Date.now() - startTime >= timeoutMs) {
+            resolve(false);
+            return;
+          }
+
+          // Schedule next check
+          setTimeout(checkConnection, checkInterval);
+        } catch (error) {
+          // Check if timeout exceeded
+          if (Date.now() - startTime >= timeoutMs) {
+            resolve(false);
+            return;
+          }
+
+          // Schedule next check
+          setTimeout(checkConnection, checkInterval);
+        }
+      };
+
+      // Start checking
+      checkConnection();
+    });
   }
 
   /**

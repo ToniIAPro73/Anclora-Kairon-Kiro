@@ -1,5 +1,7 @@
 import { validateEmail, validatePassword, validateRegistrationForm, validateLoginForm } from '../utils/validation.js';
 import { authService } from '../services/authService.js';
+import { connectionMonitor, CONNECTION_STATUS } from '../services/connectionMonitor.js';
+import { ConnectionStatusIndicator } from './ConnectionStatusIndicator.js';
 import i18n from '../utils/i18n.js';
 
 /**
@@ -14,7 +16,9 @@ export default class AuthModalVanilla {
     this.modalElement = null;
     this.backdropElement = null;
     this.translations = i18n.getTranslations();
+    this.connectionIndicator = null;
     this.setupLanguageListener();
+    this.setupConnectionMonitoring();
   }
 
   /**
@@ -26,6 +30,7 @@ export default class AuthModalVanilla {
     this.showForgotPassword = false;
     this.isOpen = true;
     this.translations = i18n.getTranslations(); // Update translations when opening
+    this.initConnectionIndicator(); // Initialize connection indicator
     this.render();
     this.setupEventListeners();
     document.body.style.overflow = 'hidden';
@@ -37,6 +42,13 @@ export default class AuthModalVanilla {
   close() {
     this.isOpen = false;
     document.body.style.overflow = 'unset';
+    
+    // Clean up connection indicator
+    if (this.connectionIndicator) {
+      this.connectionIndicator.destroy();
+      this.connectionIndicator = null;
+    }
+    
     if (this.backdropElement) {
       this.backdropElement.remove();
       this.backdropElement = null;
@@ -70,6 +82,9 @@ export default class AuthModalVanilla {
 
     this.backdropElement.appendChild(this.modalElement);
     document.body.appendChild(this.backdropElement);
+    
+    // Add connection status to modal if needed
+    this.addConnectionStatusToModal();
   }
 
   /**
@@ -531,7 +546,35 @@ export default class AuthModalVanilla {
   }
 
   /**
-   * Handle login form submission
+   * Setup connection monitoring for the auth modal
+   */
+  setupConnectionMonitoring() {
+    // Start connection monitoring when modal is used
+    if (!connectionMonitor.isMonitoring) {
+      connectionMonitor.startMonitoring({
+        checkIntervalMs: 15000, // Check every 15 seconds during auth
+        timeoutMs: 8000 // 8 second timeout for auth operations
+      });
+    }
+  }
+
+  /**
+   * Initialize connection status indicator for the modal
+   */
+  initConnectionIndicator() {
+    if (!this.connectionIndicator) {
+      this.connectionIndicator = new ConnectionStatusIndicator({
+        containerId: 'auth-modal-connection-status',
+        position: 'top-right',
+        showLatency: true,
+        autoHide: true,
+        hideDelay: 2000 // Hide after 2 seconds when connected
+      });
+    }
+  }
+
+  /**
+   * Handle login form submission with connection monitoring
    */
   async handleLogin(form) {
     const formData = new FormData(form);
@@ -551,10 +594,26 @@ export default class AuthModalVanilla {
     submitBtn.textContent = this.translations.authLoggingIn;
 
     try {
-      await authService.login(data.email, data.password);
-      this.close();
-      // Redirect to app
-      window.location.href = '/app';
+      // Use enhanced login with connection retry
+      const result = await authService.loginWithConnectionRetry(data.email, data.password, {
+        maxRetries: 3,
+        retryDelay: 2000,
+        language: i18n.getCurrentLanguage()
+      });
+
+      if (result.success) {
+        // Show success message if connection was restored during process
+        if (result.connectivityRestored) {
+          this.showConnectionRestoredMessage();
+        }
+        
+        this.close();
+        // Redirect to app
+        window.location.href = '/app';
+      } else {
+        // Handle enhanced error with connection context
+        this.showEnhancedError('login', result.error, result);
+      }
     } catch (error) {
       this.showError('login', error.message);
     } finally {
@@ -564,7 +623,7 @@ export default class AuthModalVanilla {
   }
 
   /**
-   * Handle register form submission
+   * Handle register form submission with connection monitoring
    */
   async handleRegister(form) {
     const formData = new FormData(form);
@@ -586,10 +645,26 @@ export default class AuthModalVanilla {
     submitBtn.textContent = this.translations.authCreatingAccount;
 
     try {
-      await authService.register(data.name, data.email, data.password);
-      this.close();
-      // Redirect to app
-      window.location.href = '/app';
+      // Use enhanced register with connection retry
+      const result = await authService.registerWithConnectionRetry(data.name, data.email, data.password, {
+        maxRetries: 3,
+        retryDelay: 2000,
+        language: i18n.getCurrentLanguage()
+      });
+
+      if (result.success) {
+        // Show success message if connection was restored during process
+        if (result.connectivityRestored) {
+          this.showConnectionRestoredMessage();
+        }
+        
+        this.close();
+        // Redirect to app
+        window.location.href = '/app';
+      } else {
+        // Handle enhanced error with connection context
+        this.showEnhancedError('register', result.error, result);
+      }
     } catch (error) {
       this.showError('register', error.message);
     } finally {
@@ -763,6 +838,150 @@ export default class AuthModalVanilla {
         this.setupEventListeners();
       }
     });
+  }
+
+  /**
+   * Show enhanced error with connection context
+   * @param {string} formType - Form type ('login', 'register', 'forgot')
+   * @param {Object} processedError - Processed error from authErrorHandler
+   * @param {Object} result - Full result object with retry info
+   */
+  showEnhancedError(formType, processedError, result = {}) {
+    const errorElement = document.getElementById(`${formType}-error`);
+    if (!errorElement) return;
+
+    let errorMessage = processedError.userMessage || processedError.message || 'Error desconocido';
+    
+    // Add connection context if available
+    if (result.connectivityRestored) {
+      errorMessage += ` (Conexión restaurada después de ${result.totalAttempts} intentos)`;
+    } else if (result.totalAttempts > 1) {
+      errorMessage += ` (Intentado ${result.totalAttempts} veces)`;
+    }
+
+    // Show retry suggestion for connection errors
+    if (processedError.canRetry && processedError.type === 'NETWORK_ERROR') {
+      errorMessage += '. Verifica tu conexión e inténtalo de nuevo.';
+    }
+
+    const errorMessageElement = errorElement.querySelector('p');
+    if (errorMessageElement) {
+      errorMessageElement.textContent = errorMessage;
+    }
+
+    errorElement.classList.remove('hidden');
+
+    // Auto-hide after 10 seconds for connection errors
+    if (processedError.type === 'NETWORK_ERROR') {
+      setTimeout(() => {
+        errorElement.classList.add('hidden');
+      }, 10000);
+    }
+  }
+
+  /**
+   * Show connection restored message
+   */
+  showConnectionRestoredMessage() {
+    // Create a temporary success message
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed top-4 right-4 z-50 p-4 bg-green-900/20 border-l-4 border-green-400 rounded-r-lg backdrop-blur-sm';
+    successMessage.innerHTML = `
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-green-300 text-sm font-medium">
+            ${this.translations.connectionRestored || 'Conexión restaurada'}
+          </p>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(successMessage);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      successMessage.remove();
+    }, 3000);
+  }
+
+  /**
+   * Add connection status to modal header
+   */
+  addConnectionStatusToModal() {
+    if (!this.modalElement) return;
+
+    const connectionStatus = connectionMonitor.getStatus();
+    
+    // Only show status indicator if there are connection issues
+    if (connectionStatus.status === CONNECTION_STATUS.DISCONNECTED || 
+        connectionStatus.status === CONNECTION_STATUS.CHECKING) {
+      
+      const statusIndicator = document.createElement('div');
+      statusIndicator.id = 'modal-connection-status';
+      statusIndicator.className = 'absolute top-16 left-4 right-4 z-10';
+      
+      const statusConfig = this.getModalConnectionStatusConfig(connectionStatus.status);
+      
+      statusIndicator.innerHTML = `
+        <div class="flex items-center space-x-2 px-3 py-2 rounded-lg ${statusConfig.bgClass} ${statusConfig.borderClass} border">
+          ${statusConfig.icon}
+          <span class="text-xs ${statusConfig.textClass} font-medium">
+            ${statusConfig.message}
+          </span>
+        </div>
+      `;
+
+      this.modalElement.appendChild(statusIndicator);
+    }
+  }
+
+  /**
+   * Get connection status configuration for modal display
+   * @param {string} status - Connection status
+   * @returns {Object} Status configuration
+   */
+  getModalConnectionStatusConfig(status) {
+    const configs = {
+      [CONNECTION_STATUS.DISCONNECTED]: {
+        message: this.translations.connectionOfflineMode || 'Modo sin conexión - Funcionalidad limitada',
+        icon: `<svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>`,
+        bgClass: 'bg-red-900/20',
+        borderClass: 'border-red-400/30',
+        textClass: 'text-red-300'
+      },
+      [CONNECTION_STATUS.CHECKING]: {
+        message: this.translations.connectionChecking || 'Verificando conexión...',
+        icon: `<svg class="w-4 h-4 text-yellow-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>`,
+        bgClass: 'bg-yellow-900/20',
+        borderClass: 'border-yellow-400/30',
+        textClass: 'text-yellow-300'
+      }
+    };
+
+    return configs[status] || configs[CONNECTION_STATUS.DISCONNECTED];
+  }
+
+  /**
+   * Update modal connection status
+   */
+  updateModalConnectionStatus() {
+    // Remove existing status indicator
+    const existingStatus = document.getElementById('modal-connection-status');
+    if (existingStatus) {
+      existingStatus.remove();
+    }
+
+    // Add new status indicator if needed
+    this.addConnectionStatusToModal();
   }
 }
 
