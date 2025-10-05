@@ -26,7 +26,7 @@
 
 
 
-- [ ] 1.5 Implement streamlined authentication system
+- [x] 1.5 Implement streamlined authentication system
   - Create login/register modal components with tabbed interface and Anclora styling
   - Build email/password authentication forms with validation
   - Implement Google OAuth integration with popup flow
@@ -34,7 +34,7 @@
   - Create password recovery functionality with email flow
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 1.6 Create rapid onboarding flow (60 seconds)
+- [x] 1.6 Create rapid onboarding flow (60 seconds)
 
 ## 📊 ETAPA 2: CORE DASHBOARD & KANBAN (Semana 3-4)
 *Objetivo: Experiencia central que elimine la complejidad*
