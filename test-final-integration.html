@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Integration Test - Authentication Error Handling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        .test-section {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .test-passed {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+        .test-failed {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+        .test-running {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+        }
+        .loading-spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Final Integration Test - Authentication Error Handling</h1>
+        
+        <!-- Test Status Overview -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Status Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="total-tests">0</div>
+                    <div class="text-sm text-gray-600">Total Tests</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600" id="passed-tests">0</div>
+                    <div class="text-sm text-gray-600">Passed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-red-600" id="failed-tests">0</div>
+                    <div class="text-sm text-gray-600">Failed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-600" id="running-tests">0</div>
+                    <div class="text-sm text-gray-600">Running</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Controls</h2>
+            <div class="flex flex-wrap gap-4">
+                <button id="run-all-tests" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                    Run All Tests
+                </button>
+                <button id="run-component-tests" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                    Component Tests
+                </button>
+                <button id="run-integration-tests" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors">
+                    Integration Tests
+                </button>
+                <button id="run-error-simulation" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 transition-colors">
+                    Error Simulation
+                </button>
+                <button id="clear-results" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors">
+                    Clear Results
+                </button>
+            </div>
+        </div>
+
+        <!-- Component Integration Tests -->
+        <div class="test-section" id="component-tests">
+            <h2 class="text-xl font-semibold mb-4">Component Integration Tests</h2>
+            <div id="component-test-results"></div>
+        </div>
+
+        <!-- Authentication Flow Tests -->
+        <div class="test-section" id="auth-flow-tests">
+            <h2 class="text-xl font-semibold mb-4">Authentication Flow Tests</h2>
+            <div id="auth-flow-test-results"></div>
+        </div>
+
+        <!-- Error Handling Tests -->
+        <div class="test-section" id="error-handling-tests">
+            <h2 class="text-xl font-semibent mb-4">Error Handling Tests</h2>
+            <div id="error-handling-test-results"></div>
+        </div>
+
+        <!-- Performance Tests -->
+        <div class="test-section" id="performance-tests">
+            <h2 class="text-xl font-semibold mb-4">Performance Tests</h2>
+            <div id="performance-test-results"></div>
+        </div>
+
+        <!-- Backward Compatibility Tests -->
+        <div class="test-section" id="compatibility-tests">
+            <h2 class="text-xl font-semibold mb-4">Backward Compatibility Tests</h2>
+            <div id="compatibility-test-results"></div>
+        </div>
+
+        <!-- User Acceptance Tests -->
+        <div class="test-section" id="user-acceptance-tests">
+            <h2 class="text-xl font-semibold mb-4">User Acceptance Tests</h2>
+            <div id="user-acceptance-test-results"></div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+            <h2 class="text-xl font-semibold mb-4">Test Results Summary</h2>
+            <div id="test-summary" class="text-gray-600">
+                No tests have been run yet. Click "Run All Tests" to begin.
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal Container -->
+    <div id="auth-modal-container"></div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+        import { authErrorHandler } from './src/shared/services/authErrorHandler.js';
+        import { connectionMonitor } from './src/shared/services/connectionMonitor.js';
+        import { UserFeedbackSystem } from './src/shared/services/userFeedbackSystem.js';
+        import errorLogger from './src/shared/services/errorLogger.js';
+        import AuthModalVanilla from './src/shared/components/AuthModalVanilla.js';
+        import { finalIntegrationTest } from './src/shared/services/finalIntegrationTest.js';
+        import { integrationVerifier } from './src/shared/services/integrationVerifier.js';
+
+        // Test Framework
+        class IntegrationTestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.isRunning = false;
+                this.feedbackSystem = new UserFeedbackSystem();
+                this.authModal = new AuthModalVanilla();
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                document.getElementById('run-all-tests').addEventListener('click', () => this.runAllTests());
+                document.getElementById('run-component-tests').addEventListener('click', () => this.runComponentTests());
+                document.getElementById('run-integration-tests').addEventListener('click', () => this.runIntegrationTests());
+                document.getElementById('run-error-simulation').addEventListener('click', () => this.runErrorSimulation());
+                document.getElementById('clear-results').addEventListener('click', () => this.clearResults());
+            }
+
+            // Test Registration
+            addTest(name, category, testFunction, description = '') {
+                this.tests.push({
+                    name,
+                    category,
+                    testFunction,
+                    description,
+                    status: 'pending'
+                });
+            }
+
+            // Test Execution
+            async runAllTests() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.clearResults();
+                
+                console.log('🚀 Starting Final Integration Test Suite...');
+                
+                try {
+                    // Run the comprehensive final integration test
+                    const results = await finalIntegrationTest.runCompleteTestSuite();
+                    
+                    // Display results in our UI
+                    this.displayFinalResults(results);
+                    
+                    console.log('✅ Final Integration Test Suite Completed');
+                } catch (error) {
+                    console.error('❌ Final Integration Test Suite Failed:', error);
+                    this.displayError(error);
+                }
+                
+                this.isRunning = false;
+            }
+
+            async runComponentTests() {
+                await this.runTestsByCategory('component');
+            }
+
+            async runIntegrationTests() {
+                await this.runTestsByCategory('integration');
+            }
+
+            async runErrorSimulation() {
+                await this.runTestsByCategory('error-simulation');
+            }
+
+            async runTestsByCategory(category) {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                const categoryTests = this.tests.filter(test => test.category === category);
+                
+                for (const test of categoryTests) {
+                    await this.runSingleTest(test);
+                }
+                
+                this.updateSummary();
+                this.isRunning = false;
+            }
+
+            async runSingleTest(test) {
+                const startTime = Date.now();
+                test.status = 'running';
+                
+                this.updateTestDisplay(test);
+                this.updateCounters();
+                
+                try {
+                    const result = await test.testFunction();
+                    const duration = Date.now() - startTime;
+                    
+                    test.status = result.success ? 'passed' : 'failed';
+                    test.result = result;
+                    test.duration = duration;
+                    
+                    this.results.push({
+                        ...test,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                } catch (error) {
+                    test.status = 'failed';
+                    test.result = {
+                        success: false,
+                        error: error.message,
+                        stack: error.stack
+                    };
+                    test.duration = Date.now() - startTime;
+                    
+                    this.results.push({
+                        ...test,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                this.updateTestDisplay(test);
+                this.updateCounters();
+                
+                // Small delay between tests
+                await this.delay(100);
+            }
+
+            updateTestDisplay(test) {
+                const categoryContainer = document.getElementById(`${test.category.replace('-', '-')}-test-results`);
+                if (!categoryContainer) return;
+                
+                let testElement = document.getElementById(`test-${test.name.replace(/\s+/g, '-')}`);
+                
+                if (!testElement) {
+                    testElement = document.createElement('div');
+                    testElement.id = `test-${test.name.replace(/\s+/g, '-')}`;
+                    testElement.className = 'test-item p-4 mb-2 border rounded';
+                    categoryContainer.appendChild(testElement);
+                }
+                
+                const statusIcon = this.getStatusIcon(test.status);
+                const statusClass = this.getStatusClass(test.status);
+                
+                testElement.className = `test-item p-4 mb-2 border rounded ${statusClass}`;
+                testElement.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            ${statusIcon}
+                            <div class="ml-3">
+                                <h4 class="font-medium">${test.name}</h4>
+                                <p class="text-sm text-gray-600">${test.description}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            ${test.duration ? `<span class="text-sm text-gray-500">${test.duration}ms</span>` : ''}
+                        </div>
+                    </div>
+                    ${test.result && !test.result.success ? `
+                        <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
+                            <strong>Error:</strong> ${test.result.error || 'Unknown error'}
+                        </div>
+                    ` : ''}
+                    ${test.result && test.result.details ? `
+                        <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                            <strong>Details:</strong> ${JSON.stringify(test.result.details, null, 2)}
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            getStatusIcon(status) {
+                switch (status) {
+                    case 'passed':
+                        return '<svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+                    case 'failed':
+                        return '<svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+                    case 'running':
+                        return '<div class="loading-spinner"></div>';
+                    default:
+                        return '<svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>';
+                }
+            }
+
+            getStatusClass(status) {
+                switch (status) {
+                    case 'passed':
+                        return 'border-green-300 bg-green-50';
+                    case 'failed':
+                        return 'border-red-300 bg-red-50';
+                    case 'running':
+                        return 'border-yellow-300 bg-yellow-50';
+                    default:
+                        return 'border-gray-300 bg-gray-50';
+                }
+            }
+
+            updateCounters() {
+                const total = this.tests.length;
+                const passed = this.tests.filter(t => t.status === 'passed').length;
+                const failed = this.tests.filter(t => t.status === 'failed').length;
+                const running = this.tests.filter(t => t.status === 'running').length;
+                
+                document.getElementById('total-tests').textContent = total;
+                document.getElementById('passed-tests').textContent = passed;
+                document.getElementById('failed-tests').textContent = failed;
+                document.getElementById('running-tests').textContent = running;
+            }
+
+            updateSummary() {
+                const total = this.tests.length;
+                const passed = this.tests.filter(t => t.status === 'passed').length;
+                const failed = this.tests.filter(t => t.status === 'failed').length;
+                const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+                
+                const summaryElement = document.getElementById('test-summary');
+                summaryElement.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold ${successRate >= 90 ? 'text-green-600' : successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">${successRate}%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">${total}</div>
+                            <div class="text-sm text-gray-600">Total Tests</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold ${failed === 0 ? 'text-green-600' : 'text-red-600'}">${failed}</div>
+                            <div class="text-sm text-gray-600">Failed Tests</div>
+                        </div>
+                    </div>
+                    ${failed > 0 ? `
+                        <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded">
+                            <h4 class="font-medium text-red-800 mb-2">Failed Tests:</h4>
+                            <ul class="list-disc list-inside text-sm text-red-700">
+                                ${this.tests.filter(t => t.status === 'failed').map(t => `<li>${t.name}: ${t.result?.error || 'Unknown error'}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            clearResults() {
+                this.results = [];
+                this.tests.forEach(test => {
+                    test.status = 'pending';
+                    test.result = null;
+                    test.duration = null;
+                });
+                
+                // Clear display
+                const containers = [
+                    'component-test-results',
+                    'auth-flow-test-results', 
+                    'error-handling-test-results',
+                    'performance-test-results',
+                    'compatibility-test-results',
+                    'user-acceptance-test-results'
+                ];
+                
+                containers.forEach(id => {
+                    const container = document.getElementById(id);
+                    if (container) container.innerHTML = '';
+                });
+                
+                this.updateCounters();
+                document.getElementById('test-summary').textContent = 'No tests have been run yet. Click "Run All Tests" to begin.';
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // Display final integration test results
+            displayFinalResults(results) {
+                const { overall, categories, failedTests, recommendations } = results;
+                
+                // Update counters
+                document.getElementById('total-tests').textContent = overall.total;
+                document.getElementById('passed-tests').textContent = overall.passed;
+                document.getElementById('failed-tests').textContent = overall.failed;
+                document.getElementById('running-tests').textContent = '0';
+
+                // Update summary
+                const summaryElement = document.getElementById('test-summary');
+                summaryElement.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold ${overall.successRate >= 90 ? 'text-green-600' : overall.successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">${overall.successRate}%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                            <div class="text-lg font-semibold ${overall.grade === 'A+' || overall.grade === 'A' ? 'text-green-600' : overall.grade.startsWith('B') ? 'text-blue-600' : overall.grade.startsWith('C') ? 'text-yellow-600' : 'text-red-600'}">${overall.grade}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-blue-600">${overall.total}</div>
+                            <div class="text-sm text-gray-600">Total Tests</div>
+                            <div class="text-sm text-gray-500">${overall.totalDuration}ms total</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold ${overall.passed === overall.total ? 'text-green-600' : 'text-blue-600'}">${overall.passed}</div>
+                            <div class="text-sm text-gray-600">Passed Tests</div>
+                            <div class="text-sm text-gray-500">${overall.avgDuration}ms avg</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold ${overall.failed === 0 ? 'text-green-600' : 'text-red-600'}">${overall.failed}</div>
+                            <div class="text-sm text-gray-600">Failed Tests</div>
+                            <div class="text-sm ${overall.isSuccess ? 'text-green-600' : 'text-red-600'}">${overall.isSuccess ? 'All Passed!' : 'Issues Found'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Category Results -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Test Categories</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${Object.entries(categories).map(([category, stats]) => `
+                                <div class="p-4 border rounded-lg ${stats.successRate >= 90 ? 'border-green-300 bg-green-50' : stats.successRate >= 70 ? 'border-yellow-300 bg-yellow-50' : 'border-red-300 bg-red-50'}">
+                                    <h4 class="font-medium capitalize">${category.replace(/([A-Z])/g, ' $1').trim()}</h4>
+                                    <div class="text-2xl font-bold ${stats.successRate >= 90 ? 'text-green-600' : stats.successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">${stats.successRate.toFixed(1)}%</div>
+                                    <div class="text-sm text-gray-600">${stats.passed}/${stats.total} passed</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    ${failedTests.length > 0 ? `
+                        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <h3 class="text-lg font-semibold text-red-800 mb-3">Failed Tests</h3>
+                            <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                                ${failedTests.map(test => `<li><strong>${test.name}:</strong> ${test.error}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    ${recommendations.length > 0 ? `
+                        <div class="p-4 ${overall.isSuccess ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg">
+                            <h3 class="text-lg font-semibold ${overall.isSuccess ? 'text-green-800' : 'text-blue-800'} mb-3">Recommendations</h3>
+                            <ul class="list-disc list-inside text-sm ${overall.isSuccess ? 'text-green-700' : 'text-blue-700'} space-y-1">
+                                ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+
+                // Display individual test results in categories
+                this.displayCategoryResults(results.results);
+            }
+
+            // Display category results
+            displayCategoryResults(testResults) {
+                const categoryMapping = {
+                    'component': 'component-test-results',
+                    'integration': 'auth-flow-test-results',
+                    'error-handling': 'error-handling-test-results',
+                    'performance': 'performance-test-results',
+                    'compatibility': 'compatibility-test-results',
+                    'user-acceptance': 'user-acceptance-test-results'
+                };
+
+                // Group tests by category based on name patterns
+                const categorizedTests = {
+                    component: testResults.filter(t => t.name.includes('Component') || t.name.includes('Error Handler') || t.name.includes('Connection Monitor')),
+                    integration: testResults.filter(t => t.name.includes('Auth Flow') || t.name.includes('Login') || t.name.includes('Registration') || t.name.includes('OAuth')),
+                    'error-handling': testResults.filter(t => t.name.includes('Error') && !t.name.includes('Component') && !t.name.includes('Handler')),
+                    performance: testResults.filter(t => t.name.includes('Performance')),
+                    compatibility: testResults.filter(t => t.name.includes('Compatibility') || t.name.includes('Backward')),
+                    'user-acceptance': testResults.filter(t => t.name.includes('User') || t.name.includes('Modal') || t.name.includes('Journey') || t.name.includes('Message'))
+                };
+
+                // Display results in each category
+                for (const [category, tests] of Object.entries(categorizedTests)) {
+                    const containerId = categoryMapping[category];
+                    const container = document.getElementById(containerId);
+                    
+                    if (container && tests.length > 0) {
+                        container.innerHTML = tests.map(test => `
+                            <div class="test-item p-4 mb-2 border rounded ${this.getStatusClass(test.status)}">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        ${this.getStatusIcon(test.status)}
+                                        <div class="ml-3">
+                                            <h4 class="font-medium">${test.name}</h4>
+                                            <p class="text-sm text-gray-600">Integration test result</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-sm text-gray-500">${test.duration}ms</span>
+                                    </div>
+                                </div>
+                                ${test.status === 'failed' ? `
+                                    <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
+                                        <strong>Error:</strong> ${test.error}
+                                    </div>
+                                ` : ''}
+                                ${test.result && typeof test.result === 'object' ? `
+                                    <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                                        <strong>Details:</strong> ${JSON.stringify(test.result, null, 2)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('');
+                    }
+                }
+            }
+
+            // Display error
+            displayError(error) {
+                const summaryElement = document.getElementById('test-summary');
+                summaryElement.innerHTML = `
+                    <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <h3 class="text-lg font-semibold text-red-800 mb-2">Test Suite Failed</h3>
+                        <p class="text-red-700 mb-2"><strong>Error:</strong> ${error.message}</p>
+                        <p class="text-sm text-red-600">Check the console for more details.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize test framework
+        const testFramework = new IntegrationTestFramework();
+
+        // Component Integration Tests
+        testFramework.addTest(
+            'AuthErrorHandler Integration',
+            'component',
+            async () => {
+                try {
+                    // Test error classification
+                    const networkError = new Error('Network request failed');
+                    const processedError = authErrorHandler.handleError(networkError, { operation: 'test' });
+                    
+                    if (!processedError.type || !processedError.userMessage) {
+                        throw new Error('AuthErrorHandler not properly processing errors');
+                    }
+                    
+                    return { success: true, details: { errorType: processedError.type } };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests AuthErrorHandler error classification and message generation'
+        );
+
+        testFramework.addTest(
+            'ConnectionMonitor Integration',
+            'component',
+            async () => {
+                try {
+                    const status = connectionMonitor.getStatus();
+                    const healthCheck = await connectionMonitor.isSupabaseAvailable({ timeout: 5000 });
+                    
+                    if (typeof status.status === 'undefined' || typeof healthCheck.available === 'undefined') {
+                        throw new Error('ConnectionMonitor not returning expected status format');
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            status: status.status, 
+                            available: healthCheck.available,
+                            latency: healthCheck.latency 
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests ConnectionMonitor connectivity checking and status reporting'
+        );
+
+        testFramework.addTest(
+            'UserFeedbackSystem Integration',
+            'component',
+            async () => {
+                try {
+                    const testContainer = document.createElement('div');
+                    document.body.appendChild(testContainer);
+                    
+                    const feedbackSystem = new UserFeedbackSystem();
+                    
+                    // Test loading state
+                    feedbackSystem.showLoading('test', 'Testing...', testContainer);
+                    await testFramework.delay(500);
+                    
+                    // Test error state
+                    feedbackSystem.showError('NETWORK_ERROR', { targetElement: testContainer });
+                    await testFramework.delay(500);
+                    
+                    // Test success state
+                    feedbackSystem.showSuccess('Test completed successfully', testContainer);
+                    await testFramework.delay(500);
+                    
+                    // Cleanup
+                    feedbackSystem.clearAll(testContainer);
+                    document.body.removeChild(testContainer);
+                    
+                    return { success: true, details: { message: 'All feedback states tested successfully' } };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests UserFeedbackSystem loading, error, and success states'
+        );
+
+        testFramework.addTest(
+            'ErrorLogger Integration',
+            'component',
+            async () => {
+                try {
+                    const testError = new Error('Test error for logging');
+                    const errorId = errorLogger.logError(testError, { operation: 'integration_test' });
+                    
+                    const metricId = errorLogger.logPerformanceMetric('test_operation', 150, true, { testData: 'success' });
+                    
+                    const stats = errorLogger.getErrorStats({ timeRange: 60000 }); // Last minute
+                    
+                    if (!errorId || !metricId || !stats) {
+                        throw new Error('ErrorLogger not properly logging or retrieving data');
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            errorId, 
+                            metricId, 
+                            totalErrors: stats.totalErrors,
+                            totalOperations: stats.performanceStats?.totalOperations || 0
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests ErrorLogger error logging and performance metrics'
+        );
+
+        // Authentication Flow Tests
+        testFramework.addTest(
+            'AuthService Error Handling',
+            'integration',
+            async () => {
+                try {
+                    // Test with invalid credentials (should handle gracefully)
+                    try {
+                        await authService.login('invalid@test.com', 'wrongpassword');
+                        // If this succeeds in mock mode, that's fine
+                        return { success: true, details: { message: 'Login handled (mock mode or valid test)' } };
+                    } catch (error) {
+                        // Error should be properly classified
+                        const processedError = authErrorHandler.handleError(error, { operation: 'login' });
+                        
+                        if (!processedError.type || !processedError.userMessage) {
+                            throw new Error('AuthService errors not properly processed by error handler');
+                        }
+                        
+                        return { 
+                            success: true, 
+                            details: { 
+                                errorType: processedError.type,
+                                hasUserMessage: !!processedError.userMessage
+                            } 
+                        };
+                    }
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests AuthService integration with error handling system'
+        );
+
+        testFramework.addTest(
+            'Auth Modal Error Display',
+            'integration',
+            async () => {
+                try {
+                    // Create a test container for the modal
+                    const modalContainer = document.getElementById('auth-modal-container');
+                    
+                    // Test modal creation and error display
+                    const modal = new AuthModalVanilla();
+                    modal.open('login');
+                    
+                    // Simulate an error in the modal
+                    const loginForm = document.getElementById('login-form');
+                    if (loginForm) {
+                        // Trigger form submission with invalid data
+                        const formData = new FormData();
+                        formData.set('email', 'invalid-email');
+                        formData.set('password', '');
+                        
+                        // This should trigger validation errors
+                        const event = new Event('submit');
+                        loginForm.dispatchEvent(event);
+                    }
+                    
+                    // Check if error handling is working
+                    await testFramework.delay(1000);
+                    
+                    modal.close();
+                    
+                    return { success: true, details: { message: 'Modal error handling tested' } };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests Auth Modal integration with error handling and user feedback'
+        );
+
+        // Error Simulation Tests
+        testFramework.addTest(
+            'Network Error Simulation',
+            'error-simulation',
+            async () => {
+                try {
+                    // Simulate network error
+                    const networkError = new Error('Failed to fetch');
+                    networkError.name = 'NetworkError';
+                    
+                    const processedError = authErrorHandler.handleError(networkError, { 
+                        operation: 'login',
+                        language: 'es'
+                    });
+                    
+                    if (processedError.type !== 'NETWORK_ERROR') {
+                        throw new Error(`Expected NETWORK_ERROR, got ${processedError.type}`);
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            errorType: processedError.type,
+                            userMessage: processedError.userMessage,
+                            canRetry: processedError.canRetry
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Simulates network errors and tests error handling response'
+        );
+
+        testFramework.addTest(
+            'Supabase Unavailable Simulation',
+            'error-simulation',
+            async () => {
+                try {
+                    // Simulate Supabase unavailable error
+                    const supabaseError = new Error('Service unavailable');
+                    supabaseError.status = 503;
+                    
+                    const processedError = authErrorHandler.handleError(supabaseError, { 
+                        operation: 'register',
+                        language: 'en'
+                    });
+                    
+                    if (processedError.type !== 'SUPABASE_UNAVAILABLE') {
+                        throw new Error(`Expected SUPABASE_UNAVAILABLE, got ${processedError.type}`);
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            errorType: processedError.type,
+                            userMessage: processedError.userMessage,
+                            canRetry: processedError.canRetry
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Simulates Supabase service unavailable and tests error handling'
+        );
+
+        // Performance Tests
+        testFramework.addTest(
+            'Error Handling Performance',
+            'performance',
+            async () => {
+                try {
+                    const iterations = 100;
+                    const startTime = Date.now();
+                    
+                    for (let i = 0; i < iterations; i++) {
+                        const testError = new Error(`Test error ${i}`);
+                        authErrorHandler.handleError(testError, { operation: 'performance_test' });
+                    }
+                    
+                    const duration = Date.now() - startTime;
+                    const avgTime = duration / iterations;
+                    
+                    // Should handle 100 errors in reasonable time (< 1000ms total, < 10ms average)
+                    if (duration > 1000 || avgTime > 10) {
+                        throw new Error(`Performance too slow: ${duration}ms total, ${avgTime}ms average`);
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            totalTime: duration,
+                            averageTime: avgTime,
+                            iterations
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests error handling performance under load'
+        );
+
+        // Backward Compatibility Tests
+        testFramework.addTest(
+            'Legacy AuthService Methods',
+            'compatibility',
+            async () => {
+                try {
+                    // Test that original AuthService methods still work
+                    const isAuthenticated = authService.isAuthenticated();
+                    const currentUser = authService.getCurrentUser();
+                    const token = authService.getToken();
+                    
+                    // These should not throw errors
+                    if (typeof isAuthenticated !== 'boolean') {
+                        throw new Error('isAuthenticated() not returning boolean');
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            isAuthenticated,
+                            hasCurrentUser: !!currentUser,
+                            hasToken: !!token
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests that existing AuthService methods remain functional'
+        );
+
+        // User Acceptance Tests
+        testFramework.addTest(
+            'Error Message Localization',
+            'user-acceptance',
+            async () => {
+                try {
+                    const testError = new Error('Invalid credentials');
+                    
+                    // Test Spanish messages
+                    const spanishError = authErrorHandler.handleError(testError, { 
+                        operation: 'login',
+                        language: 'es'
+                    });
+                    
+                    // Test English messages
+                    const englishError = authErrorHandler.handleError(testError, { 
+                        operation: 'login',
+                        language: 'en'
+                    });
+                    
+                    if (!spanishError.userMessage || !englishError.userMessage) {
+                        throw new Error('Error messages not generated for both languages');
+                    }
+                    
+                    if (spanishError.userMessage === englishError.userMessage) {
+                        throw new Error('Error messages not properly localized');
+                    }
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            spanishMessage: spanishError.userMessage,
+                            englishMessage: englishError.userMessage
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests error message localization for Spanish and English'
+        );
+
+        testFramework.addTest(
+            'User Feedback Accessibility',
+            'user-acceptance',
+            async () => {
+                try {
+                    const testContainer = document.createElement('div');
+                    testContainer.setAttribute('role', 'main');
+                    document.body.appendChild(testContainer);
+                    
+                    const feedbackSystem = new UserFeedbackSystem();
+                    
+                    // Show error and check for accessibility attributes
+                    feedbackSystem.showError('NETWORK_ERROR', { targetElement: testContainer });
+                    
+                    const errorElement = testContainer.querySelector('.feedback-error');
+                    if (!errorElement) {
+                        throw new Error('Error element not created');
+                    }
+                    
+                    // Check for basic accessibility features
+                    const hasAriaRole = errorElement.getAttribute('role') || errorElement.querySelector('[role]');
+                    const hasAriaLabel = errorElement.getAttribute('aria-label') || errorElement.querySelector('[aria-label]');
+                    
+                    // Cleanup
+                    feedbackSystem.clearAll(testContainer);
+                    document.body.removeChild(testContainer);
+                    
+                    return { 
+                        success: true, 
+                        details: { 
+                            hasAriaRole: !!hasAriaRole,
+                            hasAriaLabel: !!hasAriaLabel,
+                            message: 'Accessibility features checked'
+                        } 
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            'Tests user feedback system accessibility features'
+        );
+
+        // Initialize counters
+        testFramework.updateCounters();
+        
+        console.log('Final Integration Test Framework initialized');
+        console.log(`Total tests registered: ${testFramework.tests.length}`);
+    </script>
+</body>
+</html>

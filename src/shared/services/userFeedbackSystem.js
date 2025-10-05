@@ -1,4 +1,5 @@
 import i18n from '../utils/i18n.js';
+import errorLogger from './errorLogger.js';
 
 /**
  * User Feedback System for providing visual feedback to users during authentication operations
@@ -22,10 +23,11 @@ export class UserFeedbackSystem {
       es: {
         NETWORK_ERROR: "No se pudo conectar al servidor. Verifica tu conexión a internet.",
         AUTH_INVALID_CREDENTIALS: "Email o contraseña incorrectos. Inténtalo de nuevo.",
-        AUTH_USER_NOT_FOUND: "No encontramos una cuenta con este email.",
+        AUTH_USER_NOT_FOUND: "No encontramos una cuenta con este email. ¿Quizás quieres crear una cuenta nueva?",
         AUTH_USER_EXISTS: "Ya existe una cuenta con este email. ¿Quieres iniciar sesión?",
         AUTH_WEAK_PASSWORD: "La contraseña debe tener al menos 6 caracteres.",
         AUTH_RATE_LIMITED: "Demasiados intentos. Espera {waitTime} segundos antes de intentar de nuevo.",
+        AUTH_EMAIL_NOT_CONFIRMED: "Debes confirmar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.",
         SERVER_ERROR: "Error del servidor. Inténtalo de nuevo en unos momentos.",
         UNKNOWN_ERROR: "Ocurrió un error inesperado. Contacta al soporte si persiste.",
         EMAIL_NOT_CONFIRMED: "Debes confirmar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.",
@@ -34,10 +36,11 @@ export class UserFeedbackSystem {
       en: {
         NETWORK_ERROR: "Could not connect to server. Check your internet connection.",
         AUTH_INVALID_CREDENTIALS: "Invalid email or password. Please try again.",
-        AUTH_USER_NOT_FOUND: "No account found with this email address.",
+        AUTH_USER_NOT_FOUND: "No account found with this email address. Would you like to create a new account?",
         AUTH_USER_EXISTS: "An account with this email already exists. Want to sign in?",
         AUTH_WEAK_PASSWORD: "Password must be at least 6 characters long.",
         AUTH_RATE_LIMITED: "Too many attempts. Wait {waitTime} seconds before trying again.",
+        AUTH_EMAIL_NOT_CONFIRMED: "You must confirm your email before signing in. Check your inbox.",
         SERVER_ERROR: "Server error. Please try again in a few moments.",
         UNKNOWN_ERROR: "An unexpected error occurred. Contact support if it persists.",
         EMAIL_NOT_CONFIRMED: "You must confirm your email before signing in. Check your inbox.",
@@ -166,6 +169,23 @@ export class UserFeedbackSystem {
       canRetry: canRetry,
       retryCount: 0
     };
+
+    // Log user feedback error display
+    const context = {
+      operation: 'user_feedback_error',
+      errorType: errorType,
+      language: language,
+      canRetry: canRetry,
+      hasTargetElement: !!targetElement,
+      hasRetryCallback: !!retryCallback,
+      waitTime: waitTime
+    };
+    
+    errorLogger.logError(
+      typeof error === 'string' ? new Error(error) : error, 
+      context, 
+      errorLogger.SEVERITY_LEVELS.LOW
+    );
     
     if (targetElement) {
       this._showErrorInElement(targetElement, message, canRetry, retryCallback);

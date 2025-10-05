@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Registration Error Handling - Anclora</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2EAFC4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-[#0A0F1C] text-[#F6F7F9] min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-center mb-8 text-[#2EAFC4]">
+                Test Registration Error Handling
+            </h1>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Test Scenarios -->
+                <div class="bg-[#162032] rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-[#FFC979]">Test Scenarios</h2>
+                    
+                    <div class="space-y-4">
+                        <button id="test-user-exists" class="w-full p-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                            Test: User Already Exists
+                        </button>
+                        
+                        <button id="test-weak-password" class="w-full p-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors">
+                            Test: Weak Password
+                        </button>
+                        
+                        <button id="test-invalid-email" class="w-full p-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors">
+                            Test: Invalid Email Format
+                        </button>
+                        
+                        <button id="test-password-mismatch" class="w-full p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                            Test: Password Mismatch
+                        </button>
+                        
+                        <button id="test-network-error" class="w-full p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            Test: Network Error
+                        </button>
+                        
+                        <button id="test-email-confirmation" class="w-full p-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                            Test: Email Confirmation Required
+                        </button>
+                        
+                        <button id="test-normal-registration" class="w-full p-3 bg-[#2EAFC4] hover:bg-[#2EAFC4]/80 text-white rounded-lg transition-colors">
+                            Test: Normal Registration
+                        </button>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium mb-2">Language</h3>
+                        <div class="flex space-x-2">
+                            <button id="lang-es" class="px-4 py-2 bg-[#2EAFC4] text-white rounded-lg">Español</button>
+                            <button id="lang-en" class="px-4 py-2 bg-gray-600 text-white rounded-lg">English</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Display -->
+                <div class="bg-[#162032] rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-[#FFC979]">Test Results</h2>
+                    
+                    <div id="test-results" class="space-y-4">
+                        <p class="text-gray-400">Click a test scenario to see the results...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Open Auth Modal Button -->
+            <div class="text-center mt-8">
+                <button id="open-auth-modal" class="px-8 py-4 bg-gradient-to-r from-[#2EAFC4] to-[#FFC979] text-[#162032] font-bold text-lg rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300">
+                    Open Registration Modal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import AuthModalVanilla from './src/shared/components/AuthModalVanilla.js';
+        import { authService } from './src/shared/services/authService.js';
+        import i18n from './src/shared/utils/i18n.js';
+
+        // Initialize components
+        const authModal = new AuthModalVanilla();
+        let currentLanguage = 'es';
+
+        // Test data scenarios
+        const testScenarios = {
+            userExists: {
+                name: 'Juan Pérez',
+                email: 'existing@anclora.com',
+                password: 'ValidPass123',
+                confirmPassword: 'ValidPass123'
+            },
+            weakPassword: {
+                name: 'María García',
+                email: 'maria@example.com',
+                password: '123',
+                confirmPassword: '123'
+            },
+            invalidEmail: {
+                name: 'Carlos López',
+                email: 'invalid-email',
+                password: 'ValidPass123',
+                confirmPassword: 'ValidPass123'
+            },
+            passwordMismatch: {
+                name: 'Ana Rodríguez',
+                email: 'ana@example.com',
+                password: 'ValidPass123',
+                confirmPassword: 'DifferentPass456'
+            },
+            networkError: {
+                name: 'Pedro Martínez',
+                email: 'pedro@example.com',
+                password: 'ValidPass123',
+                confirmPassword: 'ValidPass123'
+            },
+            emailConfirmation: {
+                name: 'Laura Sánchez',
+                email: 'laura@example.com',
+                password: 'ValidPass123',
+                confirmPassword: 'ValidPass123'
+            },
+            normal: {
+                name: 'Roberto Silva',
+                email: 'roberto@example.com',
+                password: 'ValidPass123',
+                confirmPassword: 'ValidPass123'
+            }
+        };
+
+        // Mock the authService register method for testing
+        const originalRegister = authService.register.bind(authService);
+        const originalRegisterWithValidation = authService.registerWithValidation.bind(authService);
+
+        authService.register = async function(name, email, password) {
+            // Simulate different error scenarios based on email
+            if (email === 'existing@anclora.com') {
+                const error = new Error('User already registered');
+                error.code = 'user_already_registered';
+                throw error;
+            }
+            
+            if (email === 'pedro@example.com') {
+                const error = new Error('Network error');
+                error.code = 'NETWORK_ERROR';
+                throw error;
+            }
+            
+            if (email === 'laura@example.com') {
+                const error = new Error('Email not confirmed');
+                error.code = 'email_not_confirmed';
+                throw error;
+            }
+            
+            // Normal registration
+            return originalRegister(name, email, password);
+        };
+
+        // Event listeners for test buttons
+        document.getElementById('test-user-exists').addEventListener('click', () => {
+            testRegistrationScenario('userExists', 'User Already Exists');
+        });
+
+        document.getElementById('test-weak-password').addEventListener('click', () => {
+            testRegistrationScenario('weakPassword', 'Weak Password');
+        });
+
+        document.getElementById('test-invalid-email').addEventListener('click', () => {
+            testRegistrationScenario('invalidEmail', 'Invalid Email Format');
+        });
+
+        document.getElementById('test-password-mismatch').addEventListener('click', () => {
+            testRegistrationScenario('passwordMismatch', 'Password Mismatch');
+        });
+
+        document.getElementById('test-network-error').addEventListener('click', () => {
+            testRegistrationScenario('networkError', 'Network Error');
+        });
+
+        document.getElementById('test-email-confirmation').addEventListener('click', () => {
+            testRegistrationScenario('emailConfirmation', 'Email Confirmation Required');
+        });
+
+        document.getElementById('test-normal-registration').addEventListener('click', () => {
+            testRegistrationScenario('normal', 'Normal Registration');
+        });
+
+        // Language switching
+        document.getElementById('lang-es').addEventListener('click', () => {
+            switchLanguage('es');
+        });
+
+        document.getElementById('lang-en').addEventListener('click', () => {
+            switchLanguage('en');
+        });
+
+        // Open auth modal
+        document.getElementById('open-auth-modal').addEventListener('click', () => {
+            authModal.open('register');
+        });
+
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            i18n.setLanguage(lang);
+            
+            // Update button styles
+            document.getElementById('lang-es').className = lang === 'es' 
+                ? 'px-4 py-2 bg-[#2EAFC4] text-white rounded-lg'
+                : 'px-4 py-2 bg-gray-600 text-white rounded-lg';
+            document.getElementById('lang-en').className = lang === 'en' 
+                ? 'px-4 py-2 bg-[#2EAFC4] text-white rounded-lg'
+                : 'px-4 py-2 bg-gray-600 text-white rounded-lg';
+                
+            logResult(`Language switched to: ${lang}`);
+        }
+
+        async function testRegistrationScenario(scenario, scenarioName) {
+            const data = testScenarios[scenario];
+            logResult(`Testing: ${scenarioName}`);
+            logResult(`Data: ${JSON.stringify(data, null, 2)}`);
+
+            try {
+                const result = await authService.registerWithValidation(
+                    data.name,
+                    data.email,
+                    data.password,
+                    data.confirmPassword,
+                    {
+                        language: currentLanguage,
+                        enableRetry: false
+                    }
+                );
+
+                if (result.success) {
+                    logResult('✅ Registration successful', 'success');
+                    logResult(`User: ${JSON.stringify(result.user, null, 2)}`);
+                } else {
+                    logResult('❌ Registration failed', 'error');
+                    
+                    if (result.validationErrors) {
+                        logResult('Validation Errors:', 'error');
+                        Object.entries(result.validationErrors).forEach(([field, message]) => {
+                            logResult(`  ${field}: ${message}`, 'error');
+                        });
+                    }
+                    
+                    if (result.error) {
+                        logResult('Authentication Error:', 'error');
+                        logResult(`  Type: ${result.error.type}`, 'error');
+                        logResult(`  Message: ${result.error.userMessage}`, 'error');
+                        logResult(`  Can Retry: ${result.error.canRetry}`, 'error');
+                    }
+                }
+            } catch (error) {
+                logResult('💥 Unexpected error:', 'error');
+                logResult(error.message, 'error');
+                console.error('Test error:', error);
+            }
+        }
+
+        function logResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const colorClass = {
+                info: 'text-gray-300',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400'
+            }[type] || 'text-gray-300';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `p-2 rounded ${colorClass} text-sm font-mono`;
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            
+            resultsDiv.appendChild(logEntry);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+            
+            // Keep only last 20 entries
+            while (resultsDiv.children.length > 20) {
+                resultsDiv.removeChild(resultsDiv.firstChild);
+            }
+        }
+
+        // Initialize
+        logResult('Registration Error Handling Test initialized');
+        logResult('Click test scenarios to see error handling in action');
+    </script>
+</body>
+</html>

@@ -6,6 +6,7 @@
 
 import { supabase } from '../config/supabase.js';
 import { authErrorHandler, AUTH_ERROR_TYPES } from './authErrorHandler.js';
+import errorLogger from './errorLogger.js';
 
 /**
  * Connection status constants
@@ -89,8 +90,17 @@ export class ConnectionMonitor {
    * @returns {Promise<Object>} Health check result
    */
   async isSupabaseAvailable(options = {}) {
+    const startTime = Date.now();
     const timeout = options.timeout || this.config.timeoutMs;
     const retryAttempts = options.retryAttempts || this.config.retryAttempts;
+    
+    const context = {
+      operation: 'connectivity_check',
+      timeout: timeout,
+      retryAttempts: retryAttempts,
+      supabaseEnabled: this.isSupabaseEnabled,
+      timestamp: new Date().toISOString()
+    };
     
     let lastError = null;
     
@@ -99,6 +109,15 @@ export class ConnectionMonitor {
         const result = await this.performHealthCheck(timeout);
         
         if (result.available) {
+          // Log successful connectivity check
+          const duration = Date.now() - startTime;
+          errorLogger.logPerformanceMetric('connectivity_check', duration, true, {
+            latency: result.latency,
+            attempt: attempt,
+            supabaseEnabled: this.isSupabaseEnabled,
+            timeout: timeout
+          });
+
           return {
             available: true,
             latency: result.latency,
@@ -124,6 +143,16 @@ export class ConnectionMonitor {
         }
       }
     }
+
+    // Log failed connectivity check
+    const duration = Date.now() - startTime;
+    errorLogger.logError(lastError || new Error('Connectivity check failed'), context, errorLogger.SEVERITY_LEVELS.HIGH);
+    errorLogger.logPerformanceMetric('connectivity_check', duration, false, {
+      attempts: retryAttempts,
+      supabaseEnabled: this.isSupabaseEnabled,
+      timeout: timeout,
+      errorType: lastError?.message || 'Unknown connectivity error'
+    });
 
     return {
       available: false,
@@ -174,28 +203,99 @@ export class ConnectionMonitor {
       const latency = Date.now() - startTime;
 
       if (error) {
+        // Classify the error to determine if it's a service unavailable scenario
+        const errorType = this.classifyHealthCheckError(error);
+        
         return {
           available: false,
           latency: latency,
-          error: error
+          error: error,
+          errorType: errorType,
+          isServiceUnavailable: errorType === 'SUPABASE_UNAVAILABLE' || errorType === 'SUPABASE_MAINTENANCE'
         };
       }
 
       return {
         available: true,
         latency: latency,
-        sessionExists: !!data.session
+        sessionExists: !!data.session,
+        errorType: null,
+        isServiceUnavailable: false
       };
 
     } catch (error) {
       const latency = Date.now() - startTime;
+      const errorType = this.classifyHealthCheckError(error);
       
       return {
         available: false,
         latency: latency,
-        error: error
+        error: error,
+        errorType: errorType,
+        isServiceUnavailable: errorType === 'SUPABASE_UNAVAILABLE' || errorType === 'SUPABASE_MAINTENANCE'
       };
     }
+  }
+
+  /**
+   * Classify health check errors to determine service availability
+   * @param {Error} error - The error to classify
+   * @returns {string} Error type classification
+   */
+  classifyHealthCheckError(error) {
+    if (!error) return 'UNKNOWN';
+
+    const errorMessage = error.message?.toLowerCase() || '';
+    const errorCode = error.code || '';
+    const status = error.status || 0;
+
+    // Service unavailable scenarios
+    if (
+      status === 503 ||
+      status === 502 ||
+      status === 504 ||
+      errorMessage.includes('service unavailable') ||
+      errorMessage.includes('bad gateway') ||
+      errorMessage.includes('gateway timeout') ||
+      errorMessage.includes('supabase unavailable') ||
+      errorCode === 'SERVICE_UNAVAILABLE'
+    ) {
+      return 'SUPABASE_UNAVAILABLE';
+    }
+
+    // Maintenance scenarios
+    if (
+      errorMessage.includes('maintenance') ||
+      errorMessage.includes('scheduled downtime') ||
+      errorMessage.includes('temporarily unavailable') ||
+      errorCode === 'MAINTENANCE_MODE'
+    ) {
+      return 'SUPABASE_MAINTENANCE';
+    }
+
+    // Network connectivity issues
+    if (
+      errorMessage.includes('network') ||
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('connection') ||
+      errorMessage.includes('timeout') ||
+      error.name === 'NetworkError' ||
+      error.name === 'TypeError' && errorMessage.includes('fetch')
+    ) {
+      return 'NETWORK_ERROR';
+    }
+
+    // DNS or host resolution issues
+    if (
+      errorMessage.includes('dns') ||
+      errorMessage.includes('host') ||
+      errorMessage.includes('resolve') ||
+      errorMessage.includes('enotfound')
+    ) {
+      return 'DNS_ERROR';
+    }
+
+    return 'UNKNOWN';
   }
 
   /**

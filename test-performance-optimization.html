@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Optimization Test - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/components/ErrorMonitoringDashboard.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .test-results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Performance Optimization Test Suite</h1>
+        <p>Test the performance optimizations implemented for error handling in the authentication system.</p>
+        
+        <!-- Performance Metrics Display -->
+        <div class="test-section">
+            <h2>Current Performance Metrics</h2>
+            <div class="performance-metrics" id="performance-metrics">
+                <!-- Metrics will be populated by JavaScript -->
+            </div>
+            <button class="btn btn-primary" onclick="updatePerformanceMetrics()">Refresh Metrics</button>
+        </div>
+        
+        <!-- Error Classification Performance Test -->
+        <div class="test-section">
+            <h2>Error Classification Performance Test</h2>
+            <p>Test the performance of error classification with and without optimizations.</p>
+            
+            <div class="test-controls">
+                <button class="btn btn-primary" onclick="testErrorClassification(100, true)">
+                    Test 100 Errors (Optimized)
+                </button>
+                <button class="btn btn-warning" onclick="testErrorClassification(100, false)">
+                    Test 100 Errors (Unoptimized)
+                </button>
+                <button class="btn btn-primary" onclick="testErrorClassification(1000, true)">
+                    Test 1000 Errors (Optimized)
+                </button>
+                <button class="btn btn-danger" onclick="testErrorClassification(1000, false)">
+                    Test 1000 Errors (Unoptimized)
+                </button>
+            </div>
+            
+            <div class="test-results" id="classification-results"></div>
+        </div>
+        
+        <!-- Retry Logic Performance Test -->
+        <div class="test-section">
+            <h2>Retry Logic Performance Test</h2>
+            <p>Test the performance of retry delay calculations and optimizations.</p>
+            
+            <div class="test-controls">
+                <button class="btn btn-primary" onclick="testRetryLogic(50)">
+                    Test 50 Retry Calculations
+                </button>
+                <button class="btn btn-primary" onclick="testRetryLogic(200)">
+                    Test 200 Retry Calculations
+                </button>
+                <button class="btn btn-success" onclick="testRetryOptimization()">
+                    Test Retry Optimization
+                </button>
+            </div>
+            
+            <div class="test-results" id="retry-results"></div>
+        </div>
+        
+        <!-- Memory Usage Test -->
+        <div class="test-section">
+            <h2>Memory Usage Test</h2>
+            <p>Test memory efficiency of error state management and caching.</p>
+            
+            <div class="test-controls">
+                <button class="btn btn-primary" onclick="testMemoryUsage()">
+                    Test Memory Usage
+                </button>
+                <button class="btn btn-warning" onclick="stressTestMemory()">
+                    Stress Test Memory
+                </button>
+                <button class="btn btn-success" onclick="testCleanup()">
+                    Test Cleanup
+                </button>
+            </div>
+            
+            <div class="test-results" id="memory-results"></div>
+        </div>
+        
+        <!-- Cache Performance Test -->
+        <div class="test-section">
+            <h2>Cache Performance Test</h2>
+            <p>Test the effectiveness of error pattern caching.</p>
+            
+            <div class="test-controls">
+                <button class="btn btn-primary" onclick="testCachePerformance()">
+                    Test Cache Performance
+                </button>
+                <button class="btn btn-success" onclick="testCacheHitRate()">
+                    Test Cache Hit Rate
+                </button>
+                <button class="btn btn-warning" onclick="clearCache()">
+                    Clear Cache
+                </button>
+            </div>
+            
+            <div class="test-results" id="cache-results"></div>
+        </div>
+        
+        <!-- Error Monitoring Dashboard -->
+        <div class="test-section">
+            <h2>Error Monitoring Dashboard</h2>
+            <p>Real-time dashboard showing error analytics and performance metrics.</p>
+            
+            <div class="test-controls">
+                <button class="btn btn-success" onclick="showDashboard()">
+                    Show Dashboard
+                </button>
+                <button class="btn btn-warning" onclick="hideDashboard()">
+                    Hide Dashboard
+                </button>
+                <button class="btn btn-primary" onclick="generateTestData()">
+                    Generate Test Data
+                </button>
+            </div>
+            
+            <div id="dashboard-container" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Import modules -->
+    <script type="module">
+        import performanceOptimizer from './src/shared/services/performanceOptimizer.js';
+        import errorAnalytics from './src/shared/services/errorAnalytics.js';
+        import { ErrorMonitoringDashboard } from './src/shared/components/ErrorMonitoringDashboard.js';
+        import { authErrorHandler } from './src/shared/services/authErrorHandler.js';
+        
+        // Make modules available globally for testing
+        window.performanceOptimizer = performanceOptimizer;
+        window.errorAnalytics = errorAnalytics;
+        window.ErrorMonitoringDashboard = ErrorMonitoringDashboard;
+        window.authErrorHandler = authErrorHandler;
+        
+        let dashboard = null;
+        
+        // Performance testing functions
+        window.updatePerformanceMetrics = function() {
+            const metrics = performanceOptimizer.getDetailedPerformanceMetrics();
+            const container = document.getElementById('performance-metrics');
+            
+            container.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.performanceBreakdown.cacheEfficiency.toFixed(1)}%</div>
+                    <div class="metric-label">Cache Hit Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.performanceBreakdown.fastPathHitRate.toFixed(1)}%</div>
+                    <div class="metric-label">Fast Path Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.performanceBreakdown.averageProcessingTime.toFixed(2)}ms</div>
+                    <div class="metric-label">Avg Processing Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.performanceBreakdown.memoryEfficiency.totalManagedObjects}</div>
+                    <div class="metric-label">Managed Objects</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.health.healthy ? 'Healthy' : 'Issues'}</div>
+                    <div class="metric-label">System Health</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.recommendations.length}</div>
+                    <div class="metric-label">Recommendations</div>
+                </div>
+            `;
+        };
+        
+        window.testErrorClassification = function(count, optimized) {
+            const results = document.getElementById('classification-results');
+            results.innerHTML = `Testing ${count} error classifications (${optimized ? 'optimized' : 'unoptimized'})...\n`;
+            
+            // Set optimization mode
+            performanceOptimizer.setEnabled(optimized);
+            
+            const errors = generateTestErrors(count);
+            const startTime = performance.now();
+            
+            errors.forEach((error, index) => {
+                const errorType = performanceOptimizer.optimizeErrorClassification(
+                    error, 
+                    (err) => authErrorHandler.classifyError(err)
+                );
+                
+                if (index % 100 === 0) {
+                    results.innerHTML += `Processed ${index + 1}/${count} errors...\n`;
+                }
+            });
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            results.innerHTML += `\nCompleted in ${duration.toFixed(2)}ms\n`;
+            results.innerHTML += `Average time per error: ${(duration / count).toFixed(4)}ms\n`;
+            results.innerHTML += `Errors per second: ${(count / (duration / 1000)).toFixed(0)}\n`;
+            
+            const stats = performanceOptimizer.getPerformanceStats();
+            results.innerHTML += `\nCache stats: ${JSON.stringify(stats.cache, null, 2)}\n`;
+        };
+        
+        window.testRetryLogic = function(count) {
+            const results = document.getElementById('retry-results');
+            results.innerHTML = `Testing ${count} retry calculations...\n`;
+            
+            const startTime = performance.now();
+            
+            for (let i = 0; i < count; i++) {
+                const attemptCount = Math.floor(Math.random() * 5) + 1;
+                const errorType = getRandomErrorType();
+                const totalElapsed = Math.random() * 30000;
+                
+                const retryInfo = performanceOptimizer.optimizeRetryDelay(
+                    attemptCount, 
+                    errorType, 
+                    totalElapsed
+                );
+                
+                if (i % 50 === 0) {
+                    results.innerHTML += `Processed ${i + 1}/${count} calculations...\n`;
+                }
+            }
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            results.innerHTML += `\nCompleted in ${duration.toFixed(2)}ms\n`;
+            results.innerHTML += `Average time per calculation: ${(duration / count).toFixed(4)}ms\n`;
+            results.innerHTML += `Calculations per second: ${(count / (duration / 1000)).toFixed(0)}\n`;
+        };
+        
+        window.testRetryOptimization = function() {
+            const results = document.getElementById('retry-results');
+            results.innerHTML = 'Testing retry optimization with operation tracking...\n';
+            
+            const operationId = 'test-operation-' + Date.now();
+            const errorType = 'NETWORK_ERROR';
+            
+            // Test multiple attempts for the same operation
+            for (let attempt = 1; attempt <= 5; attempt++) {
+                const startTime = performance.now();
+                
+                const retryDecision = performanceOptimizer.optimizeRetryLogic(
+                    operationId,
+                    attempt,
+                    errorType,
+                    attempt * 1000
+                );
+                
+                const endTime = performance.now();
+                
+                results.innerHTML += `Attempt ${attempt}: ${(endTime - startTime).toFixed(4)}ms - `;
+                results.innerHTML += `Should retry: ${retryDecision.shouldRetry}, Delay: ${retryDecision.delay}ms\n`;
+            }
+            
+            // Test state management
+            const hasState = performanceOptimizer.hasErrorState(operationId);
+            results.innerHTML += `\nOperation has cached state: ${hasState}\n`;
+            
+            // Cleanup
+            performanceOptimizer.clearErrorState(operationId);
+            results.innerHTML += `State cleared. Has state now: ${performanceOptimizer.hasErrorState(operationId)}\n`;
+        };
+        
+        window.testMemoryUsage = function() {
+            const results = document.getElementById('memory-results');
+            results.innerHTML = 'Testing memory usage...\n';
+            
+            const initialMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            results.innerHTML += `Initial memory: ${(initialMemory / 1024 / 1024).toFixed(2)} MB\n`;
+            
+            // Create many error states
+            for (let i = 0; i < 1000; i++) {
+                performanceOptimizer.setErrorState(`operation-${i}`, {
+                    errorType: getRandomErrorType(),
+                    attemptCount: Math.floor(Math.random() * 5),
+                    timestamp: Date.now()
+                });
+            }
+            
+            const afterStatesMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            results.innerHTML += `After creating 1000 states: ${(afterStatesMemory / 1024 / 1024).toFixed(2)} MB\n`;
+            results.innerHTML += `Memory increase: ${((afterStatesMemory - initialMemory) / 1024 / 1024).toFixed(2)} MB\n`;
+            
+            const memoryStats = performanceOptimizer.calculateMemoryEfficiency();
+            results.innerHTML += `\nMemory efficiency stats:\n${JSON.stringify(memoryStats, null, 2)}\n`;
+        };
+        
+        window.stressTestMemory = function() {
+            const results = document.getElementById('memory-results');
+            results.innerHTML = 'Running memory stress test...\n';
+            
+            const iterations = 10000;
+            const startTime = performance.now();
+            
+            for (let i = 0; i < iterations; i++) {
+                // Create and classify errors
+                const error = generateRandomError();
+                performanceOptimizer.optimizeErrorClassification(
+                    error,
+                    (err) => authErrorHandler.classifyError(err)
+                );
+                
+                // Create error states
+                performanceOptimizer.setErrorState(`stress-${i}`, {
+                    errorType: getRandomErrorType(),
+                    timestamp: Date.now()
+                });
+                
+                if (i % 1000 === 0) {
+                    results.innerHTML += `Processed ${i}/${iterations} operations...\n`;
+                }
+            }
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            results.innerHTML += `\nStress test completed in ${duration.toFixed(2)}ms\n`;
+            results.innerHTML += `Operations per second: ${(iterations / (duration / 1000)).toFixed(0)}\n`;
+            
+            const finalMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            results.innerHTML += `Final memory usage: ${(finalMemory / 1024 / 1024).toFixed(2)} MB\n`;
+        };
+        
+        window.testCleanup = function() {
+            const results = document.getElementById('memory-results');
+            results.innerHTML = 'Testing cleanup functionality...\n';
+            
+            const beforeMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            
+            // Force cleanup
+            performanceOptimizer.reset();
+            
+            const afterMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            
+            results.innerHTML += `Memory before cleanup: ${(beforeMemory / 1024 / 1024).toFixed(2)} MB\n`;
+            results.innerHTML += `Memory after cleanup: ${(afterMemory / 1024 / 1024).toFixed(2)} MB\n`;
+            results.innerHTML += `Memory freed: ${((beforeMemory - afterMemory) / 1024 / 1024).toFixed(2)} MB\n`;
+            
+            const stats = performanceOptimizer.getPerformanceStats();
+            results.innerHTML += `\nPost-cleanup stats:\n${JSON.stringify(stats, null, 2)}\n`;
+        };
+        
+        window.testCachePerformance = function() {
+            const results = document.getElementById('cache-results');
+            results.innerHTML = 'Testing cache performance...\n';
+            
+            const testErrors = generateTestErrors(100);
+            
+            // First pass - populate cache
+            const firstPassStart = performance.now();
+            testErrors.forEach(error => {
+                performanceOptimizer.optimizeErrorClassification(
+                    error,
+                    (err) => authErrorHandler.classifyError(err)
+                );
+            });
+            const firstPassEnd = performance.now();
+            
+            // Second pass - should hit cache
+            const secondPassStart = performance.now();
+            testErrors.forEach(error => {
+                performanceOptimizer.optimizeErrorClassification(
+                    error,
+                    (err) => authErrorHandler.classifyError(err)
+                );
+            });
+            const secondPassEnd = performance.now();
+            
+            const firstPassTime = firstPassEnd - firstPassStart;
+            const secondPassTime = secondPassEnd - secondPassStart;
+            const speedup = firstPassTime / secondPassTime;
+            
+            results.innerHTML += `First pass (cache miss): ${firstPassTime.toFixed(2)}ms\n`;
+            results.innerHTML += `Second pass (cache hit): ${secondPassTime.toFixed(2)}ms\n`;
+            results.innerHTML += `Speedup: ${speedup.toFixed(2)}x\n`;
+            
+            const cacheStats = performanceOptimizer.getPerformanceStats().cache;
+            results.innerHTML += `\nCache statistics:\n${JSON.stringify(cacheStats, null, 2)}\n`;
+        };
+        
+        window.testCacheHitRate = function() {
+            const results = document.getElementById('cache-results');
+            results.innerHTML = 'Testing cache hit rate with repeated patterns...\n';
+            
+            const commonErrors = generateTestErrors(10); // 10 common error patterns
+            const testCount = 1000;
+            
+            for (let i = 0; i < testCount; i++) {
+                const randomError = commonErrors[Math.floor(Math.random() * commonErrors.length)];
+                performanceOptimizer.optimizeErrorClassification(
+                    randomError,
+                    (err) => authErrorHandler.classifyError(err)
+                );
+            }
+            
+            const cacheStats = performanceOptimizer.getPerformanceStats().cache;
+            results.innerHTML += `Processed ${testCount} classifications with ${commonErrors.length} unique patterns\n`;
+            results.innerHTML += `Cache hit rate: ${cacheStats.hitRate}%\n`;
+            results.innerHTML += `Cache hits: ${cacheStats.hits}\n`;
+            results.innerHTML += `Cache misses: ${cacheStats.misses}\n`;
+            results.innerHTML += `Cache size: ${cacheStats.size}/${cacheStats.maxSize}\n`;
+        };
+        
+        window.clearCache = function() {
+            const results = document.getElementById('cache-results');
+            performanceOptimizer.reset();
+            results.innerHTML = 'Cache cleared successfully.\n';
+            
+            const cacheStats = performanceOptimizer.getPerformanceStats().cache;
+            results.innerHTML += `New cache stats: ${JSON.stringify(cacheStats, null, 2)}\n`;
+        };
+        
+        window.showDashboard = function() {
+            const container = document.getElementById('dashboard-container');
+            container.style.display = 'block';
+            
+            if (!dashboard) {
+                dashboard = new ErrorMonitoringDashboard('dashboard-container');
+            }
+            
+            dashboard.setVisible(true);
+            dashboard.startAutoRefresh();
+        };
+        
+        window.hideDashboard = function() {
+            const container = document.getElementById('dashboard-container');
+            container.style.display = 'none';
+            
+            if (dashboard) {
+                dashboard.setVisible(false);
+                dashboard.stopAutoRefresh();
+            }
+        };
+        
+        window.generateTestData = function() {
+            // Generate various error events for the dashboard
+            const errorTypes = Object.values(authErrorHandler.getErrorTypes());
+            const operations = ['login', 'register', 'oauth_login', 'password_reset'];
+            
+            for (let i = 0; i < 50; i++) {
+                const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+                const operation = operations[Math.floor(Math.random() * operations.length)];
+                
+                errorAnalytics.recordError({
+                    type: errorType,
+                    message: `Test error ${i + 1}`,
+                    timestamp: Date.now() - Math.random() * 3600000 // Random time in last hour
+                }, {
+                    operation: operation,
+                    attemptCount: Math.floor(Math.random() * 3),
+                    severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
+                });
+            }
+            
+            // Generate some UX flow data
+            const uxTracker = errorAnalytics.getUXTracker();
+            for (let i = 0; i < 10; i++) {
+                const flowId = `test-flow-${i}`;
+                uxTracker.startAuthFlow(flowId, 'login', {});
+                uxTracker.recordFlowStep(flowId, 'email_entered', {});
+                
+                if (Math.random() > 0.3) { // 70% success rate
+                    uxTracker.completeAuthFlow(flowId, true, {});
+                } else {
+                    uxTracker.recordFlowError(flowId, {
+                        errorType: errorTypes[Math.floor(Math.random() * errorTypes.length)]
+                    });
+                    uxTracker.completeAuthFlow(flowId, false, {});
+                }
+            }
+            
+            alert('Test data generated successfully! Refresh the dashboard to see the data.');
+        };
+        
+        // Helper functions
+        function generateTestErrors(count) {
+            const errors = [];
+            const errorMessages = [
+                'Network error occurred',
+                'Invalid login credentials',
+                'User not found',
+                'User already registered',
+                'Rate limit exceeded',
+                'Service unavailable',
+                'OAuth provider error',
+                'Weak password provided'
+            ];
+            
+            for (let i = 0; i < count; i++) {
+                const error = new Error(errorMessages[Math.floor(Math.random() * errorMessages.length)]);
+                error.code = `ERR_${Math.floor(Math.random() * 1000)}`;
+                error.status = [400, 401, 403, 429, 500, 503][Math.floor(Math.random() * 6)];
+                errors.push(error);
+            }
+            
+            return errors;
+        }
+        
+        function generateRandomError() {
+            const messages = [
+                'Network timeout',
+                'Connection refused',
+                'Invalid credentials',
+                'User not found',
+                'Service unavailable'
+            ];
+            
+            const error = new Error(messages[Math.floor(Math.random() * messages.length)]);
+            error.status = [400, 401, 500, 503][Math.floor(Math.random() * 4)];
+            return error;
+        }
+        
+        function getRandomErrorType() {
+            const types = Object.values(authErrorHandler.getErrorTypes());
+            return types[Math.floor(Math.random() * types.length)];
+        }
+        
+        // Initialize performance metrics on page load
+        updatePerformanceMetrics();
+        
+        // Auto-update metrics every 5 seconds
+        setInterval(updatePerformanceMetrics, 5000);
+    </script>
+</body>
+</html>

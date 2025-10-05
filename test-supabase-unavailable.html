@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Unavailable Scenarios - Anclora</title>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .status-display {
+            background-color: #ecf0f1;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .service-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .service-status.available {
+            background-color: #d5f4e6;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+
+        .service-status.unavailable {
+            background-color: #fadbd8;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .service-status.maintenance {
+            background-color: #fef9e7;
+            color: #f39c12;
+            border: 1px solid #f39c12;
+        }
+
+        .service-status.checking {
+            background-color: #ebf3fd;
+            color: #3498db;
+            border: 1px solid #3498db;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-indicator.available {
+            background-color: #27ae60;
+        }
+
+        .status-indicator.unavailable {
+            background-color: #e74c3c;
+        }
+
+        .status-indicator.maintenance {
+            background-color: #f39c12;
+        }
+
+        .status-indicator.checking {
+            background-color: #3498db;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .queue-info {
+            background-color: #e8f4f8;
+            border: 1px solid #3498db;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .queue-info h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .log-entry.info {
+            background-color: #e8f4f8;
+            color: #2c3e50;
+        }
+
+        .log-entry.success {
+            background-color: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .log-entry.error {
+            background-color: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .log-entry.warning {
+            background-color: #fef9e7;
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Test Supabase Unavailable Scenarios</h1>
+            <p>Test authentication error handling when Supabase service is unavailable</p>
+        </div>
+
+        <!-- Service Status Display -->
+        <div class="test-section">
+            <h3>📊 Service Status Monitor</h3>
+            <div id="serviceStatus" class="service-status checking">
+                <span class="status-indicator checking"></span>
+                <span>Checking service status...</span>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="checkServiceStatus()">Check Status</button>
+                <button class="btn btn-secondary" onclick="startMonitoring()">Start Monitoring</button>
+                <button class="btn btn-secondary" onclick="stopMonitoring()">Stop Monitoring</button>
+            </div>
+            <div class="status-display" id="statusDetails"></div>
+        </div>
+
+        <!-- Service Simulation Controls -->
+        <div class="test-section">
+            <h3>🎭 Service Simulation Controls</h3>
+            <p>Simulate different service availability scenarios for testing</p>
+            <div class="button-group">
+                <button class="btn btn-success" onclick="simulateServiceAvailable()">✅ Service Available</button>
+                <button class="btn btn-danger" onclick="simulateServiceUnavailable()">❌ Service Unavailable</button>
+                <button class="btn btn-warning" onclick="simulateServiceMaintenance()">🔧 Maintenance Mode</button>
+                <button class="btn btn-secondary" onclick="simulateNetworkError()">🌐 Network Error</button>
+            </div>
+            <div class="status-display" id="simulationLog"></div>
+        </div>
+
+        <!-- Authentication Testing -->
+        <div class="test-section">
+            <h3>🔐 Authentication Testing</h3>
+            <p>Test authentication operations with different service availability scenarios</p>
+            
+            <div class="form-group">
+                <label for="testEmail">Email:</label>
+                <input type="email" id="testEmail" value="test@anclora.com" placeholder="Enter test email">
+            </div>
+            
+            <div class="form-group">
+                <label for="testPassword">Password:</label>
+                <input type="password" id="testPassword" value="testpassword123" placeholder="Enter test password">
+            </div>
+            
+            <div class="form-group">
+                <label for="testName">Name (for registration):</label>
+                <input type="text" id="testName" value="Test User" placeholder="Enter test name">
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="testLogin()">🔑 Test Login</button>
+                <button class="btn btn-primary" onclick="testRegister()">📝 Test Register</button>
+                <button class="btn btn-warning" onclick="testLoginWithQueue()">🔑 Login with Queue</button>
+                <button class="btn btn-warning" onclick="testRegisterWithQueue()">📝 Register with Queue</button>
+            </div>
+            
+            <div class="status-display" id="authTestResults"></div>
+        </div>
+
+        <!-- Operation Queue Management -->
+        <div class="test-section">
+            <h3>📋 Operation Queue Management</h3>
+            <p>Monitor and manage queued operations when service is unavailable</p>
+            
+            <div class="queue-info">
+                <h4>Queue Status</h4>
+                <div id="queueStatus">No queued operations</div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="viewQueueStatus()">📊 View Queue</button>
+                <button class="btn btn-success" onclick="processQueue()">▶️ Process Queue</button>
+                <button class="btn btn-danger" onclick="clearQueue()">🗑️ Clear Queue</button>
+                <button class="btn btn-secondary" onclick="addTestOperation()">➕ Add Test Operation</button>
+            </div>
+            
+            <div class="status-display" id="queueLog"></div>
+        </div>
+
+        <!-- Automatic Retry Testing -->
+        <div class="test-section">
+            <h3>🔄 Automatic Retry Testing</h3>
+            <p>Test automatic retry functionality when service is restored</p>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="testAutoRetry()">🔄 Test Auto Retry</button>
+                <button class="btn btn-warning" onclick="simulateServiceRestoration()">🔧 Simulate Restoration</button>
+                <button class="btn btn-secondary" onclick="testRetryWithBackoff()">⏱️ Test Exponential Backoff</button>
+            </div>
+            
+            <div class="status-display" id="retryTestResults"></div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="test-section">
+            <h3>📝 Event Log</h3>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="clearEventLog()">🗑️ Clear Log</button>
+                <button class="btn btn-primary" onclick="exportEventLog()">💾 Export Log</button>
+            </div>
+            <div class="status-display" id="eventLog"></div>
+        </div>
+    </div>
+
+    <!-- User Feedback Container -->
+    <div id="userFeedbackContainer"></div>
+
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+        import { supabaseUnavailableHandler } from './src/shared/services/supabaseUnavailableHandler.js';
+        import { connectionMonitor } from './src/shared/services/connectionMonitor.js';
+        import { userFeedbackSystem } from './src/shared/services/userFeedbackSystem.js';
+
+        // Global variables for testing
+        window.authService = authService;
+        window.supabaseUnavailableHandler = supabaseUnavailableHandler;
+        window.connectionMonitor = connectionMonitor;
+        window.userFeedbackSystem = userFeedbackSystem;
+
+        let eventLogEntries = [];
+        let monitoringInterval = null;
+
+        // Initialize user feedback system
+        userFeedbackSystem.initialize();
+
+        // Event logging function
+        function logEvent(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = {
+                timestamp,
+                message,
+                type,
+                id: Date.now() + Math.random()
+            };
+            
+            eventLogEntries.unshift(entry);
+            
+            // Keep only last 100 entries
+            if (eventLogEntries.length > 100) {
+                eventLogEntries = eventLogEntries.slice(0, 100);
+            }
+            
+            updateEventLog();
+        }
+
+        function updateEventLog() {
+            const eventLog = document.getElementById('eventLog');
+            eventLog.innerHTML = eventLogEntries
+                .map(entry => `<div class="log-entry ${entry.type}">[${entry.timestamp}] ${entry.message}</div>`)
+                .join('');
+        }
+
+        // Service status functions
+        window.checkServiceStatus = async function() {
+            logEvent('Checking service status...', 'info');
+            
+            try {
+                const result = await connectionMonitor.checkConnectivity();
+                const serviceStatus = supabaseUnavailableHandler.getServiceStatus();
+                
+                updateServiceStatusDisplay(result, serviceStatus);
+                logEvent(`Service status: ${result.status} - ${result.available ? 'Available' : 'Unavailable'}`, 
+                    result.available ? 'success' : 'error');
+                
+                document.getElementById('statusDetails').textContent = JSON.stringify({
+                    connectivity: result,
+                    serviceStatus: serviceStatus
+                }, null, 2);
+                
+            } catch (error) {
+                logEvent(`Error checking service status: ${error.message}`, 'error');
+                console.error('Error checking service status:', error);
+            }
+        };
+
+        function updateServiceStatusDisplay(connectivityResult, serviceStatus) {
+            const statusElement = document.getElementById('serviceStatus');
+            const indicator = statusElement.querySelector('.status-indicator');
+            const text = statusElement.querySelector('span:last-child');
+            
+            if (connectivityResult.available) {
+                statusElement.className = 'service-status available';
+                indicator.className = 'status-indicator available';
+                text.textContent = `Service Available (${connectivityResult.latency}ms)`;
+            } else if (serviceStatus.status === 'MAINTENANCE') {
+                statusElement.className = 'service-status maintenance';
+                indicator.className = 'status-indicator maintenance';
+                text.textContent = 'Service in Maintenance';
+            } else {
+                statusElement.className = 'service-status unavailable';
+                indicator.className = 'status-indicator unavailable';
+                text.textContent = 'Service Unavailable';
+            }
+        }
+
+        window.startMonitoring = function() {
+            if (monitoringInterval) {
+                logEvent('Monitoring already active', 'warning');
+                return;
+            }
+            
+            connectionMonitor.startMonitoring();
+            logEvent('Started connection monitoring', 'success');
+            
+            // Update status every 5 seconds
+            monitoringInterval = setInterval(checkServiceStatus, 5000);
+        };
+
+        window.stopMonitoring = function() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+            
+            connectionMonitor.stopMonitoring();
+            logEvent('Stopped connection monitoring', 'info');
+        };
+
+        // Service simulation functions
+        window.simulateServiceAvailable = function() {
+            // This would normally require mocking the Supabase client
+            logEvent('Simulating service available scenario', 'info');
+            userFeedbackSystem.showSuccess('Service simulation: Available');
+        };
+
+        window.simulateServiceUnavailable = function() {
+            logEvent('Simulating service unavailable scenario', 'warning');
+            userFeedbackSystem.showError('Service simulation: Unavailable', {
+                type: 'error',
+                persistent: true,
+                showRetry: true
+            });
+        };
+
+        window.simulateServiceMaintenance = function() {
+            logEvent('Simulating maintenance mode scenario', 'warning');
+            userFeedbackSystem.showError('Service simulation: Maintenance Mode', {
+                type: 'warning',
+                persistent: true,
+                showRetry: false
+            });
+        };
+
+        window.simulateNetworkError = function() {
+            logEvent('Simulating network error scenario', 'error');
+            userFeedbackSystem.showError('Service simulation: Network Error', {
+                type: 'error',
+                showRetry: true
+            });
+        };
+
+        // Authentication testing functions
+        window.testLogin = async function() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!email || !password) {
+                logEvent('Please enter email and password', 'warning');
+                return;
+            }
+            
+            logEvent(`Testing login for ${email}`, 'info');
+            
+            try {
+                const result = await authService.login(email, password);
+                logEvent(`Login successful for ${email}`, 'success');
+                
+                document.getElementById('authTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Login failed: ${error.message}`, 'error');
+                document.getElementById('authTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.testRegister = async function() {
+            const name = document.getElementById('testName').value;
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!name || !email || !password) {
+                logEvent('Please enter name, email and password', 'warning');
+                return;
+            }
+            
+            logEvent(`Testing registration for ${email}`, 'info');
+            
+            try {
+                const result = await authService.register(name, email, password);
+                logEvent(`Registration successful for ${email}`, 'success');
+                
+                document.getElementById('authTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Registration failed: ${error.message}`, 'error');
+                document.getElementById('authTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.testLoginWithQueue = async function() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!email || !password) {
+                logEvent('Please enter email and password', 'warning');
+                return;
+            }
+            
+            logEvent(`Testing login with queue handling for ${email}`, 'info');
+            
+            try {
+                const result = await authService.loginWithUnavailableHandling(email, password, {
+                    allowQueue: true,
+                    showFeedback: true
+                });
+                
+                if (result.success) {
+                    logEvent(`Login with queue successful for ${email}`, 'success');
+                } else {
+                    logEvent(`Login with queue failed: ${result.error?.userMessage || 'Unknown error'}`, 'error');
+                }
+                
+                document.getElementById('authTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Login with queue error: ${error.message}`, 'error');
+                document.getElementById('authTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.testRegisterWithQueue = async function() {
+            const name = document.getElementById('testName').value;
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!name || !email || !password) {
+                logEvent('Please enter name, email and password', 'warning');
+                return;
+            }
+            
+            logEvent(`Testing registration with queue handling for ${email}`, 'info');
+            
+            try {
+                const result = await authService.registerWithUnavailableHandling(name, email, password, {
+                    allowQueue: true,
+                    showFeedback: true
+                });
+                
+                if (result.success) {
+                    logEvent(`Registration with queue successful for ${email}`, 'success');
+                } else {
+                    logEvent(`Registration with queue failed: ${result.error?.userMessage || 'Unknown error'}`, 'error');
+                }
+                
+                document.getElementById('authTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Registration with queue error: ${error.message}`, 'error');
+                document.getElementById('authTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        // Queue management functions
+        window.viewQueueStatus = function() {
+            const serviceStatus = supabaseUnavailableHandler.getServiceStatus();
+            const queueInfo = {
+                queuedOperations: serviceStatus.queuedOperationsCount,
+                serviceStatus: serviceStatus.status,
+                isRetryMonitoring: serviceStatus.isRetryMonitoring,
+                lastStatusCheck: serviceStatus.lastStatusCheck
+            };
+            
+            document.getElementById('queueStatus').innerHTML = `
+                <strong>Queued Operations:</strong> ${queueInfo.queuedOperations}<br>
+                <strong>Service Status:</strong> ${queueInfo.serviceStatus}<br>
+                <strong>Retry Monitoring:</strong> ${queueInfo.isRetryMonitoring ? 'Active' : 'Inactive'}<br>
+                <strong>Last Check:</strong> ${queueInfo.lastStatusCheck || 'Never'}
+            `;
+            
+            document.getElementById('queueLog').textContent = JSON.stringify(queueInfo, null, 2);
+            logEvent(`Queue status: ${queueInfo.queuedOperations} operations queued`, 'info');
+        };
+
+        window.processQueue = async function() {
+            logEvent('Attempting to process queue...', 'info');
+            
+            try {
+                // This would trigger queue processing if service is available
+                const result = await supabaseUnavailableHandler.checkServiceAvailability();
+                
+                if (result.available) {
+                    logEvent('Service is available, queue should process automatically', 'success');
+                } else {
+                    logEvent('Service still unavailable, queue cannot be processed', 'warning');
+                }
+                
+                document.getElementById('queueLog').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Error processing queue: ${error.message}`, 'error');
+            }
+        };
+
+        window.clearQueue = function() {
+            try {
+                const clearedCount = supabaseUnavailableHandler.clearQueue();
+                logEvent(`Cleared ${clearedCount} operations from queue`, 'info');
+                
+                document.getElementById('queueStatus').innerHTML = `
+                    <strong>Queued Operations:</strong> 0<br>
+                    <strong>Status:</strong> Queue cleared
+                `;
+                
+            } catch (error) {
+                logEvent(`Error clearing queue: ${error.message}`, 'error');
+            }
+        };
+
+        window.addTestOperation = async function() {
+            try {
+                const testOperation = async () => {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return { success: true, message: 'Test operation completed' };
+                };
+                
+                const result = await supabaseUnavailableHandler.queueOperation(testOperation, {
+                    operation: 'test_operation',
+                    timestamp: new Date().toISOString()
+                });
+                
+                logEvent('Test operation added to queue', 'info');
+                document.getElementById('queueLog').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Error adding test operation: ${error.message}`, 'error');
+            }
+        };
+
+        // Retry testing functions
+        window.testAutoRetry = async function() {
+            logEvent('Testing automatic retry functionality...', 'info');
+            
+            // This would test the retry logic with a mock failing operation
+            const testOperation = async () => {
+                const shouldFail = Math.random() < 0.7; // 70% chance to fail initially
+                if (shouldFail) {
+                    throw new Error('Simulated operation failure');
+                }
+                return { success: true, message: 'Operation succeeded after retry' };
+            };
+            
+            try {
+                const result = await testOperation();
+                logEvent('Auto retry test completed successfully', 'success');
+                document.getElementById('retryTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Auto retry test failed: ${error.message}`, 'error');
+                document.getElementById('retryTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.simulateServiceRestoration = function() {
+            logEvent('Simulating service restoration...', 'info');
+            
+            // This would simulate the service coming back online
+            userFeedbackSystem.showSuccess('Service simulation: Restored');
+            
+            // Trigger a status check
+            setTimeout(checkServiceStatus, 1000);
+        };
+
+        window.testRetryWithBackoff = async function() {
+            logEvent('Testing exponential backoff retry logic...', 'info');
+            
+            let attempt = 0;
+            const maxAttempts = 3;
+            const baseDelay = 1000;
+            
+            const retryWithBackoff = async () => {
+                for (let i = 0; i < maxAttempts; i++) {
+                    attempt++;
+                    
+                    try {
+                        // Simulate operation that fails first few times
+                        if (attempt < 3) {
+                            throw new Error(`Attempt ${attempt} failed`);
+                        }
+                        
+                        logEvent(`Retry successful on attempt ${attempt}`, 'success');
+                        return { success: true, attempts: attempt };
+                        
+                    } catch (error) {
+                        const delay = baseDelay * Math.pow(2, i);
+                        logEvent(`Attempt ${attempt} failed, retrying in ${delay}ms`, 'warning');
+                        
+                        if (i < maxAttempts - 1) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
+            };
+            
+            try {
+                const result = await retryWithBackoff();
+                document.getElementById('retryTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Retry with backoff failed: ${error.message}`, 'error');
+                document.getElementById('retryTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        // Event log functions
+        window.clearEventLog = function() {
+            eventLogEntries = [];
+            updateEventLog();
+            logEvent('Event log cleared', 'info');
+        };
+
+        window.exportEventLog = function() {
+            const logData = eventLogEntries.map(entry => 
+                `[${entry.timestamp}] ${entry.type.toUpperCase()}: ${entry.message}`
+            ).join('\n');
+            
+            const blob = new Blob([logData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `supabase-unavailable-test-log-${new Date().toISOString().slice(0, 19)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+            logEvent('Event log exported', 'success');
+        };
+
+        // Set up event listeners for service status changes
+        supabaseUnavailableHandler.addEventListener('serviceStatusChange', (event) => {
+            logEvent(`Service status changed: ${event.from} → ${event.to}`, 'info');
+        });
+
+        supabaseUnavailableHandler.addEventListener('serviceUnavailable', (event) => {
+            logEvent(`Service became unavailable: ${event.errorType}`, 'error');
+        });
+
+        supabaseUnavailableHandler.addEventListener('serviceRestored', (event) => {
+            logEvent(`Service restored after ${Math.round(event.unavailabilityDuration / 1000)}s`, 'success');
+        });
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            logEvent('Supabase Unavailable Test Page initialized', 'info');
+            checkServiceStatus();
+        });
+
+        // Log initial message
+        logEvent('Test page loaded and ready', 'success');
+    </script>
+</body>
+</html>

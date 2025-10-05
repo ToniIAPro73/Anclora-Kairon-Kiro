@@ -1,8 +1,12 @@
 import i18n from '../utils/i18n.js';
+import { authErrorHandler } from '../services/authErrorHandler.js';
+import { UserFeedbackSystem } from '../services/userFeedbackSystem.js';
+import errorLogger from '../services/errorLogger.js';
 
 /**
  * Rapid Onboarding Wizard - 60 seconds flow
  * Guides new users through project setup with templates and sample data
+ * Enhanced with error handling and retry logic
  */
 export default class OnboardingWizard {
     constructor() {
@@ -19,18 +23,39 @@ export default class OnboardingWizard {
             teamMembers: [],
             skipAdvanced: false
         };
+        
+        // Initialize error handling
+        this.feedbackSystem = new UserFeedbackSystem();
+        this.initializationAttempts = 0;
+        this.maxRetryAttempts = 3;
+        
         this.setupLanguageListener();
     }
 
     /**
-     * Open the onboarding wizard
+     * Open the onboarding wizard with error handling
      */
-    open() {
-        this.isOpen = true;
-        this.currentStep = 1;
-        this.render();
-        this.setupEventListeners();
-        document.body.style.overflow = 'hidden';
+    async open() {
+        try {
+            // Check if user data is incomplete after auth
+            await this.validateUserData();
+            
+            this.isOpen = true;
+            this.currentStep = 1;
+            this.render();
+            this.setupEventListeners();
+            document.body.style.overflow = 'hidden';
+            
+            // Log successful onboarding initialization
+            errorLogger.logPerformanceMetric('onboarding_initialization', Date.now(), true, {
+                currentStep: this.currentStep,
+                hasUserData: !!this.userData.name,
+                language: i18n.getCurrentLanguage()
+            });
+            
+        } catch (error) {
+            this.handleOnboardingError(error, 'initialization');
+        }
     }
 
     /**
@@ -79,25 +104,48 @@ export default class OnboardingWizard {
     }
 
     /**
-     * Complete onboarding
+     * Complete onboarding with error handling and retry logic
      */
-    complete() {
-        // Generate sample data based on selected template
-        this.generateSampleData();
+    async complete() {
+        const startTime = Date.now();
+        
+        try {
+            // Show loading state
+            this.feedbackSystem.showLoading('default', 'Finalizando configuración...', this.wizardElement);
+            
+            // Validate required data before completion
+            this.validateCompletionData();
+            
+            // Generate sample data based on selected template
+            await this.generateSampleDataWithRetry();
 
-        // Save user preferences
-        this.saveUserData();
+            // Save user preferences with retry logic
+            await this.saveUserDataWithRetry();
 
-        // Mark onboarding as completed in auth service
-        if (window.authService) {
-            window.authService.completeOnboarding();
+            // Mark onboarding as completed in auth service
+            await this.completeAuthServiceOnboarding();
+
+            // Hide loading state
+            this.feedbackSystem.hideLoading(this.wizardElement);
+
+            // Close wizard and redirect to dashboard
+            this.close();
+
+            // Show success message before redirect
+            this.showCompletionMessage();
+            
+            // Log successful completion
+            const duration = Date.now() - startTime;
+            errorLogger.logPerformanceMetric('onboarding_completion', duration, true, {
+                template: this.userData.projectTemplate,
+                teamSize: this.userData.teamMembers.length + 1,
+                skipAdvanced: this.userData.skipAdvanced
+            });
+            
+        } catch (error) {
+            this.feedbackSystem.hideLoading(this.wizardElement);
+            this.handleOnboardingError(error, 'completion');
         }
-
-        // Close wizard and redirect to dashboard
-        this.close();
-
-        // Show success message before redirect
-        this.showCompletionMessage();
     }
 
     /**
@@ -612,70 +660,7 @@ export default class OnboardingWizard {
         }
     }
 
-    /**
-     * Generate sample data based on selected template
-     */
-    generateSampleData() {
-        const templates = {
-            software: {
-                project: 'Mi Aplicación Web',
-                tasks: [
-                    { title: 'Configurar entorno de desarrollo', status: 'done', priority: 'high' },
-                    { title: 'Diseñar base de datos', status: 'in-progress', priority: 'high' },
-                    { title: 'Implementar autenticación', status: 'todo', priority: 'medium' },
-                    { title: 'Crear API REST', status: 'todo', priority: 'medium' },
-                    { title: 'Desarrollar frontend', status: 'todo', priority: 'low' }
-                ]
-            },
-            marketing: {
-                project: 'Campaña de Lanzamiento',
-                tasks: [
-                    { title: 'Investigación de mercado', status: 'done', priority: 'high' },
-                    { title: 'Crear buyer personas', status: 'in-progress', priority: 'high' },
-                    { title: 'Diseñar landing page', status: 'todo', priority: 'medium' },
-                    { title: 'Configurar Google Ads', status: 'todo', priority: 'medium' },
-                    { title: 'Analizar métricas', status: 'todo', priority: 'low' }
-                ]
-            },
-            design: {
-                project: 'Rediseño de Marca',
-                tasks: [
-                    { title: 'Investigación de usuarios', status: 'done', priority: 'high' },
-                    { title: 'Crear wireframes', status: 'in-progress', priority: 'high' },
-                    { title: 'Diseñar sistema de colores', status: 'todo', priority: 'medium' },
-                    { title: 'Crear componentes UI', status: 'todo', priority: 'medium' },
-                    { title: 'Prototipo interactivo', status: 'todo', priority: 'low' }
-                ]
-            },
-            general: {
-                project: 'Mi Primer Proyecto',
-                tasks: [
-                    { title: 'Definir objetivos', status: 'done', priority: 'high' },
-                    { title: 'Planificar tareas', status: 'in-progress', priority: 'high' },
-                    { title: 'Asignar responsabilidades', status: 'todo', priority: 'medium' },
-                    { title: 'Ejecutar plan', status: 'todo', priority: 'medium' },
-                    { title: 'Revisar resultados', status: 'todo', priority: 'low' }
-                ]
-            }
-        };
 
-        const selectedTemplate = templates[this.userData.projectTemplate] || templates.general;
-
-        // Store sample data in localStorage for the app to use
-        localStorage.setItem('onboarding_sample_data', JSON.stringify({
-            project: selectedTemplate.project,
-            tasks: selectedTemplate.tasks,
-            user: this.userData
-        }));
-    }
-
-    /**
-     * Save user data
-     */
-    saveUserData() {
-        localStorage.setItem('user_onboarding_data', JSON.stringify(this.userData));
-        localStorage.setItem('onboarding_completed', 'true');
-    }
 
     /**
      * Setup language change listener
@@ -688,6 +673,328 @@ export default class OnboardingWizard {
                 this.setupEventListeners();
             }
         });
+    }
+
+    /**
+     * Validate user data after authentication
+     */
+    async validateUserData() {
+        try {
+            // Check if user is authenticated
+            if (!window.authService || !window.authService.isAuthenticated()) {
+                throw new Error('User not authenticated');
+            }
+
+            // Get current user data
+            const currentUser = window.authService.getCurrentUser();
+            if (!currentUser) {
+                throw new Error('User data not available');
+            }
+
+            // Pre-populate user data from auth service
+            if (currentUser.user_metadata?.name && !this.userData.name) {
+                this.userData.name = currentUser.user_metadata.name;
+            }
+
+            // Check if onboarding was already completed
+            const onboardingCompleted = localStorage.getItem('onboarding_completed');
+            if (onboardingCompleted === 'true') {
+                console.warn('Onboarding already completed, but wizard was opened again');
+            }
+
+        } catch (error) {
+            // Log validation error but don't prevent onboarding
+            errorLogger.logError(error, {
+                operation: 'onboarding_user_validation',
+                hasAuthService: !!window.authService,
+                isAuthenticated: window.authService?.isAuthenticated() || false
+            }, errorLogger.SEVERITY_LEVELS.MEDIUM);
+            
+            // Continue with onboarding even if validation fails
+        }
+    }
+
+    /**
+     * Validate data required for completion
+     */
+    validateCompletionData() {
+        const errors = [];
+
+        if (!this.userData.name || this.userData.name.trim().length === 0) {
+            errors.push('Name is required');
+        }
+
+        if (!this.userData.projectTemplate) {
+            errors.push('Project template must be selected');
+        }
+
+        // Validate team member emails if provided
+        this.userData.teamMembers.forEach((email, index) => {
+            if (email && !this.isValidEmail(email)) {
+                errors.push(`Invalid email format for team member ${index + 1}: ${email}`);
+            }
+        });
+
+        if (errors.length > 0) {
+            throw new Error(`Validation failed: ${errors.join(', ')}`);
+        }
+    }
+
+    /**
+     * Generate sample data with retry logic
+     */
+    async generateSampleDataWithRetry() {
+        let attempts = 0;
+        const maxAttempts = this.maxRetryAttempts;
+
+        while (attempts < maxAttempts) {
+            try {
+                await this.generateSampleData();
+                return; // Success
+            } catch (error) {
+                attempts++;
+                
+                if (attempts >= maxAttempts) {
+                    throw new Error(`Failed to generate sample data after ${maxAttempts} attempts: ${error.message}`);
+                }
+
+                // Wait before retry (exponential backoff)
+                await this.delay(Math.pow(2, attempts - 1) * 1000);
+            }
+        }
+    }
+
+    /**
+     * Save user data with retry logic
+     */
+    async saveUserDataWithRetry() {
+        let attempts = 0;
+        const maxAttempts = this.maxRetryAttempts;
+
+        while (attempts < maxAttempts) {
+            try {
+                await this.saveUserData();
+                return; // Success
+            } catch (error) {
+                attempts++;
+                
+                if (attempts >= maxAttempts) {
+                    throw new Error(`Failed to save user data after ${maxAttempts} attempts: ${error.message}`);
+                }
+
+                // Wait before retry
+                await this.delay(Math.pow(2, attempts - 1) * 1000);
+            }
+        }
+    }
+
+    /**
+     * Complete onboarding in auth service with error handling
+     */
+    async completeAuthServiceOnboarding() {
+        try {
+            if (window.authService && typeof window.authService.completeOnboarding === 'function') {
+                await window.authService.completeOnboarding();
+            } else {
+                // Fallback: mark as completed locally
+                localStorage.setItem('onboarding_completed', 'true');
+            }
+        } catch (error) {
+            // Log error but don't fail the entire onboarding
+            errorLogger.logError(error, {
+                operation: 'auth_service_onboarding_completion',
+                hasAuthService: !!window.authService,
+                hasCompleteMethod: !!(window.authService?.completeOnboarding)
+            }, errorLogger.SEVERITY_LEVELS.MEDIUM);
+            
+            // Fallback: mark as completed locally
+            localStorage.setItem('onboarding_completed', 'true');
+        }
+    }
+
+    /**
+     * Handle onboarding errors with user feedback and retry options
+     */
+    handleOnboardingError(error, context) {
+        const processedError = authErrorHandler.handleError(error, {
+            operation: `onboarding_${context}`,
+            language: i18n.getCurrentLanguage(),
+            currentStep: this.currentStep,
+            userData: this.userData
+        });
+
+        // Show error with retry option based on context
+        const retryCallback = this.getRetryCallback(context);
+        
+        this.feedbackSystem.showError(processedError.type, {
+            canRetry: processedError.canRetry && !!retryCallback,
+            retryCallback: retryCallback,
+            targetElement: this.wizardElement
+        });
+
+        // Log the error
+        errorLogger.logError(error, {
+            operation: `onboarding_${context}`,
+            currentStep: this.currentStep,
+            userData: this.userData,
+            language: i18n.getCurrentLanguage()
+        }, errorLogger.SEVERITY_LEVELS.HIGH);
+    }
+
+    /**
+     * Get retry callback based on error context
+     */
+    getRetryCallback(context) {
+        switch (context) {
+            case 'initialization':
+                return () => {
+                    this.feedbackSystem.hideError(this.wizardElement);
+                    this.open();
+                };
+            case 'completion':
+                return () => {
+                    this.feedbackSystem.hideError(this.wizardElement);
+                    this.complete();
+                };
+            case 'data_persistence':
+                return () => {
+                    this.feedbackSystem.hideError(this.wizardElement);
+                    this.saveUserDataWithRetry();
+                };
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Enhanced generate sample data with error handling
+     */
+    async generateSampleData() {
+        try {
+            const templates = {
+                software: {
+                    project: 'Mi Aplicación Web',
+                    tasks: [
+                        { title: 'Configurar entorno de desarrollo', status: 'done', priority: 'high' },
+                        { title: 'Diseñar base de datos', status: 'in-progress', priority: 'high' },
+                        { title: 'Implementar autenticación', status: 'todo', priority: 'medium' },
+                        { title: 'Crear API REST', status: 'todo', priority: 'medium' },
+                        { title: 'Desarrollar frontend', status: 'todo', priority: 'low' }
+                    ]
+                },
+                marketing: {
+                    project: 'Campaña de Lanzamiento',
+                    tasks: [
+                        { title: 'Investigación de mercado', status: 'done', priority: 'high' },
+                        { title: 'Crear buyer personas', status: 'in-progress', priority: 'high' },
+                        { title: 'Diseñar landing page', status: 'todo', priority: 'medium' },
+                        { title: 'Configurar Google Ads', status: 'todo', priority: 'medium' },
+                        { title: 'Analizar métricas', status: 'todo', priority: 'low' }
+                    ]
+                },
+                design: {
+                    project: 'Rediseño de Marca',
+                    tasks: [
+                        { title: 'Investigación de usuarios', status: 'done', priority: 'high' },
+                        { title: 'Crear wireframes', status: 'in-progress', priority: 'high' },
+                        { title: 'Diseñar sistema de colores', status: 'todo', priority: 'medium' },
+                        { title: 'Crear componentes UI', status: 'todo', priority: 'medium' },
+                        { title: 'Prototipo interactivo', status: 'todo', priority: 'low' }
+                    ]
+                },
+                general: {
+                    project: 'Mi Primer Proyecto',
+                    tasks: [
+                        { title: 'Definir objetivos', status: 'done', priority: 'high' },
+                        { title: 'Planificar tareas', status: 'in-progress', priority: 'high' },
+                        { title: 'Asignar responsabilidades', status: 'todo', priority: 'medium' },
+                        { title: 'Ejecutar plan', status: 'todo', priority: 'medium' },
+                        { title: 'Revisar resultados', status: 'todo', priority: 'low' }
+                    ]
+                }
+            };
+
+            const selectedTemplate = templates[this.userData.projectTemplate] || templates.general;
+
+            // Store sample data in localStorage with error handling
+            const sampleData = {
+                project: selectedTemplate.project,
+                tasks: selectedTemplate.tasks,
+                user: this.userData,
+                timestamp: new Date().toISOString()
+            };
+
+            const dataString = JSON.stringify(sampleData);
+            
+            // Check if localStorage is available and has enough space
+            if (typeof Storage === 'undefined') {
+                throw new Error('localStorage is not supported');
+            }
+
+            // Test write to ensure we have space
+            try {
+                localStorage.setItem('onboarding_sample_data', dataString);
+            } catch (storageError) {
+                if (storageError.name === 'QuotaExceededError') {
+                    throw new Error('Not enough storage space available');
+                }
+                throw storageError;
+            }
+
+        } catch (error) {
+            throw new Error(`Failed to generate sample data: ${error.message}`);
+        }
+    }
+
+    /**
+     * Enhanced save user data with error handling
+     */
+    async saveUserData() {
+        try {
+            // Validate data before saving
+            if (!this.userData.name) {
+                throw new Error('User name is required');
+            }
+
+            // Prepare data for storage
+            const dataToSave = {
+                ...this.userData,
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const dataString = JSON.stringify(dataToSave);
+
+            // Check localStorage availability
+            if (typeof Storage === 'undefined') {
+                throw new Error('localStorage is not supported');
+            }
+
+            // Save user data
+            localStorage.setItem('user_onboarding_data', dataString);
+            
+            // Mark onboarding as completed
+            localStorage.setItem('onboarding_completed', 'true');
+            localStorage.setItem('onboarding_completed_timestamp', new Date().toISOString());
+
+        } catch (error) {
+            throw new Error(`Failed to save user data: ${error.message}`);
+        }
+    }
+
+    /**
+     * Validate email format
+     */
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    /**
+     * Utility method to create a delay
+     */
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 

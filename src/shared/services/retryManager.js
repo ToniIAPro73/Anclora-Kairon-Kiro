@@ -4,6 +4,7 @@
  */
 
 import { AUTH_ERROR_TYPES } from './authErrorHandler.js';
+import performanceOptimizer from './performanceOptimizer.js';
 
 // Default retry configuration for different error types
 const DEFAULT_RETRY_CONFIG = {
@@ -90,38 +91,81 @@ export class RetryManager {
    * @returns {Promise<any>} - Result of the function execution
    */
   async executeWithRetry(fn, errorType = AUTH_ERROR_TYPES.UNKNOWN_ERROR, options = {}) {
+    const startTime = Date.now();
     const config = this.getRetryConfig(errorType);
     const maxRetries = options.maxRetries ?? config.maxRetries;
     let attemptCount = 0;
     let lastError = null;
+    let totalElapsedMs = 0;
 
     while (attemptCount <= maxRetries) {
+      const attemptStartTime = Date.now();
+      
       try {
         const result = await fn(attemptCount);
+        
+        // Record successful retry performance
+        const totalDuration = Date.now() - startTime;
+        performanceOptimizer.performanceMonitor.recordMetric('retryExecution', totalDuration, {
+          errorType,
+          attemptCount,
+          totalAttempts: attemptCount + 1,
+          success: true,
+          totalElapsedMs: totalElapsedMs
+        });
+        
         return {
           success: true,
           result: result,
           attemptCount: attemptCount,
-          totalAttempts: attemptCount + 1
+          totalAttempts: attemptCount + 1,
+          totalElapsedMs: totalElapsedMs
         };
       } catch (error) {
         lastError = error;
         attemptCount++;
+        
+        const attemptDuration = Date.now() - attemptStartTime;
+        totalElapsedMs += attemptDuration;
 
-        // If this was the last attempt, throw the error
+        // If this was the last attempt, break
         if (attemptCount > maxRetries) {
           break;
         }
 
-        // Calculate delay for next attempt
-        const delay = this.calculateDelay(errorType, attemptCount);
+        // Use optimized retry calculation
+        const optimizedRetryInfo = performanceOptimizer.optimizeRetryDelay(
+          attemptCount,
+          errorType,
+          totalElapsedMs
+        );
+
+        // Check if we should continue retrying based on performance considerations
+        if (!optimizedRetryInfo.shouldRetry || optimizedRetryInfo.remainingTime <= 0) {
+          break;
+        }
+
+        // Use optimized delay (prefer performance optimizer over traditional calculation)
+        const delay = optimizedRetryInfo.delay || this.calculateDelay(errorType, attemptCount);
         
         // Wait before retrying
         if (delay > 0) {
           await this.delay(delay);
+          totalElapsedMs += delay;
         }
       }
     }
+
+    // Record failed retry performance
+    const totalDuration = Date.now() - startTime;
+    performanceOptimizer.performanceMonitor.recordMetric('retryExecution', totalDuration, {
+      errorType,
+      attemptCount,
+      totalAttempts: attemptCount,
+      success: false,
+      maxRetriesExceeded: true,
+      totalElapsedMs: totalElapsedMs
+    });
 
     // All retries exhausted, return failure
     return {
@@ -129,7 +173,8 @@ export class RetryManager {
       error: lastError,
       attemptCount: attemptCount,
       totalAttempts: attemptCount,
-      maxRetriesExceeded: true
+      maxRetriesExceeded: true,
+      totalElapsedMs: totalElapsedMs
     };
   }
 

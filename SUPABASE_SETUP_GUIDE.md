@@ -149,6 +149,83 @@ npm run dev
 - Verifica que no haya errores en la consola SQL
 - Revisa que RLS esté habilitado
 
+## 🛡️ Sistema de Manejo de Errores
+
+### Configuración del Sistema de Errores
+
+El sistema incluye manejo avanzado de errores que proporciona:
+
+- **Detección automática de conectividad**: Monitorea la disponibilidad de Supabase
+- **Reintentos inteligentes**: Reintenta operaciones fallidas con backoff exponencial
+- **Mensajes de error localizados**: Mensajes claros en español e inglés
+- **Logging de errores**: Registro detallado para diagnóstico
+- **Recuperación graceful**: El sistema se recupera automáticamente de errores temporales
+
+### Códigos de Error Comunes
+
+#### Errores de Conectividad
+- **NETWORK_ERROR**: Problemas de conexión a internet
+- **SUPABASE_UNAVAILABLE**: Servicio de Supabase no disponible
+- **TIMEOUT_ERROR**: Timeout en la conexión
+
+#### Errores de Autenticación
+- **AUTH_INVALID_CREDENTIALS**: Email o contraseña incorrectos
+- **AUTH_USER_NOT_FOUND**: Usuario no existe
+- **AUTH_USER_EXISTS**: Usuario ya registrado
+- **AUTH_WEAK_PASSWORD**: Contraseña no cumple requisitos
+- **AUTH_EMAIL_NOT_CONFIRMED**: Email no confirmado
+- **AUTH_RATE_LIMITED**: Demasiados intentos de login
+
+#### Errores del Servidor
+- **SERVER_ERROR**: Error interno del servidor
+- **DATABASE_ERROR**: Error en la base de datos
+- **SERVICE_UNAVAILABLE**: Servicio temporalmente no disponible
+
+### Monitoreo de Errores
+
+El sistema incluye un dashboard de monitoreo que puedes acceder en:
+- `test-realtime-dashboard.html`: Dashboard en tiempo real
+- `test-performance-optimization.html`: Métricas de rendimiento
+
+### Configuración de Alertas
+
+Para habilitar alertas automáticas, configura los umbrales en el sistema:
+
+```javascript
+// Configuración de alertas por defecto
+const alertThresholds = {
+    networkErrorRate: 10,      // % en 5 minutos
+    authFailureRate: 25,       // % en 10 minutos
+    serverErrorRate: 5,        // % en 5 minutos
+    avgResponseTime: 5000      // milisegundos
+};
+```
+
+### Solución de Problemas Específicos
+
+#### "No se pudo conectar al servidor"
+1. Verifica tu conexión a internet
+2. Comprueba el estado de Supabase en [status.supabase.com](https://status.supabase.com)
+3. Revisa la configuración de CORS en Supabase
+4. El sistema reintentará automáticamente cada 1-4 segundos
+
+#### "Demasiados intentos de login"
+1. Espera 15 minutos antes de intentar nuevamente
+2. Verifica que estés usando las credenciales correctas
+3. Considera usar "Olvidé mi contraseña" si persiste
+
+#### "Error del servidor"
+1. El sistema reintentará automáticamente
+2. Si persiste, verifica el estado de Supabase
+3. Revisa los logs en la consola del navegador
+4. Contacta soporte si el error continúa
+
+#### Problemas de OAuth
+1. Verifica que el provider esté habilitado en Supabase
+2. Comprueba las URLs de callback
+3. Revisa las credenciales del provider OAuth
+4. El sistema ofrecerá login con email como alternativa
+
 ## 📚 Recursos Adicionales
 
 - [Documentación de Supabase Auth](https://supabase.com/docs/guides/auth)

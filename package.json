@@ -16,7 +16,11 @@
     "format": "prettier --write .",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:integration": "node src/shared/test/runIntegrationTests.js",
+    "test:integration:auth": "vitest --run src/shared/test/authErrorFlows.integration.test.js",
+    "test:integration:recovery": "vitest --run src/shared/test/authErrorRecovery.integration.test.js",
+    "test:integration:oauth": "vitest --run src/shared/test/oauthErrorFlows.integration.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

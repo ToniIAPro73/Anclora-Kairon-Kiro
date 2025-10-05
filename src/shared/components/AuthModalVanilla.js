@@ -626,7 +626,10 @@ export default class AuthModalVanilla {
       password: formData.get('password')
     };
 
-    const validation = validateLoginForm(data);
+    // Clear any existing errors first
+    this.clearFormErrors('login');
+
+    const validation = validateLoginForm(data, i18n.getCurrentLanguage());
     if (!validation.isValid) {
       this.showFormErrors('login', validation.errors);
       return;
@@ -659,13 +662,8 @@ export default class AuthModalVanilla {
           window.location.href = '/app';
         }, 1500);
       } else {
-        // Handle enhanced error with retry options
-        this.feedbackSystem.showError(result.error, {
-          canRetry: result.canRetry !== false,
-          retryCallback: () => this.handleLogin(form),
-          targetElement: loginContainer,
-          waitTime: result.waitTime
-        });
+        // Handle specific login error scenarios
+        this.handleLoginError(result.error, form, loginContainer);
       }
     } catch (error) {
       // Handle unexpected errors
@@ -673,6 +671,536 @@ export default class AuthModalVanilla {
         canRetry: true,
         retryCallback: () => this.handleLogin(form),
         targetElement: loginContainer
+      });
+    }
+  }
+
+  /**
+   * Handle specific login error scenarios with enhanced user feedback
+   * @param {Object} error - Processed error object from authErrorHandler
+   * @param {HTMLFormElement} form - The login form
+   * @param {HTMLElement} container - Container element for feedback
+   */
+  handleLoginError(error, form, container) {
+    const language = i18n.getCurrentLanguage();
+    const email = form.querySelector('[name="email"]').value;
+
+    switch (error.type) {
+      case 'AUTH_USER_NOT_FOUND':
+        // Handle "user not found" with helpful suggestions
+        this.handleUserNotFoundError(error, email, container, language);
+        break;
+
+      case 'AUTH_INVALID_CREDENTIALS':
+        // Handle "invalid credentials" with clear messaging
+        this.handleInvalidCredentialsError(error, form, container, language);
+        break;
+
+      case 'AUTH_RATE_LIMITED':
+        // Handle rate limiting with wait time indicators
+        this.handleRateLimitedError(error, form, container, language);
+        break;
+
+      case 'AUTH_EMAIL_NOT_CONFIRMED':
+        // Handle unconfirmed email scenarios
+        this.handleUnconfirmedEmailError(error, email, container, language);
+        break;
+
+      case 'NETWORK_ERROR':
+        // Network connectivity issues - show retry option
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: true,
+          retryCallback: () => this.handleLogin(form),
+          targetElement: container
+        });
+        break;
+
+      default:
+        // Generic error handling with retry option
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: error.canRetry,
+          retryCallback: error.canRetry ? () => this.handleLogin(form) : null,
+          targetElement: container
+        });
+        break;
+    }
+  }
+
+  /**
+   * Handle "user not found" error with helpful suggestions
+   * @param {Object} error - Error object
+   * @param {string} email - User email
+   * @param {HTMLElement} container - Container element
+   * @param {string} language - Current language
+   */
+  handleUserNotFoundError(error, email, container, language) {
+    const messages = {
+      es: {
+        title: 'No encontramos una cuenta con este email',
+        suggestion: '¿Quizás quieres crear una cuenta nueva?',
+        createAccount: 'Crear Cuenta',
+        tryDifferentEmail: 'Usar otro email',
+        forgotEmail: '¿Olvidaste tu email?'
+      },
+      en: {
+        title: 'No account found with this email',
+        suggestion: 'Would you like to create a new account?',
+        createAccount: 'Create Account',
+        tryDifferentEmail: 'Try different email',
+        forgotEmail: 'Forgot your email?'
+      }
+    };
+
+    const msg = messages[language] || messages.es;
+
+    // Create custom error message with suggestions
+    const errorHtml = `
+      <div class="user-not-found-error bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h4 class="text-sm font-medium text-blue-800">${msg.title}</h4>
+            <p class="mt-1 text-sm text-blue-700">${msg.suggestion}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button type="button" class="create-account-btn px-4 py-2 bg-[#2EAFC4] text-white rounded-lg hover:bg-[#2EAFC4]/80 transition-colors text-sm font-medium">
+                ${msg.createAccount}
+              </button>
+              <button type="button" class="try-different-email-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">
+                ${msg.tryDifferentEmail}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing feedback and add custom error
+    this.feedbackSystem.hideError(container);
+    this.feedbackSystem.hideLoading(container);
+    
+    container.insertAdjacentHTML('afterbegin', errorHtml);
+
+    // Add event listeners for suggestion buttons
+    const createAccountBtn = container.querySelector('.create-account-btn');
+    const tryDifferentEmailBtn = container.querySelector('.try-different-email-btn');
+
+    if (createAccountBtn) {
+      createAccountBtn.addEventListener('click', () => {
+        // Switch to register tab with pre-filled email
+        this.activeTab = 'register';
+        this.render();
+        this.setupEventListeners();
+        
+        // Pre-fill email in register form
+        setTimeout(() => {
+          const registerEmailInput = document.getElementById('register-email');
+          if (registerEmailInput) {
+            registerEmailInput.value = email;
+          }
+        }, 100);
+      });
+    }
+
+    if (tryDifferentEmailBtn) {
+      tryDifferentEmailBtn.addEventListener('click', () => {
+        // Clear the error and focus on email field
+        container.querySelector('.user-not-found-error').remove();
+        const emailInput = container.querySelector('[name="email"]');
+        if (emailInput) {
+          emailInput.focus();
+          emailInput.select();
+        }
+      });
+    }
+  }
+
+  /**
+   * Handle "invalid credentials" error with clear messaging
+   * @param {Object} error - Error object
+   * @param {HTMLFormElement} form - Login form
+   * @param {HTMLElement} container - Container element
+   * @param {string} language - Current language
+   */
+  handleInvalidCredentialsError(error, form, container, language) {
+    const messages = {
+      es: {
+        title: 'Email o contraseña incorrectos',
+        suggestion: 'Verifica que hayas ingresado la información correcta',
+        forgotPassword: '¿Olvidaste tu contraseña?',
+        tryAgain: 'Intentar de nuevo',
+        showPassword: 'Mostrar contraseña'
+      },
+      en: {
+        title: 'Invalid email or password',
+        suggestion: 'Please check that you entered the correct information',
+        forgotPassword: 'Forgot your password?',
+        tryAgain: 'Try again',
+        showPassword: 'Show password'
+      }
+    };
+
+    const msg = messages[language] || messages.es;
+
+    // Highlight both email and password fields
+    const emailInput = form.querySelector('[name="email"]');
+    const passwordInput = form.querySelector('[name="password"]');
+    
+    this.highlightFieldError(emailInput);
+    this.highlightFieldError(passwordInput);
+
+    // Create custom error message with helpful options
+    const errorHtml = `
+      <div class="invalid-credentials-error bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h4 class="text-sm font-medium text-red-800">${msg.title}</h4>
+            <p class="mt-1 text-sm text-red-700">${msg.suggestion}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button type="button" class="forgot-password-btn px-4 py-2 bg-[#FFC979] text-[#162032] rounded-lg hover:bg-[#FFC979]/80 transition-colors text-sm font-medium">
+                ${msg.forgotPassword}
+              </button>
+              <button type="button" class="show-password-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">
+                ${msg.showPassword}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing feedback and add custom error
+    this.feedbackSystem.hideError(container);
+    this.feedbackSystem.hideLoading(container);
+    
+    container.insertAdjacentHTML('afterbegin', errorHtml);
+
+    // Add event listeners for action buttons
+    const forgotPasswordBtn = container.querySelector('.forgot-password-btn');
+    const showPasswordBtn = container.querySelector('.show-password-btn');
+
+    if (forgotPasswordBtn) {
+      forgotPasswordBtn.addEventListener('click', () => {
+        // Switch to forgot password view
+        this.showForgotPassword = true;
+        this.render();
+        this.setupEventListeners();
+        
+        // Pre-fill email in forgot password form
+        setTimeout(() => {
+          const forgotEmailInput = document.getElementById('forgot-email');
+          if (forgotEmailInput && emailInput) {
+            forgotEmailInput.value = emailInput.value;
+          }
+        }, 100);
+      });
+    }
+
+    if (showPasswordBtn) {
+      showPasswordBtn.addEventListener('click', () => {
+        // Toggle password visibility
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          showPasswordBtn.textContent = language === 'en' ? 'Hide password' : 'Ocultar contraseña';
+        } else {
+          passwordInput.type = 'password';
+          showPasswordBtn.textContent = msg.showPassword;
+        }
+      });
+    }
+  }
+
+  /**
+   * Handle rate limiting error with wait time indicators
+   * @param {Object} error - Error object
+   * @param {HTMLFormElement} form - Login form
+   * @param {HTMLElement} container - Container element
+   * @param {string} language - Current language
+   */
+  handleRateLimitedError(error, form, container, language) {
+    const messages = {
+      es: {
+        title: 'Demasiados intentos de inicio de sesión',
+        waitMessage: 'Por favor espera {seconds} segundos antes de intentar de nuevo',
+        suggestion: 'Esto es por tu seguridad. Mientras esperas, puedes:',
+        resetPassword: 'Restablecer contraseña',
+        contactSupport: 'Contactar soporte'
+      },
+      en: {
+        title: 'Too many login attempts',
+        waitMessage: 'Please wait {seconds} seconds before trying again',
+        suggestion: 'This is for your security. While you wait, you can:',
+        resetPassword: 'Reset password',
+        contactSupport: 'Contact support'
+      }
+    };
+
+    const msg = messages[language] || messages.es;
+    
+    // Extract wait time from error message or default to 60 seconds
+    let waitTime = 60;
+    const waitTimeMatch = error.userMessage.match(/(\d+)/);
+    if (waitTimeMatch) {
+      waitTime = parseInt(waitTimeMatch[1]);
+    }
+
+    // Create countdown timer
+    let remainingTime = waitTime;
+    
+    const errorHtml = `
+      <div class="rate-limited-error bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h4 class="text-sm font-medium text-yellow-800">${msg.title}</h4>
+            <p class="mt-1 text-sm text-yellow-700">
+              <span class="wait-message">${msg.waitMessage.replace('{seconds}', `<span class="countdown font-bold">${remainingTime}</span>`)}</span>
+            </p>
+            <p class="mt-2 text-sm text-yellow-700">${msg.suggestion}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button type="button" class="reset-password-btn px-4 py-2 bg-[#FFC979] text-[#162032] rounded-lg hover:bg-[#FFC979]/80 transition-colors text-sm font-medium">
+                ${msg.resetPassword}
+              </button>
+              <button type="button" class="retry-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium opacity-50 cursor-not-allowed" disabled>
+                ${language === 'en' ? 'Try Again' : 'Intentar de Nuevo'} (<span class="retry-countdown">${remainingTime}</span>s)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing feedback and add custom error
+    this.feedbackSystem.hideError(container);
+    this.feedbackSystem.hideLoading(container);
+    
+    container.insertAdjacentHTML('afterbegin', errorHtml);
+
+    // Start countdown timer
+    const countdownElement = container.querySelector('.countdown');
+    const retryCountdownElement = container.querySelector('.retry-countdown');
+    const retryBtn = container.querySelector('.retry-btn');
+    const resetPasswordBtn = container.querySelector('.reset-password-btn');
+
+    const countdownInterval = setInterval(() => {
+      remainingTime--;
+      
+      if (countdownElement) {
+        countdownElement.textContent = remainingTime;
+      }
+      if (retryCountdownElement) {
+        retryCountdownElement.textContent = remainingTime;
+      }
+
+      if (remainingTime <= 0) {
+        clearInterval(countdownInterval);
+        
+        // Enable retry button
+        if (retryBtn) {
+          retryBtn.disabled = false;
+          retryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          retryBtn.classList.add('bg-[#2EAFC4]', 'text-white', 'hover:bg-[#2EAFC4]/80');
+          retryBtn.innerHTML = language === 'en' ? 'Try Again' : 'Intentar de Nuevo';
+          
+          retryBtn.addEventListener('click', () => {
+            container.querySelector('.rate-limited-error').remove();
+            this.handleLogin(form);
+          });
+        }
+
+        // Update wait message
+        const waitMessageElement = container.querySelector('.wait-message');
+        if (waitMessageElement) {
+          waitMessageElement.textContent = language === 'en' 
+            ? 'You can now try logging in again' 
+            : 'Ya puedes intentar iniciar sesión de nuevo';
+        }
+      }
+    }, 1000);
+
+    // Add event listener for reset password button
+    if (resetPasswordBtn) {
+      resetPasswordBtn.addEventListener('click', () => {
+        // Switch to forgot password view
+        this.showForgotPassword = true;
+        this.render();
+        this.setupEventListeners();
+        
+        // Pre-fill email in forgot password form
+        setTimeout(() => {
+          const forgotEmailInput = document.getElementById('forgot-email');
+          const emailInput = form.querySelector('[name="email"]');
+          if (forgotEmailInput && emailInput) {
+            forgotEmailInput.value = emailInput.value;
+          }
+        }, 100);
+      });
+    }
+  }
+
+  /**
+   * Handle unconfirmed email error scenarios
+   * @param {Object} error - Error object
+   * @param {string} email - User email
+   * @param {HTMLElement} container - Container element
+   * @param {string} language - Current language
+   */
+  handleUnconfirmedEmailError(error, email, container, language) {
+    const messages = {
+      es: {
+        title: 'Email no confirmado',
+        message: 'Debes confirmar tu email antes de iniciar sesión',
+        instruction: 'Revisa tu bandeja de entrada y haz clic en el enlace de confirmación',
+        resendConfirmation: 'Reenviar confirmación',
+        checkSpam: 'Revisar spam',
+        changeEmail: 'Cambiar email'
+      },
+      en: {
+        title: 'Email not confirmed',
+        message: 'You must confirm your email before signing in',
+        instruction: 'Check your inbox and click the confirmation link',
+        resendConfirmation: 'Resend confirmation',
+        checkSpam: 'Check spam folder',
+        changeEmail: 'Change email'
+      }
+    };
+
+    const msg = messages[language] || messages.es;
+
+    const errorHtml = `
+      <div class="unconfirmed-email-error bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h4 class="text-sm font-medium text-blue-800">${msg.title}</h4>
+            <p class="mt-1 text-sm text-blue-700">${msg.message}</p>
+            <p class="mt-1 text-sm text-blue-600">${msg.instruction}</p>
+            <div class="mt-1 text-xs text-blue-600 font-mono bg-blue-100 px-2 py-1 rounded">
+              ${email}
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button type="button" class="resend-confirmation-btn px-4 py-2 bg-[#2EAFC4] text-white rounded-lg hover:bg-[#2EAFC4]/80 transition-colors text-sm font-medium">
+                ${msg.resendConfirmation}
+              </button>
+              <button type="button" class="check-spam-btn px-4 py-2 bg-[#FFC979] text-[#162032] rounded-lg hover:bg-[#FFC979]/80 transition-colors text-sm font-medium">
+                ${msg.checkSpam}
+              </button>
+              <button type="button" class="change-email-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">
+                ${msg.changeEmail}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing feedback and add custom error
+    this.feedbackSystem.hideError(container);
+    this.feedbackSystem.hideLoading(container);
+    
+    container.insertAdjacentHTML('afterbegin', errorHtml);
+
+    // Add event listeners for action buttons
+    const resendBtn = container.querySelector('.resend-confirmation-btn');
+    const checkSpamBtn = container.querySelector('.check-spam-btn');
+    const changeEmailBtn = container.querySelector('.change-email-btn');
+
+    if (resendBtn) {
+      resendBtn.addEventListener('click', async () => {
+        try {
+          resendBtn.disabled = true;
+          resendBtn.textContent = language === 'en' ? 'Sending...' : 'Enviando...';
+          
+          // Call resend confirmation method
+          await this.resendEmailConfirmation(email);
+          
+          // Update button state
+          resendBtn.textContent = language === 'en' ? 'Sent!' : '¡Enviado!';
+          resendBtn.classList.remove('bg-[#2EAFC4]');
+          resendBtn.classList.add('bg-green-600');
+          
+          // Reset button after 3 seconds
+          setTimeout(() => {
+            resendBtn.disabled = false;
+            resendBtn.textContent = msg.resendConfirmation;
+            resendBtn.classList.remove('bg-green-600');
+            resendBtn.classList.add('bg-[#2EAFC4]');
+          }, 3000);
+          
+        } catch (error) {
+          console.error('Error resending confirmation:', error);
+          resendBtn.disabled = false;
+          resendBtn.textContent = language === 'en' ? 'Error - Try again' : 'Error - Reintentar';
+          resendBtn.classList.remove('bg-[#2EAFC4]');
+          resendBtn.classList.add('bg-red-600');
+          
+          setTimeout(() => {
+            resendBtn.textContent = msg.resendConfirmation;
+            resendBtn.classList.remove('bg-red-600');
+            resendBtn.classList.add('bg-[#2EAFC4]');
+          }, 3000);
+        }
+      });
+    }
+
+    if (checkSpamBtn) {
+      checkSpamBtn.addEventListener('click', () => {
+        // Show helpful message about checking spam
+        const spamMessage = language === 'en' 
+          ? 'Check your spam/junk folder. Sometimes confirmation emails end up there. If you find it, mark it as "not spam" to ensure future emails reach your inbox.'
+          : 'Revisa tu carpeta de spam/correo no deseado. A veces los emails de confirmación terminan ahí. Si lo encuentras, márcalo como "no es spam" para asegurar que futuros emails lleguen a tu bandeja de entrada.';
+        
+        // Replace the instruction text temporarily
+        const instructionElement = container.querySelector('.unconfirmed-email-error p:nth-child(3)');
+        if (instructionElement) {
+          const originalText = instructionElement.textContent;
+          instructionElement.textContent = spamMessage;
+          instructionElement.classList.add('font-medium', 'bg-yellow-100', 'p-2', 'rounded', 'border-l-4', 'border-yellow-400');
+          
+          // Revert after 10 seconds
+          setTimeout(() => {
+            instructionElement.textContent = originalText;
+            instructionElement.classList.remove('font-medium', 'bg-yellow-100', 'p-2', 'rounded', 'border-l-4', 'border-yellow-400');
+          }, 10000);
+        }
+      });
+    }
+
+    if (changeEmailBtn) {
+      changeEmailBtn.addEventListener('click', () => {
+        // Switch to register tab to allow email change
+        this.activeTab = 'register';
+        this.render();
+        this.setupEventListeners();
+        
+        // Show message about changing email
+        setTimeout(() => {
+          const registerContainer = document.querySelector('#register-form').parentElement;
+          const changeEmailMessage = language === 'en'
+            ? 'You can register with a different email address if needed'
+            : 'Puedes registrarte con una dirección de email diferente si es necesario';
+          
+          this.feedbackSystem.showError(changeEmailMessage, {
+            canRetry: false,
+            targetElement: registerContainer
+          });
+        }, 100);
       });
     }
   }
@@ -689,32 +1217,30 @@ export default class AuthModalVanilla {
       confirmPassword: formData.get('confirmPassword')
     };
 
-    const validation = validateRegistrationForm(data);
-    if (!validation.isValid) {
-      this.showFormErrors('register', validation.errors);
-      return;
-    }
+    // Clear any existing errors first
+    this.clearFormErrors('register');
 
     // Show loading state using UserFeedbackSystem
     const registerContainer = document.querySelector('#register-form').parentElement;
     this.feedbackSystem.showLoading('register', null, registerContainer);
 
     try {
-      // Use enhanced register with connection retry
-      const result = await authService.registerWithConnectionRetry(data.name, data.email, data.password, {
-        maxRetries: 3,
-        retryDelay: 2000,
-        language: i18n.getCurrentLanguage()
-      });
+      // Use enhanced register with comprehensive validation and error handling
+      const result = await authService.registerWithValidation(
+        data.name, 
+        data.email, 
+        data.password, 
+        data.confirmPassword, 
+        {
+          language: i18n.getCurrentLanguage(),
+          enableRetry: true,
+          maxRetries: 2 // Limited retries for registration
+        }
+      );
 
       if (result.success) {
         // Show success message
         this.feedbackSystem.showSuccess('register', registerContainer, 3000);
-        
-        // Show connection restored message if applicable
-        if (result.connectivityRestored) {
-          this.showConnectionRestoredMessage();
-        }
         
         // Close modal after brief delay to show success
         setTimeout(() => {
@@ -723,21 +1249,267 @@ export default class AuthModalVanilla {
           window.location.href = '/app';
         }, 2000);
       } else {
-        // Handle enhanced error with retry options
-        this.feedbackSystem.showError(result.error, {
-          canRetry: result.canRetry !== false,
-          retryCallback: () => this.handleRegister(form),
-          targetElement: registerContainer,
-          waitTime: result.waitTime
-        });
+        // Handle validation errors first
+        if (result.validationErrors) {
+          this.showFormErrors('register', result.validationErrors);
+          this.feedbackSystem.hideLoading(registerContainer);
+          return;
+        }
+
+        // Handle specific authentication errors
+        if (result.error) {
+          this.handleRegistrationError(result.error, form, registerContainer);
+        }
       }
     } catch (error) {
       // Handle unexpected errors
-      this.feedbackSystem.showError(error, {
+      console.error('Registration error:', error);
+      this.feedbackSystem.showError('UNKNOWN_ERROR', {
         canRetry: true,
         retryCallback: () => this.handleRegister(form),
         targetElement: registerContainer
       });
+    }
+  }
+
+  /**
+   * Handle specific registration errors with appropriate messaging and actions
+   * @param {Object} error - Processed error object from authErrorHandler
+   * @param {HTMLFormElement} form - The registration form
+   * @param {HTMLElement} container - Container element for feedback
+   */
+  handleRegistrationError(error, form, container) {
+    const language = i18n.getCurrentLanguage();
+    
+    switch (error.type) {
+      case 'AUTH_USER_EXISTS':
+        // User already exists - show clear message with option to switch to login
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: false,
+          targetElement: container
+        });
+        
+        // Add a "Switch to Login" button
+        setTimeout(() => {
+          const errorElement = container.querySelector('.feedback-error');
+          if (errorElement) {
+            const switchButton = document.createElement('button');
+            switchButton.type = 'button';
+            switchButton.className = 'mt-2 px-4 py-2 bg-[#2EAFC4] text-white rounded-lg hover:bg-[#2EAFC4]/80 transition-colors text-sm font-medium';
+            switchButton.textContent = language === 'en' ? 'Switch to Login' : 'Cambiar a Iniciar Sesión';
+            switchButton.onclick = () => {
+              // Pre-fill email in login form
+              this.activeTab = 'login';
+              this.render();
+              this.setupEventListeners();
+              setTimeout(() => {
+                const loginEmailInput = document.getElementById('login-email');
+                if (loginEmailInput) {
+                  loginEmailInput.value = form.querySelector('[name="email"]').value;
+                }
+              }, 100);
+            };
+            errorElement.querySelector('.ml-3').appendChild(switchButton);
+          }
+        }, 100);
+        break;
+
+      case 'AUTH_WEAK_PASSWORD':
+        // Password strength validation - show specific requirements
+        const passwordInput = form.querySelector('[name="password"]');
+        const confirmPasswordInput = form.querySelector('[name="confirmPassword"]');
+        
+        // Highlight password fields
+        this.highlightFieldError(passwordInput);
+        this.highlightFieldError(confirmPasswordInput);
+        
+        // Show detailed password requirements
+        this.showPasswordRequirements(passwordInput, language);
+        
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: false,
+          targetElement: container
+        });
+        break;
+
+      case 'INVALID_EMAIL_FORMAT':
+        // Email format validation - highlight email field
+        const emailInput = form.querySelector('[name="email"]');
+        this.highlightFieldError(emailInput);
+        this.showFieldError(emailInput, error.userMessage);
+        
+        this.feedbackSystem.hideLoading(container);
+        break;
+
+      case 'AUTH_EMAIL_NOT_CONFIRMED':
+        // Email confirmation required - show helpful message
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: false,
+          targetElement: container
+        });
+        
+        // Add resend confirmation button
+        setTimeout(() => {
+          const errorElement = container.querySelector('.feedback-error');
+          if (errorElement) {
+            const resendButton = document.createElement('button');
+            resendButton.type = 'button';
+            resendButton.className = 'mt-2 px-4 py-2 bg-[#FFC979] text-[#162032] rounded-lg hover:bg-[#FFC979]/80 transition-colors text-sm font-medium';
+            resendButton.textContent = language === 'en' ? 'Resend Confirmation' : 'Reenviar Confirmación';
+            resendButton.onclick = () => this.resendEmailConfirmation(form.querySelector('[name="email"]').value);
+            errorElement.querySelector('.ml-3').appendChild(resendButton);
+          }
+        }, 100);
+        break;
+
+      case 'NETWORK_ERROR':
+        // Network connectivity issues - show retry option
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: true,
+          retryCallback: () => this.handleRegister(form),
+          targetElement: container
+        });
+        break;
+
+      case 'AUTH_RATE_LIMITED':
+        // Rate limiting - show wait time if available
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: true,
+          retryCallback: () => {
+            // Delay retry based on rate limiting
+            setTimeout(() => this.handleRegister(form), 5000);
+          },
+          targetElement: container
+        });
+        break;
+
+      default:
+        // Generic error handling with retry option
+        this.feedbackSystem.showError(error.userMessage, {
+          canRetry: error.canRetry,
+          retryCallback: error.canRetry ? () => this.handleRegister(form) : null,
+          targetElement: container
+        });
+        break;
+    }
+  }
+
+  /**
+   * Highlight a form field with error styling
+   * @param {HTMLInputElement} field - The input field to highlight
+   */
+  highlightFieldError(field) {
+    if (field) {
+      field.classList.remove('border-[#2EAFC4]/30', 'focus:border-[#2EAFC4]', 'focus:ring-[#2EAFC4]');
+      field.classList.add('border-red-400', 'focus:border-red-400', 'focus:ring-red-400');
+    }
+  }
+
+  /**
+   * Show error message for a specific field
+   * @param {HTMLInputElement} field - The input field
+   * @param {string} message - Error message to display
+   */
+  showFieldError(field, message) {
+    if (field) {
+      const errorDiv = field.parentElement.querySelector('.error-message');
+      if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+      }
+    }
+  }
+
+  /**
+   * Show detailed password requirements
+   * @param {HTMLInputElement} passwordField - The password input field
+   * @param {string} language - Current language
+   */
+  showPasswordRequirements(passwordField, language) {
+    if (!passwordField) return;
+
+    const requirements = language === 'en' ? [
+      'At least 8 characters long',
+      'Include uppercase letters (A-Z)',
+      'Include lowercase letters (a-z)',
+      'Include numbers (0-9)'
+    ] : [
+      'Al menos 8 caracteres',
+      'Incluir letras mayúsculas (A-Z)',
+      'Incluir letras minúsculas (a-z)',
+      'Incluir números (0-9)'
+    ];
+
+    const requirementsHtml = `
+      <div class="password-requirements mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <p class="text-sm font-medium text-yellow-800 mb-2">
+          ${language === 'en' ? 'Password must include:' : 'La contraseña debe incluir:'}
+        </p>
+        <ul class="text-xs text-yellow-700 space-y-1">
+          ${requirements.map(req => `<li class="flex items-center"><span class="w-1 h-1 bg-yellow-600 rounded-full mr-2"></span>${req}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+
+    // Remove existing requirements
+    const existingReqs = passwordField.parentElement.querySelector('.password-requirements');
+    if (existingReqs) {
+      existingReqs.remove();
+    }
+
+    // Add new requirements
+    passwordField.parentElement.insertAdjacentHTML('beforeend', requirementsHtml);
+  }
+
+  /**
+   * Resend email confirmation
+   * @param {string} email - User email
+   */
+  async resendEmailConfirmation(email) {
+    try {
+      // This would typically call a resend confirmation endpoint
+      // For now, show a success message
+      const language = i18n.getCurrentLanguage();
+      const message = language === 'en' 
+        ? 'Confirmation email sent! Please check your inbox.' 
+        : 'Email de confirmación enviado! Revisa tu bandeja de entrada.';
+      
+      this.feedbackSystem.showSuccess(message, null, 5000);
+    } catch (error) {
+      console.error('Error resending confirmation:', error);
+      const language = i18n.getCurrentLanguage();
+      const message = language === 'en' 
+        ? 'Failed to resend confirmation email. Please try again.' 
+        : 'Error al reenviar email de confirmación. Inténtalo de nuevo.';
+      
+      this.feedbackSystem.showError(message);
+    }
+  }
+
+  /**
+   * Clear form errors for a specific form type
+   * @param {string} formType - Type of form ('login', 'register', 'forgot')
+   */
+  clearFormErrors(formType) {
+    const form = document.getElementById(`${formType}-form`);
+    if (form) {
+      // Clear field-specific errors
+      const errorMessages = form.querySelectorAll('.error-message');
+      errorMessages.forEach(error => {
+        error.classList.add('hidden');
+        error.textContent = '';
+      });
+
+      // Reset field styling
+      const inputs = form.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.classList.remove('border-red-400', 'focus:border-red-400', 'focus:ring-red-400');
+        input.classList.add('border-[#2EAFC4]/30', 'focus:border-[#2EAFC4]', 'focus:ring-[#2EAFC4]');
+      });
+
+      // Remove password requirements
+      const passwordReqs = form.parentElement.querySelectorAll('.password-requirements');
+      passwordReqs.forEach(req => req.remove());
     }
   }
 
@@ -874,13 +1646,13 @@ export default class AuthModalVanilla {
       }
     });
     
-    // Also show a general validation error using the feedback system
-    const firstError = Object.values(errors)[0];
-    if (firstError) {
-      this.feedbackSystem.showError('INVALID_EMAIL_FORMAT', {
-        canRetry: false,
-        targetElement: container
-      });
+    // Focus on the first field with an error
+    const firstErrorField = Object.keys(errors)[0];
+    if (firstErrorField) {
+      const firstInput = document.getElementById(`${formType}-${firstErrorField}`);
+      if (firstInput) {
+        firstInput.focus();
+      }
     }
   }
 

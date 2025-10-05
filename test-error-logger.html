@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Logger Test - Anclora</title>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        
+        .stats-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .log-display {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-error {
+            color: #f48771;
+        }
+        
+        .log-warn {
+            color: #dcdcaa;
+        }
+        
+        .log-info {
+            color: #9cdcfe;
+        }
+        
+        .log-success {
+            color: #4ec9b0;
+        }
+        
+        .config-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .config-item label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .config-item input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success {
+            background-color: #28a745;
+        }
+        
+        .status-error {
+            background-color: #dc3545;
+        }
+        
+        .status-warning {
+            background-color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Error Logger Test Suite</h1>
+    <p>Test the ErrorLogger system with various scenarios and view comprehensive analytics.</p>
+
+    <!-- Error Logging Tests -->
+    <div class="test-section">
+        <h2>📝 Error Logging Tests</h2>
+        <div class="button-group">
+            <button class="btn-danger" onclick="testNetworkError()">Network Error</button>
+            <button class="btn-danger" onclick="testAuthError()">Auth Error</button>
+            <button class="btn-danger" onclick="testServerError()">Server Error</button>
+            <button class="btn-danger" onclick="testUnknownError()">Unknown Error</button>
+            <button class="btn-danger" onclick="testCriticalError()">Critical Error</button>
+        </div>
+        <div class="button-group">
+            <button class="btn-secondary" onclick="testErrorWithContext()">Error with Context</button>
+            <button class="btn-secondary" onclick="testMultipleErrors()">Multiple Errors</button>
+            <button class="btn-secondary" onclick="testErrorSeverities()">All Severities</button>
+        </div>
+    </div>
+
+    <!-- Performance Metrics Tests -->
+    <div class="test-section">
+        <h2>⚡ Performance Metrics Tests</h2>
+        <div class="button-group">
+            <button class="btn-success" onclick="testSuccessfulLogin()">Successful Login</button>
+            <button class="btn-success" onclick="testSuccessfulRegister()">Successful Register</button>
+            <button class="btn-success" onclick="testOAuthLogin()">OAuth Login</button>
+            <button class="btn-danger" onclick="testFailedLogin()">Failed Login</button>
+            <button class="btn-danger" onclick="testFailedRegister()">Failed Register</button>
+        </div>
+        <div class="button-group">
+            <button class="btn-primary" onclick="testConnectivityCheck()">Connectivity Check</button>
+            <button class="btn-primary" onclick="testSlowOperation()">Slow Operation</button>
+            <button class="btn-primary" onclick="testBatchOperations()">Batch Operations</button>
+        </div>
+    </div>
+
+    <!-- Statistics and Analytics -->
+    <div class="test-section">
+        <h2>📊 Statistics and Analytics</h2>
+        <div class="button-group">
+            <button class="btn-primary" onclick="showErrorStats()">Show Error Stats</button>
+            <button class="btn-primary" onclick="showPerformanceStats()">Show Performance Stats</button>
+            <button class="btn-primary" onclick="showRecentLogs()">Show Recent Logs</button>
+            <button class="btn-secondary" onclick="clearStats()">Clear All Stats</button>
+        </div>
+        <div class="stats-display" id="statsDisplay">
+            Click a button above to view statistics...
+        </div>
+    </div>
+
+    <!-- Remote Logging Configuration -->
+    <div class="test-section">
+        <h2>🌐 Remote Logging Configuration</h2>
+        <div class="config-section">
+            <div class="config-item">
+                <label for="remoteEndpoint">Remote Endpoint:</label>
+                <input type="url" id="remoteEndpoint" placeholder="https://api.example.com/logs" />
+            </div>
+            <div class="config-item">
+                <label for="apiKey">API Key:</label>
+                <input type="text" id="apiKey" placeholder="your-api-key" />
+            </div>
+        </div>
+        <div class="button-group" style="margin-top: 15px;">
+            <button class="btn-primary" onclick="configureRemoteLogging()">Configure Remote Logging</button>
+            <button class="btn-secondary" onclick="testRemoteLogging()">Test Remote Logging</button>
+            <button class="btn-danger" onclick="disableRemoteLogging()">Disable Remote Logging</button>
+        </div>
+        <div id="remoteStatus" style="margin-top: 10px;">
+            <span class="status-indicator status-error"></span>
+            Remote logging not configured
+        </div>
+    </div>
+
+    <!-- Live Log Display -->
+    <div class="test-section">
+        <h2>📺 Live Log Display</h2>
+        <div class="button-group">
+            <button class="btn-primary" onclick="startLiveLogging()">Start Live Logging</button>
+            <button class="btn-secondary" onclick="stopLiveLogging()">Stop Live Logging</button>
+            <button class="btn-secondary" onclick="clearLiveLog()">Clear Log</button>
+        </div>
+        <div class="log-display" id="liveLogDisplay">
+            Live logging stopped. Click "Start Live Logging" to begin...
+        </div>
+    </div>
+
+    <!-- Cleanup and Maintenance -->
+    <div class="test-section">
+        <h2>🧹 Cleanup and Maintenance</h2>
+        <div class="button-group">
+            <button class="btn-secondary" onclick="cleanupOldLogs()">Cleanup Old Logs</button>
+            <button class="btn-secondary" onclick="exportLogs()">Export Logs</button>
+            <button class="btn-danger" onclick="clearAllLogs()">Clear All Logs</button>
+        </div>
+        <p><small>Cleanup removes logs older than 7 days. Export downloads logs as JSON.</small></p>
+    </div>
+
+    <script type="module">
+        import errorLogger from './src/shared/services/errorLogger.js';
+        import { authService } from './src/shared/services/authService.js';
+
+        // Make errorLogger available globally for testing
+        window.errorLogger = errorLogger;
+        window.authService = authService;
+        
+        let liveLoggingInterval = null;
+        let originalConsoleLog = console.log;
+        let originalConsoleError = console.error;
+        let originalConsoleWarn = console.warn;
+
+        // Error logging test functions
+        window.testNetworkError = () => {
+            const error = new Error('Network connection failed');
+            error.code = 'NETWORK_ERROR';
+            errorLogger.logError(error, {
+                operation: 'test_network_error',
+                url: 'https://api.example.com',
+                timeout: 5000
+            }, errorLogger.SEVERITY_LEVELS.HIGH);
+            showToast('Network error logged', 'error');
+        };
+
+        window.testAuthError = () => {
+            const error = new Error('Invalid login credentials');
+            error.code = 'invalid_credentials';
+            errorLogger.logError(error, {
+                operation: 'test_auth_error',
+                email: 'test@example.com',
+                attemptCount: 2
+            }, errorLogger.SEVERITY_LEVELS.MEDIUM);
+            showToast('Auth error logged', 'error');
+        };
+
+        window.testServerError = () => {
+            const error = new Error('Internal server error');
+            error.status = 500;
+            errorLogger.logError(error, {
+                operation: 'test_server_error',
+                endpoint: '/api/auth/login',
+                responseTime: 3000
+            }, errorLogger.SEVERITY_LEVELS.CRITICAL);
+            showToast('Server error logged', 'error');
+        };
+
+        window.testUnknownError = () => {
+            const error = new Error('Something unexpected happened');
+            errorLogger.logError(error, {
+                operation: 'test_unknown_error',
+                userAction: 'button_click',
+                timestamp: new Date().toISOString()
+            }, errorLogger.SEVERITY_LEVELS.MEDIUM);
+            showToast('Unknown error logged', 'error');
+        };
+
+        window.testCriticalError = () => {
+            const error = new Error('System failure - immediate attention required');
+            errorLogger.logError(error, {
+                operation: 'test_critical_error',
+                systemState: 'degraded',
+                affectedUsers: 'all'
+            }, errorLogger.SEVERITY_LEVELS.CRITICAL);
+            showToast('Critical error logged', 'error');
+        };
+
+        window.testErrorWithContext = () => {
+            const error = new Error('Database connection timeout');
+            errorLogger.logError(error, {
+                operation: 'database_query',
+                query: 'SELECT * FROM users WHERE id = ?',
+                parameters: ['user123'],
+                connectionPool: 'primary',
+                timeout: 30000,
+                retryAttempt: 3,
+                userAgent: navigator.userAgent,
+                sessionId: 'sess_' + Math.random().toString(36).substr(2, 9)
+            }, errorLogger.SEVERITY_LEVELS.HIGH);
+            showToast('Error with rich context logged', 'error');
+        };
+
+        window.testMultipleErrors = () => {
+            const errors = [
+                { msg: 'Validation failed for email field', severity: 'low' },
+                { msg: 'Rate limit exceeded', severity: 'medium' },
+                { msg: 'Payment processing failed', severity: 'high' },
+                { msg: 'Security breach detected', severity: 'critical' }
+            ];
+
+            errors.forEach((errorInfo, index) => {
+                setTimeout(() => {
+                    const error = new Error(errorInfo.msg);
+                    errorLogger.logError(error, {
+                        operation: 'batch_error_test',
+                        batchId: 'batch_001',
+                        errorIndex: index + 1,
+                        totalErrors: errors.length
+                    }, errorLogger.SEVERITY_LEVELS[errorInfo.severity.toUpperCase()]);
+                }, index * 500);
+            });
+            
+            showToast('Multiple errors being logged...', 'info');
+        };
+
+        window.testErrorSeverities = () => {
+            const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+            
+            severities.forEach((severity, index) => {
+                setTimeout(() => {
+                    const error = new Error(`Test error with ${severity} severity`);
+                    errorLogger.logError(error, {
+                        operation: 'severity_test',
+                        severityLevel: severity,
+                        testIndex: index + 1
+                    }, errorLogger.SEVERITY_LEVELS[severity]);
+                }, index * 300);
+            });
+            
+            showToast('Testing all severity levels...', 'info');
+        };
+
+        // Performance metrics test functions
+        window.testSuccessfulLogin = () => {
+            const duration = Math.random() * 2000 + 500; // 500-2500ms
+            errorLogger.logPerformanceMetric('login', duration, true, {
+                provider: 'supabase',
+                email: 'test@example.com',
+                hasSession: true,
+                userAgent: navigator.userAgent
+            });
+            showToast(`Successful login logged (${Math.round(duration)}ms)`, 'success');
+        };
+
+        window.testSuccessfulRegister = () => {
+            const duration = Math.random() * 3000 + 1000; // 1000-4000ms
+            errorLogger.logPerformanceMetric('register', duration, true, {
+                provider: 'supabase',
+                email: 'newuser@example.com',
+                name: 'Test User',
+                hasUser: true
+            });
+            showToast(`Successful registration logged (${Math.round(duration)}ms)`, 'success');
+        };
+
+        window.testOAuthLogin = () => {
+            const duration = Math.random() * 1500 + 300; // 300-1800ms
+            errorLogger.logPerformanceMetric('oauth_login', duration, true, {
+                provider: 'google',
+                supabaseProvider: 'supabase',
+                redirectTo: window.location.origin + '/auth/callback'
+            });
+            showToast(`OAuth login logged (${Math.round(duration)}ms)`, 'success');
+        };
+
+        window.testFailedLogin = () => {
+            const duration = Math.random() * 1000 + 200; // 200-1200ms
+            errorLogger.logPerformanceMetric('login', duration, false, {
+                provider: 'supabase',
+                email: 'test@example.com',
+                errorType: 'Invalid credentials'
+            });
+            showToast(`Failed login logged (${Math.round(duration)}ms)`, 'error');
+        };
+
+        window.testFailedRegister = () => {
+            const duration = Math.random() * 800 + 300; // 300-1100ms
+            errorLogger.logPerformanceMetric('register', duration, false, {
+                provider: 'supabase',
+                email: 'existing@example.com',
+                errorType: 'User already exists'
+            });
+            showToast(`Failed registration logged (${Math.round(duration)}ms)`, 'error');
+        };
+
+        window.testConnectivityCheck = () => {
+            const duration = Math.random() * 5000 + 1000; // 1000-6000ms
+            const success = Math.random() > 0.3; // 70% success rate
+            errorLogger.logPerformanceMetric('connectivity_check', duration, success, {
+                latency: success ? Math.random() * 200 + 50 : null,
+                supabaseEnabled: true,
+                timeout: 5000,
+                errorType: success ? null : 'Connection timeout'
+            });
+            showToast(`Connectivity check logged (${Math.round(duration)}ms, ${success ? 'success' : 'failed'})`, success ? 'success' : 'error');
+        };
+
+        window.testSlowOperation = () => {
+            const duration = Math.random() * 10000 + 5000; // 5000-15000ms (slow)
+            errorLogger.logPerformanceMetric('slow_operation', duration, true, {
+                operationType: 'data_migration',
+                recordsProcessed: Math.floor(Math.random() * 10000) + 1000,
+                memoryUsage: Math.floor(Math.random() * 500) + 100 + 'MB'
+            });
+            showToast(`Slow operation logged (${Math.round(duration)}ms)`, 'warning');
+        };
+
+        window.testBatchOperations = () => {
+            const operations = ['login', 'register', 'oauth_login', 'connectivity_check', 'logout'];
+            
+            operations.forEach((operation, index) => {
+                setTimeout(() => {
+                    const duration = Math.random() * 2000 + 200;
+                    const success = Math.random() > 0.2; // 80% success rate
+                    errorLogger.logPerformanceMetric(operation, duration, success, {
+                        batchId: 'batch_perf_001',
+                        operationIndex: index + 1,
+                        totalOperations: operations.length
+                    });
+                }, index * 200);
+            });
+            
+            showToast('Batch operations being logged...', 'info');
+        };
+
+        // Statistics functions
+        window.showErrorStats = () => {
+            const stats = errorLogger.getErrorStats({
+                timeRange: 24 * 60 * 60 * 1000 // Last 24 hours
+            });
+            
+            document.getElementById('statsDisplay').textContent = JSON.stringify(stats, null, 2);
+            showToast('Error statistics displayed', 'info');
+        };
+
+        window.showPerformanceStats = () => {
+            const stats = errorLogger.getErrorStats({
+                timeRange: 24 * 60 * 60 * 1000 // Last 24 hours
+            });
+            
+            // Focus on performance stats
+            const perfStats = {
+                performanceMetrics: stats.performanceStats,
+                timeRange: stats.timeRange,
+                totalOperations: stats.performanceStats?.totalOperations || 0,
+                successRate: stats.performanceStats?.successRate || 0,
+                averageDuration: stats.performanceStats?.averageDuration || 0
+            };
+            
+            document.getElementById('statsDisplay').textContent = JSON.stringify(perfStats, null, 2);
+            showToast('Performance statistics displayed', 'info');
+        };
+
+        window.showRecentLogs = () => {
+            const recentErrors = errorLogger.errors.slice(-10);
+            const recentMetrics = errorLogger.performanceMetrics.slice(-10);
+            
+            const recentLogs = {
+                recentErrors: recentErrors,
+                recentMetrics: recentMetrics,
+                totalErrors: errorLogger.errors.length,
+                totalMetrics: errorLogger.performanceMetrics.length
+            };
+            
+            document.getElementById('statsDisplay').textContent = JSON.stringify(recentLogs, null, 2);
+            showToast('Recent logs displayed', 'info');
+        };
+
+        window.clearStats = () => {
+            if (confirm('Are you sure you want to clear all statistics? This action cannot be undone.')) {
+                errorLogger.errors = [];
+                errorLogger.performanceMetrics = [];
+                localStorage.removeItem('anclora_error_logs');
+                localStorage.removeItem('anclora_performance_metrics');
+                document.getElementById('statsDisplay').textContent = 'All statistics cleared.';
+                showToast('All statistics cleared', 'success');
+            }
+        };
+
+        // Remote logging functions
+        window.configureRemoteLogging = () => {
+            const endpoint = document.getElementById('remoteEndpoint').value;
+            const apiKey = document.getElementById('apiKey').value;
+            
+            if (!endpoint) {
+                showToast('Please enter a remote endpoint URL', 'error');
+                return;
+            }
+            
+            errorLogger.configureRemoteLogging({
+                endpoint: endpoint,
+                apiKey: apiKey,
+                batchSize: 10,
+                flushInterval: 30000,
+                enabled: true
+            });
+            
+            updateRemoteStatus(true);
+            showToast('Remote logging configured successfully', 'success');
+        };
+
+        window.testRemoteLogging = () => {
+            if (!errorLogger.remoteLoggingConfig || !errorLogger.remoteLoggingConfig.enabled) {
+                showToast('Remote logging not configured', 'error');
+                return;
+            }
+            
+            const testError = new Error('Test remote logging error');
+            errorLogger.logError(testError, {
+                operation: 'remote_logging_test',
+                testId: 'test_' + Date.now()
+            }, errorLogger.SEVERITY_LEVELS.LOW);
+            
+            showToast('Test error sent to remote logging', 'info');
+        };
+
+        window.disableRemoteLogging = () => {
+            if (errorLogger.remoteLoggingConfig) {
+                errorLogger.remoteLoggingConfig.enabled = false;
+            }
+            updateRemoteStatus(false);
+            showToast('Remote logging disabled', 'info');
+        };
+
+        // Live logging functions
+        window.startLiveLogging = () => {
+            if (liveLoggingInterval) {
+                showToast('Live logging already running', 'warning');
+                return;
+            }
+            
+            const logDisplay = document.getElementById('liveLogDisplay');
+            logDisplay.innerHTML = '<div class="log-entry log-info">Live logging started...</div>';
+            
+            // Override console methods to capture logs
+            console.log = function(...args) {
+                addLogEntry('info', args.join(' '));
+                originalConsoleLog.apply(console, args);
+            };
+            
+            console.error = function(...args) {
+                addLogEntry('error', args.join(' '));
+                originalConsoleError.apply(console, args);
+            };
+            
+            console.warn = function(...args) {
+                addLogEntry('warn', args.join(' '));
+                originalConsoleWarn.apply(console, args);
+            };
+            
+            // Monitor errorLogger activity
+            liveLoggingInterval = setInterval(() => {
+                // This is a simple implementation - in a real scenario you'd want to hook into the logger more directly
+                const recentErrors = errorLogger.errors.slice(-1);
+                const recentMetrics = errorLogger.performanceMetrics.slice(-1);
+                
+                if (recentErrors.length > 0) {
+                    const error = recentErrors[0];
+                    if (!error._displayed) {
+                        addLogEntry('error', `ERROR: ${error.message} (${error.severity})`);
+                        error._displayed = true;
+                    }
+                }
+                
+                if (recentMetrics.length > 0) {
+                    const metric = recentMetrics[0];
+                    if (!metric._displayed) {
+                        addLogEntry('success', `METRIC: ${metric.operation} - ${metric.duration}ms (${metric.success ? 'SUCCESS' : 'FAILED'})`);
+                        metric._displayed = true;
+                    }
+                }
+            }, 1000);
+            
+            showToast('Live logging started', 'success');
+        };
+
+        window.stopLiveLogging = () => {
+            if (liveLoggingInterval) {
+                clearInterval(liveLoggingInterval);
+                liveLoggingInterval = null;
+            }
+            
+            // Restore original console methods
+            console.log = originalConsoleLog;
+            console.error = originalConsoleError;
+            console.warn = originalConsoleWarn;
+            
+            addLogEntry('info', 'Live logging stopped.');
+            showToast('Live logging stopped', 'info');
+        };
+
+        window.clearLiveLog = () => {
+            document.getElementById('liveLogDisplay').innerHTML = 'Log cleared.';
+        };
+
+        // Cleanup functions
+        window.cleanupOldLogs = () => {
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+            errorLogger.cleanupOldLogs(maxAge);
+            showToast('Old logs cleaned up (older than 7 days)', 'success');
+        };
+
+        window.exportLogs = () => {
+            const logs = {
+                errors: errorLogger.errors,
+                performanceMetrics: errorLogger.performanceMetrics,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `anclora-logs-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Logs exported successfully', 'success');
+        };
+
+        window.clearAllLogs = () => {
+            if (confirm('Are you sure you want to clear ALL logs? This action cannot be undone.')) {
+                errorLogger.errors = [];
+                errorLogger.performanceMetrics = [];
+                localStorage.removeItem('anclora_error_logs');
+                localStorage.removeItem('anclora_performance_metrics');
+                showToast('All logs cleared', 'success');
+            }
+        };
+
+        // Helper functions
+        function addLogEntry(type, message) {
+            const logDisplay = document.getElementById('liveLogDisplay');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            logDisplay.appendChild(entry);
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+            
+            // Keep only last 100 entries
+            while (logDisplay.children.length > 100) {
+                logDisplay.removeChild(logDisplay.firstChild);
+            }
+        }
+
+        function updateRemoteStatus(enabled) {
+            const statusElement = document.getElementById('remoteStatus');
+            const indicator = statusElement.querySelector('.status-indicator');
+            
+            if (enabled) {
+                indicator.className = 'status-indicator status-success';
+                statusElement.innerHTML = '<span class="status-indicator status-success"></span>Remote logging configured and enabled';
+            } else {
+                indicator.className = 'status-indicator status-error';
+                statusElement.innerHTML = '<span class="status-indicator status-error"></span>Remote logging not configured';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 5px;
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                transition: opacity 0.3s;
+            `;
+            
+            switch (type) {
+                case 'success':
+                    toast.style.backgroundColor = '#28a745';
+                    break;
+                case 'error':
+                    toast.style.backgroundColor = '#dc3545';
+                    break;
+                case 'warning':
+                    toast.style.backgroundColor = '#ffc107';
+                    toast.style.color = '#212529';
+                    break;
+                default:
+                    toast.style.backgroundColor = '#17a2b8';
+            }
+            
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Initialize
+        console.log('Error Logger Test Suite initialized');
+        console.log('ErrorLogger instance:', errorLogger);
+    </script>
+</body>
+</html>

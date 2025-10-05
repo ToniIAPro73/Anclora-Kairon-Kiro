@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Simulation Testing Suite</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .status {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .log {
+            background-color: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .test-area {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        
+        input, select {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Error Simulation Testing Suite</h1>
+        <p>Comprehensive testing tools for authentication error handling scenarios</p>
+    </div>
+
+    <!-- General Error Simulator -->
+    <div class="container">
+        <div class="section">
+            <h3>🌐 General Error Simulator</h3>
+            <div class="controls">
+                <button class="btn-primary" onclick="startGeneralSimulation()">Start Simulation</button>
+                <button class="btn-danger" onclick="stopGeneralSimulation()">Stop Simulation</button>
+                <button class="btn-warning" onclick="resetGeneralSimulation()">Reset</button>
+            </div>
+            
+            <div class="controls">
+                <label>
+                    <input type="checkbox" id="networkErrors"> Network Errors
+                </label>
+                <label>
+                    <input type="checkbox" id="supabaseErrors"> Supabase Errors
+                </label>
+                <label>
+                    <input type="checkbox" id="oauthErrors"> OAuth Errors
+                </label>
+                <label>
+                    <input type="checkbox" id="rateLimiting"> Rate Limiting
+                </label>
+            </div>
+            
+            <div class="controls">
+                <button class="btn-primary" onclick="testScenario('NETWORK_ISSUES')">Network Issues</button>
+                <button class="btn-primary" onclick="testScenario('SUPABASE_DOWN')">Supabase Down</button>
+                <button class="btn-primary" onclick="testScenario('OAUTH_FAILURES')">OAuth Failures</button>
+                <button class="btn-primary" onclick="testScenario('ALL_ERRORS')">All Errors</button>
+            </div>
+            
+            <div class="status" id="generalStatus">Status: Ready</div>
+        </div>
+    </div>
+
+    <!-- Network Error Simulator -->
+    <div class="container">
+        <div class="section">
+            <h3>📡 Network Error Simulator</h3>
+            <div class="controls">
+                <button class="btn-danger" onclick="goOffline()">Go Offline</button>
+                <button class="btn-success" onclick="goOnline()">Go Online</button>
+                <button class="btn-warning" onclick="simulateSlowConnection()">Slow Connection</button>
+                <button class="btn-warning" onclick="simulateHighLatency()">High Latency</button>
+                <button class="btn-warning" onclick="simulatePacketLoss()">Packet Loss</button>
+                <button class="btn-warning" onclick="simulateIntermittent()">Intermittent</button>
+            </div>
+            
+            <div class="controls">
+                <button class="btn-primary" onclick="networkScenario('MOBILE_3G')">Mobile 3G</button>
+                <button class="btn-primary" onclick="networkScenario('MOBILE_2G')">Mobile 2G</button>
+                <button class="btn-primary" onclick="networkScenario('POOR_WIFI')">Poor WiFi</button>
+                <button class="btn-primary" onclick="networkScenario('UNSTABLE_CONNECTION')">Unstable</button>
+                <button class="btn-danger" onclick="resetNetworkSimulation()">Reset Network</button>
+            </div>
+            
+            <div class="status" id="networkStatus">Status: Ready</div>
+        </div>
+    </div>
+
+    <!-- Supabase Mocker -->
+    <div class="container">
+        <div class="section">
+            <h3>🗄️ Supabase Response Mocker</h3>
+            <div class="controls">
+                <button class="btn-primary" onclick="startSupabaseMocking()">Start Mocking</button>
+                <button class="btn-danger" onclick="stopSupabaseMocking()">Stop Mocking</button>
+                <button class="btn-warning" onclick="clearSupabaseMocks()">Clear Mocks</button>
+            </div>
+            
+            <div class="controls">
+                <button class="btn-danger" onclick="mockSupabaseError('SERVICE_UNAVAILABLE')">Service Unavailable</button>
+                <button class="btn-danger" onclick="mockSupabaseError('DATABASE_ERROR')">Database Error</button>
+                <button class="btn-danger" onclick="mockSupabaseError('INVALID_API_KEY')">Invalid API Key</button>
+                <button class="btn-danger" onclick="mockSupabaseError('RATE_LIMITED')">Rate Limited</button>
+            </div>
+            
+            <div class="status" id="supabaseStatus">Status: Ready</div>
+        </div>
+    </div>
+
+    <!-- OAuth Error Simulator -->
+    <div class="container">
+        <div class="section">
+            <h3>🔐 OAuth Error Simulator</h3>
+            <div class="controls">
+                <button class="btn-primary" onclick="startOAuthSimulation()">Start OAuth Simulation</button>
+                <button class="btn-danger" onclick="stopOAuthSimulation()">Stop OAuth Simulation</button>
+                <button class="btn-warning" onclick="resetOAuthSimulation()">Reset OAuth</button>
+            </div>
+            
+            <div class="controls">
+                <select id="oauthProvider">
+                    <option value="GOOGLE">Google</option>
+                    <option value="GITHUB">GitHub</option>
+                    <option value="FACEBOOK">Facebook</option>
+                    <option value="ALL">All Providers</option>
+                </select>
+                <select id="oauthError">
+                    <option value="ACCESS_DENIED">Access Denied</option>
+                    <option value="PROVIDER_UNAVAILABLE">Provider Unavailable</option>
+                    <option value="INVALID_CLIENT">Invalid Client</option>
+                    <option value="SERVER_ERROR">Server Error</option>
+                    <option value="POPUP_BLOCKED">Popup Blocked</option>
+                </select>
+                <button class="btn-danger" onclick="setOAuthError()">Set Error</button>
+            </div>
+            
+            <div class="test-area">
+                <button class="btn-primary" onclick="testOAuthPopup('google')">Test Google OAuth</button>
+                <button class="btn-primary" onclick="testOAuthPopup('github')">Test GitHub OAuth</button>
+                <button class="btn-primary" onclick="testOAuthPopup('facebook')">Test Facebook OAuth</button>
+            </div>
+            
+            <div class="status" id="oauthStatus">Status: Ready</div>
+        </div>
+    </div>
+
+    <!-- Rate Limit Simulator -->
+    <div class="container">
+        <div class="section">
+            <h3>⏱️ Rate Limit Simulator</h3>
+            <div class="controls">
+                <button class="btn-primary" onclick="startRateLimitSimulation()">Start Rate Limiting</button>
+                <button class="btn-danger" onclick="stopRateLimitSimulation()">Stop Rate Limiting</button>
+                <button class="btn-warning" onclick="clearRateLimits()">Clear Limits</button>
+            </div>
+            
+            <div class="controls">
+                <button class="btn-warning" onclick="rateLimitScenario('STRICT_API')">Strict API</button>
+                <button class="btn-warning" onclick="rateLimitScenario('AUTH_PROTECTION')">Auth Protection</button>
+                <button class="btn-warning" onclick="rateLimitScenario('BURST_PROTECTION')">Burst Protection</button>
+                <button class="btn-warning" onclick="rateLimitScenario('AGGRESSIVE_LIMITING')">Aggressive</button>
+            </div>
+            
+            <div class="controls">
+                <input type="number" id="rateLimitRequests" placeholder="Max requests" value="5">
+                <input type="number" id="rateLimitWindow" placeholder="Window (ms)" value="60000">
+                <button class="btn-primary" onclick="setCustomRateLimit()">Set Custom Limit</button>
+            </div>
+            
+            <div class="status" id="rateLimitStatus">Status: Ready</div>
+        </div>
+    </div>
+
+    <!-- Test Area -->
+    <div class="container">
+        <div class="section">
+            <h3>🧪 Test Authentication Operations</h3>
+            <div class="test-area">
+                <div class="controls">
+                    <input type="email" id="testEmail" placeholder="test@example.com" value="test@example.com">
+                    <input type="password" id="testPassword" placeholder="password" value="password123">
+                </div>
+                
+                <div class="controls">
+                    <button class="btn-primary" onclick="testRegister()">Test Register</button>
+                    <button class="btn-primary" onclick="testLogin()">Test Login</button>
+                    <button class="btn-primary" onclick="testLogout()">Test Logout</button>
+                    <button class="btn-primary" onclick="testGetUser()">Test Get User</button>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn-primary" onclick="testMultipleRequests()">Test Multiple Requests</button>
+                    <button class="btn-primary" onclick="testBurstRequests()">Test Burst Requests</button>
+                </div>
+            </div>
+            
+            <div class="log" id="testLog">Test results will appear here...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { errorSimulator, SimulationScenarios } from './src/shared/test/errorSimulator.js';
+        import { networkErrorSimulator, NetworkScenarios } from './src/shared/test/networkErrorSimulator.js';
+        import { supabaseMocker, SupabaseErrorScenarios } from './src/shared/test/supabaseMocker.js';
+        import { oauthErrorSimulator, OAuthErrorScenarios, OAuthProviders } from './src/shared/test/oauthErrorSimulator.js';
+        import { rateLimitSimulator, RateLimitScenarios } from './src/shared/test/rateLimitSimulator.js';
+
+        // Make simulators available globally for button handlers
+        window.errorSimulator = errorSimulator;
+        window.networkErrorSimulator = networkErrorSimulator;
+        window.supabaseMocker = supabaseMocker;
+        window.oauthErrorSimulator = oauthErrorSimulator;
+        window.rateLimitSimulator = rateLimitSimulator;
+        window.SimulationScenarios = SimulationScenarios;
+        window.NetworkScenarios = NetworkScenarios;
+        window.SupabaseErrorScenarios = SupabaseErrorScenarios;
+        window.OAuthErrorScenarios = OAuthErrorScenarios;
+        window.OAuthProviders = OAuthProviders;
+        window.RateLimitScenarios = RateLimitScenarios;
+
+        // Update status displays
+        function updateStatus() {
+            document.getElementById('generalStatus').textContent = 
+                `Status: ${JSON.stringify(errorSimulator.getStatus(), null, 2)}`;
+            
+            document.getElementById('networkStatus').textContent = 
+                `Status: ${JSON.stringify(networkErrorSimulator.getStatus(), null, 2)}`;
+            
+            document.getElementById('supabaseStatus').textContent = 
+                `Status: ${JSON.stringify(supabaseMocker.getStatus(), null, 2)}`;
+            
+            document.getElementById('oauthStatus').textContent = 
+                `Status: ${JSON.stringify(oauthErrorSimulator.getStatus(), null, 2)}`;
+            
+            document.getElementById('rateLimitStatus').textContent = 
+                `Status: ${JSON.stringify(rateLimitSimulator.getStatus(), null, 2)}`;
+        }
+
+        // Update status every 2 seconds
+        setInterval(updateStatus, 2000);
+        updateStatus();
+
+        // Log function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        window.log = log;
+    </script>
+
+    <script>
+        // General Error Simulator Functions
+        function startGeneralSimulation() {
+            const config = {
+                networkErrors: document.getElementById('networkErrors').checked,
+                supabaseErrors: document.getElementById('supabaseErrors').checked,
+                oauthErrors: document.getElementById('oauthErrors').checked,
+                rateLimiting: document.getElementById('rateLimiting').checked
+            };
+            errorSimulator.startSimulation(config);
+            log('General error simulation started', 'success');
+        }
+
+        function stopGeneralSimulation() {
+            errorSimulator.stopSimulation();
+            log('General error simulation stopped', 'warning');
+        }
+
+        function resetGeneralSimulation() {
+            errorSimulator.reset();
+            log('General error simulation reset', 'info');
+        }
+
+        function testScenario(scenario) {
+            errorSimulator.startSimulation(SimulationScenarios[scenario]);
+            log(`Started scenario: ${scenario}`, 'success');
+        }
+
+        // Network Error Simulator Functions
+        function goOffline() {
+            networkErrorSimulator.goOffline();
+            log('Network: OFFLINE', 'error');
+        }
+
+        function goOnline() {
+            networkErrorSimulator.goOnline();
+            log('Network: ONLINE', 'success');
+        }
+
+        function simulateSlowConnection() {
+            networkErrorSimulator.simulateSlowConnection(10 * 1024); // 10KB/s
+            log('Network: Slow connection (10KB/s)', 'warning');
+        }
+
+        function simulateHighLatency() {
+            networkErrorSimulator.simulateHighLatency(2000); // 2s latency
+            log('Network: High latency (2000ms)', 'warning');
+        }
+
+        function simulatePacketLoss() {
+            networkErrorSimulator.simulatePacketLoss(0.2); // 20% packet loss
+            log('Network: Packet loss (20%)', 'warning');
+        }
+
+        function simulateIntermittent() {
+            networkErrorSimulator.simulateIntermittentConnection(0.3); // 30% drop rate
+            log('Network: Intermittent connection (30% drops)', 'warning');
+        }
+
+        function networkScenario(scenario) {
+            networkErrorSimulator.simulateScenario(scenario);
+            log(`Network scenario: ${scenario}`, 'success');
+        }
+
+        function resetNetworkSimulation() {
+            networkErrorSimulator.reset();
+            log('Network simulation reset', 'info');
+        }
+
+        // Supabase Mocker Functions
+        function startSupabaseMocking() {
+            supabaseMocker.startMocking();
+            log('Supabase mocking started', 'success');
+        }
+
+        function stopSupabaseMocking() {
+            supabaseMocker.stopMocking();
+            log('Supabase mocking stopped', 'warning');
+        }
+
+        function clearSupabaseMocks() {
+            supabaseMocker.clearMocks();
+            log('Supabase mocks cleared', 'info');
+        }
+
+        function mockSupabaseError(scenario) {
+            supabaseMocker.mockErrorScenario(scenario);
+            log(`Supabase error scenario: ${scenario}`, 'error');
+        }
+
+        // OAuth Error Simulator Functions
+        function startOAuthSimulation() {
+            oauthErrorSimulator.startSimulation();
+            log('OAuth error simulation started', 'success');
+        }
+
+        function stopOAuthSimulation() {
+            oauthErrorSimulator.stopSimulation();
+            log('OAuth error simulation stopped', 'warning');
+        }
+
+        function resetOAuthSimulation() {
+            oauthErrorSimulator.reset();
+            log('OAuth error simulation reset', 'info');
+        }
+
+        function setOAuthError() {
+            const provider = document.getElementById('oauthProvider').value;
+            const error = document.getElementById('oauthError').value;
+            
+            if (provider === 'ALL') {
+                oauthErrorSimulator.setGlobalError(error);
+            } else {
+                oauthErrorSimulator.setProviderError(provider, error);
+            }
+            
+            log(`OAuth error set: ${provider} -> ${error}`, 'error');
+        }
+
+        function testOAuthPopup(provider) {
+            const url = `https://${provider}.com/oauth/authorize?client_id=test&redirect_uri=test`;
+            const popup = window.open(url, 'oauth', 'width=500,height=600');
+            log(`Testing OAuth popup for ${provider}`, 'info');
+        }
+
+        // Rate Limit Simulator Functions
+        function startRateLimitSimulation() {
+            rateLimitSimulator.startSimulation();
+            log('Rate limiting simulation started', 'success');
+        }
+
+        function stopRateLimitSimulation() {
+            rateLimitSimulator.stopSimulation();
+            log('Rate limiting simulation stopped', 'warning');
+        }
+
+        function clearRateLimits() {
+            rateLimitSimulator.clearLimits();
+            log('Rate limits cleared', 'info');
+        }
+
+        function rateLimitScenario(scenario) {
+            rateLimitSimulator.simulateScenario(scenario);
+            log(`Rate limit scenario: ${scenario}`, 'warning');
+        }
+
+        function setCustomRateLimit() {
+            const requests = parseInt(document.getElementById('rateLimitRequests').value);
+            const window = parseInt(document.getElementById('rateLimitWindow').value);
+            rateLimitSimulator.setGlobalLimit(requests, window);
+            log(`Custom rate limit: ${requests} requests per ${window}ms`, 'warning');
+        }
+
+        // Test Functions
+        async function testRegister() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            try {
+                log(`Testing registration: ${email}`, 'info');
+                const response = await fetch('https://test.supabase.co/auth/v1/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    log(`Registration successful: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`Registration failed: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`Registration error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            try {
+                log(`Testing login: ${email}`, 'info');
+                const response = await fetch('https://test.supabase.co/auth/v1/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, grant_type: 'password' })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    log(`Login successful: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`Login failed: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogout() {
+            try {
+                log('Testing logout', 'info');
+                const response = await fetch('https://test.supabase.co/auth/v1/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    log('Logout successful', 'success');
+                } else {
+                    const result = await response.json();
+                    log(`Logout failed: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`Logout error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetUser() {
+            try {
+                log('Testing get user', 'info');
+                const response = await fetch('https://test.supabase.co/auth/v1/user', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer test-token' }
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    log(`Get user successful: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`Get user failed: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`Get user error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMultipleRequests() {
+            log('Testing multiple requests...', 'info');
+            const promises = [];
+            
+            for (let i = 0; i < 10; i++) {
+                promises.push(
+                    fetch('https://test.supabase.co/auth/v1/user', {
+                        method: 'GET',
+                        headers: { 'Authorization': 'Bearer test-token' }
+                    }).then(response => ({ index: i, status: response.status }))
+                    .catch(error => ({ index: i, error: error.message }))
+                );
+            }
+            
+            const results = await Promise.all(promises);
+            results.forEach(result => {
+                if (result.error) {
+                    log(`Request ${result.index}: ERROR - ${result.error}`, 'error');
+                } else {
+                    log(`Request ${result.index}: ${result.status}`, result.status === 200 ? 'success' : 'warning');
+                }
+            });
+        }
+
+        async function testBurstRequests() {
+            log('Testing burst requests...', 'info');
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(async () => {
+                    try {
+                        const response = await fetch('https://test.supabase.co/auth/v1/user', {
+                            method: 'GET',
+                            headers: { 'Authorization': 'Bearer test-token' }
+                        });
+                        log(`Burst ${i}: ${response.status}`, response.status === 200 ? 'success' : 'warning');
+                    } catch (error) {
+                        log(`Burst ${i}: ERROR - ${error.message}`, 'error');
+                    }
+                }, i * 100); // 100ms intervals
+            }
+        }
+    </script>
+</body>
+</html>

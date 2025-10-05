@@ -186,4 +186,202 @@ button[type="submit"]:disabled {
     margin: 0 1rem;
     max-width: none;
   }
+}/
+* Network Connectivity Styles */
+.network-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #e74c3c;
+  color: white;
+  z-index: 10000;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.offline-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.offline-icon {
+  font-size: 16px;
+}
+
+.offline-text {
+  flex: 1;
+  max-width: 300px;
+}
+
+.offline-retry-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.offline-retry-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.network-offline {
+  /* Add styles for when the entire page is offline */
+}
+
+.network-offline .offline-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: inherit;
+}
+
+.offline-overlay-content {
+  background-color: rgba(231, 76, 60, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.offline-overlay-content::before {
+  content: "📶";
+  font-size: 14px;
+}
+
+/* Offline indicator for specific UI elements */
+.network-offline .btn:not(.offline-retry-btn) {
+  opacity: 0.6;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.network-offline .btn:not(.offline-retry-btn)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.network-offline input[type="email"],
+.network-offline input[type="password"],
+.network-offline input[type="text"],
+.network-offline textarea {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+/* Slow connection indicator */
+.network-slow-indicator {
+  position: fixed;
+  top: 50px;
+  right: 20px;
+  background-color: #f39c12;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.network-slow-indicator::before {
+  content: "🐌";
+  font-size: 14px;
+}
+
+/* Animation for connectivity checking */
+.connectivity-checking {
+  animation: connectivityPulse 1.5s infinite;
+}
+
+@keyframes connectivityPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* Queue status indicator */
+.queue-status-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #3498db;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.queue-status-indicator::before {
+  content: "⏳";
+  font-size: 16px;
+}
+
+.queue-status-indicator.processing {
+  background-color: #27ae60;
+}
+
+.queue-status-indicator.processing::before {
+  content: "⚡";
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .offline-banner-content {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .offline-text {
+    max-width: none;
+  }
+  
+  .network-slow-indicator,
+  .queue-status-indicator {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+  
+  .network-slow-indicator {
+    top: 60px;
+  }
+  
+  .queue-status-indicator {
+    bottom: 10px;
+  }
 }

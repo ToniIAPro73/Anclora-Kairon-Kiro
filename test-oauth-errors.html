@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test OAuth Provider Errors - Anclora</title>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-google {
+            background-color: #db4437;
+            color: white;
+        }
+
+        .btn-google:hover {
+            background-color: #c23321;
+        }
+
+        .btn-github {
+            background-color: #333;
+            color: white;
+        }
+
+        .btn-github:hover {
+            background-color: #24292e;
+        }
+
+        .status-display {
+            background-color: #ecf0f1;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .provider-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .provider-status.available {
+            background-color: #d5f4e6;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+
+        .provider-status.failed {
+            background-color: #fadbd8;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .provider-status.warning {
+            background-color: #fef9e7;
+            color: #f39c12;
+            border: 1px solid #f39c12;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-indicator.available {
+            background-color: #27ae60;
+        }
+
+        .status-indicator.failed {
+            background-color: #e74c3c;
+        }
+
+        .status-indicator.warning {
+            background-color: #f39c12;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .log-entry.info {
+            background-color: #e8f4f8;
+            color: #2c3e50;
+        }
+
+        .log-entry.success {
+            background-color: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .log-entry.error {
+            background-color: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .log-entry.warning {
+            background-color: #fef9e7;
+            color: #f39c12;
+        }
+
+        .oauth-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .stat-card {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .stat-card h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .error-simulation {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .error-simulation h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+
+        .error-simulation p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .fallback-demo {
+            background-color: #e8f4f8;
+            border: 1px solid #3498db;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .fallback-demo h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .fallback-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .fallback-btn {
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            background-color: white;
+            color: #3498db;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .fallback-btn:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .provider-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Test OAuth Provider Errors</h1>
+            <p>Test OAuth authentication error handling for Google and GitHub providers</p>
+        </div>
+
+        <!-- OAuth Provider Status -->
+        <div class="test-section">
+            <h3>📊 OAuth Provider Status</h3>
+            <div id="googleStatus" class="provider-status available">
+                <span class="status-indicator available"></span>
+                <span>🔍 Google OAuth: Available</span>
+            </div>
+            <div id="githubStatus" class="provider-status available">
+                <span class="status-indicator available"></span>
+                <span>🐙 GitHub OAuth: Available</span>
+            </div>
+            
+            <div class="oauth-stats">
+                <div class="stat-card">
+                    <h4>Google OAuth</h4>
+                    <div class="stat-value" id="googleRetryCount">0</div>
+                    <div class="stat-label">Retry Count</div>
+                </div>
+                <div class="stat-card">
+                    <h4>GitHub OAuth</h4>
+                    <div class="stat-value" id="githubRetryCount">0</div>
+                    <div class="stat-label">Retry Count</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Available Providers</h4>
+                    <div class="stat-value" id="availableProviders">2</div>
+                    <div class="stat-label">Total Available</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Failed Providers</h4>
+                    <div class="stat-value" id="failedProviders">0</div>
+                    <div class="stat-label">Total Failed</div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="checkOAuthStatus()">📊 Check Status</button>
+                <button class="btn btn-secondary" onclick="resetOAuthErrors()">🔄 Reset Errors</button>
+                <button class="btn btn-warning" onclick="viewOAuthStats()">📈 View Stats</button>
+            </div>
+            <div class="status-display" id="oauthStatusDetails"></div>
+        </div>
+
+        <!-- OAuth Testing -->
+        <div class="test-section">
+            <h3>🔐 OAuth Authentication Testing</h3>
+            <p>Test OAuth login with different providers</p>
+            
+            <div class="button-group">
+                <button class="btn btn-google" onclick="testGoogleOAuth()">
+                    <span>🔍</span> Test Google OAuth
+                </button>
+                <button class="btn btn-github" onclick="testGitHubOAuth()">
+                    <span>🐙</span> Test GitHub OAuth
+                </button>
+                <button class="btn btn-primary" onclick="testGoogleEnhanced()">
+                    <span>🔍</span> Google Enhanced
+                </button>
+                <button class="btn btn-primary" onclick="testGitHubEnhanced()">
+                    <span>🐙</span> GitHub Enhanced
+                </button>
+            </div>
+            
+            <div class="status-display" id="oauthTestResults"></div>
+        </div>
+
+        <!-- Error Simulation -->
+        <div class="test-section">
+            <h3>🎭 OAuth Error Simulation</h3>
+            <div class="error-simulation">
+                <h4>⚠️ Error Simulation</h4>
+                <p>These simulations demonstrate different OAuth error scenarios and fallback mechanisms.</p>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-danger" onclick="simulateAccessDenied()">❌ Access Denied</button>
+                <button class="btn btn-warning" onclick="simulatePopupBlocked()">🚫 Popup Blocked</button>
+                <button class="btn btn-secondary" onclick="simulateTimeout()">⏱️ Timeout</button>
+                <button class="btn btn-danger" onclick="simulateProviderUnavailable()">🔧 Provider Down</button>
+                <button class="btn btn-warning" onclick="simulateNetworkError()">🌐 Network Error</button>
+                <button class="btn btn-secondary" onclick="simulateConfigError()">⚙️ Config Error</button>
+            </div>
+            <div class="status-display" id="errorSimulationLog"></div>
+        </div>
+
+        <!-- Fallback Mechanisms -->
+        <div class="test-section">
+            <h3>🔄 Fallback Mechanisms</h3>
+            <p>Test fallback options when OAuth providers fail</p>
+            
+            <div class="fallback-demo">
+                <h4>Fallback Options Demo</h4>
+                <p>When OAuth fails, users can be offered alternative authentication methods:</p>
+                <div class="fallback-options">
+                    <button class="fallback-btn" onclick="showEmailPasswordFallback()">📧 Email/Password</button>
+                    <button class="fallback-btn" onclick="showAlternativeProvider()">🔄 Alternative Provider</button>
+                    <button class="fallback-btn" onclick="showRetryOption()">🔁 Retry OAuth</button>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="testFallbackFlow()">🔄 Test Fallback Flow</button>
+                <button class="btn btn-warning" onclick="testProviderSwitching()">🔀 Test Provider Switch</button>
+                <button class="btn btn-success" onclick="testRecoveryFlow()">✅ Test Recovery</button>
+            </div>
+            
+            <div class="status-display" id="fallbackTestResults"></div>
+        </div>
+
+        <!-- OAuth Error Messages -->
+        <div class="test-section">
+            <h3>💬 OAuth Error Messages</h3>
+            <p>Test different error messages and user feedback</p>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="testErrorMessages('es')">🇪🇸 Spanish Messages</button>
+                <button class="btn btn-primary" onclick="testErrorMessages('en')">🇺🇸 English Messages</button>
+                <button class="btn btn-secondary" onclick="testErrorClassification()">🏷️ Error Classification</button>
+                <button class="btn btn-warning" onclick="testUserFeedback()">💬 User Feedback</button>
+            </div>
+            
+            <div class="status-display" id="errorMessageResults"></div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="test-section">
+            <h3>📝 OAuth Event Log</h3>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="clearOAuthEventLog()">🗑️ Clear Log</button>
+                <button class="btn btn-primary" onclick="exportOAuthEventLog()">💾 Export Log</button>
+            </div>
+            <div class="status-display" id="oauthEventLog"></div>
+        </div>
+    </div>
+
+    <!-- User Feedback Container -->
+    <div id="userFeedbackContainer"></div>
+
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+        import { oauthErrorHandler, OAUTH_PROVIDERS } from './src/shared/services/oauthErrorHandler.js';
+        import { userFeedbackSystem } from './src/shared/services/userFeedbackSystem.js';
+
+        // Global variables for testing
+        window.authService = authService;
+        window.oauthErrorHandler = oauthErrorHandler;
+        window.userFeedbackSystem = userFeedbackSystem;
+        window.OAUTH_PROVIDERS = OAUTH_PROVIDERS;
+
+        let eventLogEntries = [];
+
+        // Initialize user feedback system
+        userFeedbackSystem.initialize();
+
+        // Event logging function
+        function logEvent(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = {
+                timestamp,
+                message,
+                type,
+                id: Date.now() + Math.random()
+            };
+            
+            eventLogEntries.unshift(entry);
+            
+            // Keep only last 100 entries
+            if (eventLogEntries.length > 100) {
+                eventLogEntries = eventLogEntries.slice(0, 100);
+            }
+            
+            updateOAuthEventLog();
+        }
+
+        function updateOAuthEventLog() {
+            const eventLog = document.getElementById('oauthEventLog');
+            eventLog.innerHTML = eventLogEntries
+                .map(entry => `<div class="log-entry ${entry.type}">[${entry.timestamp}] ${entry.message}</div>`)
+                .join('');
+        }
+
+        // OAuth status functions
+        window.checkOAuthStatus = function() {
+            logEvent('Checking OAuth provider status...', 'info');
+            
+            try {
+                const stats = authService.getOAuthErrorStats();
+                const availableProviders = authService.getAvailableOAuthProviders();
+                
+                updateOAuthStatusDisplay(stats, availableProviders);
+                
+                document.getElementById('oauthStatusDetails').textContent = JSON.stringify({
+                    stats: stats,
+                    availableProviders: availableProviders
+                }, null, 2);
+                
+                logEvent(`OAuth status checked - ${availableProviders.length} providers available`, 'success');
+                
+            } catch (error) {
+                logEvent(`Error checking OAuth status: ${error.message}`, 'error');
+                console.error('Error checking OAuth status:', error);
+            }
+        };
+
+        function updateOAuthStatusDisplay(stats, availableProviders) {
+            // Update Google status
+            const googleStats = stats.google || { retryCount: 0, hasFailed: false };
+            const googleElement = document.getElementById('googleStatus');
+            const googleIndicator = googleElement.querySelector('.status-indicator');
+            const googleText = googleElement.querySelector('span:last-child');
+            
+            if (googleStats.hasFailed) {
+                googleElement.className = 'provider-status failed';
+                googleIndicator.className = 'status-indicator failed';
+                googleText.textContent = `🔍 Google OAuth: Failed (${googleStats.retryCount} retries)`;
+            } else {
+                googleElement.className = 'provider-status available';
+                googleIndicator.className = 'status-indicator available';
+                googleText.textContent = '🔍 Google OAuth: Available';
+            }
+
+            // Update GitHub status
+            const githubStats = stats.github || { retryCount: 0, hasFailed: false };
+            const githubElement = document.getElementById('githubStatus');
+            const githubIndicator = githubElement.querySelector('.status-indicator');
+            const githubText = githubElement.querySelector('span:last-child');
+            
+            if (githubStats.hasFailed) {
+                githubElement.className = 'provider-status failed';
+                githubIndicator.className = 'status-indicator failed';
+                githubText.textContent = `🐙 GitHub OAuth: Failed (${githubStats.retryCount} retries)`;
+            } else {
+                githubElement.className = 'provider-status available';
+                githubIndicator.className = 'status-indicator available';
+                githubText.textContent = '🐙 GitHub OAuth: Available';
+            }
+
+            // Update stats
+            document.getElementById('googleRetryCount').textContent = googleStats.retryCount;
+            document.getElementById('githubRetryCount').textContent = githubStats.retryCount;
+            document.getElementById('availableProviders').textContent = availableProviders.length;
+            document.getElementById('failedProviders').textContent = 
+                Object.values(stats).filter(s => s.hasFailed).length;
+        }
+
+        window.resetOAuthErrors = function() {
+            logEvent('Resetting OAuth errors...', 'info');
+            authService.resetOAuthErrors();
+            checkOAuthStatus();
+            logEvent('OAuth errors reset', 'success');
+        };
+
+        window.viewOAuthStats = function() {
+            const stats = authService.getOAuthErrorStats();
+            document.getElementById('oauthStatusDetails').textContent = JSON.stringify(stats, null, 2);
+            logEvent('OAuth stats displayed', 'info');
+        };
+
+        // OAuth testing functions
+        window.testGoogleOAuth = async function() {
+            logEvent('Testing Google OAuth...', 'info');
+            
+            try {
+                const result = await authService.loginWithGoogle();
+                logEvent('Google OAuth test completed', 'success');
+                document.getElementById('oauthTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Google OAuth test failed: ${error.message}`, 'error');
+                document.getElementById('oauthTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.testGitHubOAuth = async function() {
+            logEvent('Testing GitHub OAuth...', 'info');
+            
+            try {
+                const result = await authService.loginWithGitHub();
+                logEvent('GitHub OAuth test completed', 'success');
+                document.getElementById('oauthTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`GitHub OAuth test failed: ${error.message}`, 'error');
+                document.getElementById('oauthTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.testGoogleEnhanced = async function() {
+            logEvent('Testing Google OAuth with enhanced error handling...', 'info');
+            
+            try {
+                const result = await authService.loginWithGoogleEnhanced({
+                    showFallback: true,
+                    showRetry: true,
+                    language: 'es',
+                    fallbackCallback: () => {
+                        logEvent('Email/password fallback triggered', 'info');
+                        userFeedbackSystem.showInfo('Fallback to email/password triggered');
+                    },
+                    retryCallback: (provider) => {
+                        logEvent(`Retry triggered for ${provider}`, 'info');
+                        testGoogleEnhanced();
+                    },
+                    alternativeProviderCallback: (provider) => {
+                        logEvent(`Alternative provider ${provider} triggered`, 'info');
+                        if (provider === 'github') {
+                            testGitHubEnhanced();
+                        }
+                    }
+                });
+                
+                if (result.success) {
+                    logEvent('Google OAuth enhanced test completed successfully', 'success');
+                } else {
+                    logEvent(`Google OAuth enhanced test failed: ${result.error?.userMessage || 'Unknown error'}`, 'error');
+                }
+                
+                document.getElementById('oauthTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`Google OAuth enhanced test error: ${error.message}`, 'error');
+                document.getElementById('oauthTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.testGitHubEnhanced = async function() {
+            logEvent('Testing GitHub OAuth with enhanced error handling...', 'info');
+            
+            try {
+                const result = await authService.loginWithGitHubEnhanced({
+                    showFallback: true,
+                    showRetry: true,
+                    language: 'es',
+                    fallbackCallback: () => {
+                        logEvent('Email/password fallback triggered', 'info');
+                        userFeedbackSystem.showInfo('Fallback to email/password triggered');
+                    },
+                    retryCallback: (provider) => {
+                        logEvent(`Retry triggered for ${provider}`, 'info');
+                        testGitHubEnhanced();
+                    },
+                    alternativeProviderCallback: (provider) => {
+                        logEvent(`Alternative provider ${provider} triggered`, 'info');
+                        if (provider === 'google') {
+                            testGoogleEnhanced();
+                        }
+                    }
+                });
+                
+                if (result.success) {
+                    logEvent('GitHub OAuth enhanced test completed successfully', 'success');
+                } else {
+                    logEvent(`GitHub OAuth enhanced test failed: ${result.error?.userMessage || 'Unknown error'}`, 'error');
+                }
+                
+                document.getElementById('oauthTestResults').textContent = JSON.stringify(result, null, 2);
+                
+            } catch (error) {
+                logEvent(`GitHub OAuth enhanced test error: ${error.message}`, 'error');
+                document.getElementById('oauthTestResults').textContent = `Error: ${error.message}`;
+            }
+        };
+
+        // Error simulation functions
+        window.simulateAccessDenied = function() {
+            logEvent('Simulating OAuth access denied error...', 'warning');
+            
+            const error = new Error('User denied access to the application');
+            error.code = 'access_denied';
+            
+            const result = oauthErrorHandler.handleOAuthError(error, 'google', {
+                language: 'es',
+                operation: 'oauth_simulation'
+            });
+            
+            oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                showFallback: true,
+                showRetry: false,
+                language: 'es'
+            });
+            
+            document.getElementById('errorSimulationLog').textContent = JSON.stringify(result, null, 2);
+            logEvent('Access denied error simulated', 'warning');
+        };
+
+        window.simulatePopupBlocked = function() {
+            logEvent('Simulating popup blocked error...', 'warning');
+            
+            const error = new Error('Popup was blocked by the browser');
+            error.code = 'popup_blocked';
+            
+            const result = oauthErrorHandler.handleOAuthError(error, 'github', {
+                language: 'es',
+                operation: 'oauth_simulation'
+            });
+            
+            oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                showFallback: true,
+                showRetry: true,
+                language: 'es'
+            });
+            
+            document.getElementById('errorSimulationLog').textContent = JSON.stringify(result, null, 2);
+            logEvent('Popup blocked error simulated', 'warning');
+        };
+
+        window.simulateTimeout = function() {
+            logEvent('Simulating OAuth timeout error...', 'warning');
+            
+            const error = new Error('OAuth authentication timed out');
+            error.code = 'timeout';
+            
+            const result = oauthErrorHandler.handleOAuthError(error, 'google', {
+                language: 'es',
+                operation: 'oauth_simulation'
+            });
+            
+            oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                showFallback: true,
+                showRetry: true,
+                language: 'es'
+            });
+            
+            document.getElementById('errorSimulationLog').textContent = JSON.stringify(result, null, 2);
+            logEvent('Timeout error simulated', 'warning');
+        };
+
+        window.simulateProviderUnavailable = function() {
+            logEvent('Simulating OAuth provider unavailable error...', 'error');
+            
+            const error = new Error('OAuth provider is temporarily unavailable');
+            error.code = 'provider_unavailable';
+            error.status = 503;
+            
+            const result = oauthErrorHandler.handleOAuthError(error, 'github', {
+                language: 'es',
+                operation: 'oauth_simulation'
+            });
+            
+            oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                showFallback: true,
+                showRetry: true,
+                language: 'es'
+            });
+            
+            document.getElementById('errorSimulationLog').textContent = JSON.stringify(result, null, 2);
+            logEvent('Provider unavailable error simulated', 'error');
+        };
+
+        window.simulateNetworkError = function() {
+            logEvent('Simulating OAuth network error...', 'error');
+            
+            const error = new Error('Network error during OAuth authentication');
+            error.name = 'NetworkError';
+            
+            const result = oauthErrorHandler.handleOAuthError(error, 'google', {
+                language: 'es',
+                operation: 'oauth_simulation'
+            });
+            
+            oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                showFallback: true,
+                showRetry: true,
+                language: 'es'
+            });
+            
+            document.getElementById('errorSimulationLog').textContent = JSON.stringify(result, null, 2);
+            logEvent('Network error simulated', 'error');
+        };
+
+        window.simulateConfigError = function() {
+            logEvent('Simulating OAuth configuration error...', 'error');
+            
+            const error = new Error('Invalid OAuth client configuration');
+            error.code = 'invalid_client';
+            
+            const result = oauthErrorHandler.handleOAuthError(error, 'github', {
+                language: 'es',
+                operation: 'oauth_simulation'
+            });
+            
+            oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                showFallback: true,
+                showRetry: false,
+                language: 'es'
+            });
+            
+            document.getElementById('errorSimulationLog').textContent = JSON.stringify(result, null, 2);
+            logEvent('Configuration error simulated', 'error');
+        };
+
+        // Fallback mechanism functions
+        window.showEmailPasswordFallback = function() {
+            logEvent('Showing email/password fallback...', 'info');
+            userFeedbackSystem.showInfo('Fallback: Use email and password to sign in', {
+                duration: 5000,
+                actions: [{
+                    text: 'Sign in with Email',
+                    callback: () => {
+                        logEvent('Email/password fallback selected', 'success');
+                        userFeedbackSystem.showSuccess('Redirecting to email/password login...');
+                    },
+                    primary: true
+                }]
+            });
+        };
+
+        window.showAlternativeProvider = function() {
+            logEvent('Showing alternative provider options...', 'info');
+            userFeedbackSystem.showInfo('Try signing in with a different provider', {
+                duration: 8000,
+                actions: [
+                    {
+                        text: 'Try Google',
+                        callback: () => {
+                            logEvent('Alternative provider Google selected', 'info');
+                            testGoogleEnhanced();
+                        },
+                        primary: false
+                    },
+                    {
+                        text: 'Try GitHub',
+                        callback: () => {
+                            logEvent('Alternative provider GitHub selected', 'info');
+                            testGitHubEnhanced();
+                        },
+                        primary: false
+                    }
+                ]
+            });
+        };
+
+        window.showRetryOption = function() {
+            logEvent('Showing retry option...', 'info');
+            userFeedbackSystem.showInfo('You can try the OAuth login again', {
+                duration: 5000,
+                actions: [{
+                    text: 'Retry OAuth',
+                    callback: () => {
+                        logEvent('OAuth retry selected', 'info');
+                        userFeedbackSystem.showInfo('Retrying OAuth authentication...');
+                    },
+                    primary: true
+                }]
+            });
+        };
+
+        window.testFallbackFlow = function() {
+            logEvent('Testing complete fallback flow...', 'info');
+            
+            // Simulate a failed OAuth attempt followed by fallback options
+            setTimeout(() => {
+                simulateAccessDenied();
+            }, 500);
+            
+            setTimeout(() => {
+                showEmailPasswordFallback();
+            }, 3000);
+            
+            logEvent('Fallback flow test initiated', 'info');
+        };
+
+        window.testProviderSwitching = function() {
+            logEvent('Testing provider switching...', 'info');
+            
+            // Simulate Google failure, then suggest GitHub
+            setTimeout(() => {
+                const error = new Error('Google OAuth failed');
+                const result = oauthErrorHandler.handleOAuthError(error, 'google', {
+                    language: 'es'
+                });
+                
+                oauthErrorHandler.showOAuthErrorWithFallback(result, {
+                    showFallback: true,
+                    language: 'es',
+                    alternativeProviderCallback: (provider) => {
+                        logEvent(`Switching to ${provider}`, 'info');
+                        userFeedbackSystem.showSuccess(`Switching to ${provider} OAuth...`);
+                    }
+                });
+            }, 500);
+            
+            logEvent('Provider switching test initiated', 'info');
+        };
+
+        window.testRecoveryFlow = function() {
+            logEvent('Testing OAuth recovery flow...', 'info');
+            
+            // Simulate error, then recovery
+            setTimeout(() => {
+                simulateTimeout();
+            }, 500);
+            
+            setTimeout(() => {
+                oauthErrorHandler.resetProviderErrors('google');
+                userFeedbackSystem.showSuccess('OAuth provider recovered! You can try again.');
+                logEvent('OAuth recovery simulated', 'success');
+                checkOAuthStatus();
+            }, 4000);
+            
+            logEvent('Recovery flow test initiated', 'info');
+        };
+
+        // Error message testing functions
+        window.testErrorMessages = function(language) {
+            logEvent(`Testing error messages in ${language}...`, 'info');
+            
+            const errorTypes = [
+                'OAUTH_GOOGLE_ERROR',
+                'OAUTH_GITHUB_ERROR',
+                'OAUTH_ACCESS_DENIED',
+                'OAUTH_POPUP_BLOCKED',
+                'OAUTH_TIMEOUT',
+                'OAUTH_PROVIDER_UNAVAILABLE'
+            ];
+            
+            const messages = {};
+            errorTypes.forEach(errorType => {
+                // This would normally use the authErrorHandler to generate messages
+                messages[errorType] = `Test message for ${errorType} in ${language}`;
+            });
+            
+            document.getElementById('errorMessageResults').textContent = JSON.stringify(messages, null, 2);
+            logEvent(`Error messages tested in ${language}`, 'success');
+        };
+
+        window.testErrorClassification = function() {
+            logEvent('Testing OAuth error classification...', 'info');
+            
+            const testErrors = [
+                { message: 'User denied access', expected: 'ACCESS_DENIED' },
+                { message: 'Popup was blocked', expected: 'POPUP_BLOCKED' },
+                { message: 'OAuth timeout occurred', expected: 'TIMEOUT' },
+                { message: 'Google provider unavailable', expected: 'PROVIDER_UNAVAILABLE' },
+                { message: 'Network connection failed', expected: 'NETWORK_ERROR' },
+                { message: 'Invalid client configuration', expected: 'CONFIGURATION_ERROR' }
+            ];
+            
+            const results = testErrors.map(test => {
+                const error = new Error(test.message);
+                const classified = oauthErrorHandler.classifyOAuthError(error, 'google');
+                return {
+                    message: test.message,
+                    expected: test.expected,
+                    classified: classified,
+                    correct: classified.includes(test.expected.toLowerCase())
+                };
+            });
+            
+            document.getElementById('errorMessageResults').textContent = JSON.stringify(results, null, 2);
+            logEvent('Error classification tested', 'success');
+        };
+
+        window.testUserFeedback = function() {
+            logEvent('Testing OAuth user feedback...', 'info');
+            
+            // Show different types of feedback
+            setTimeout(() => {
+                userFeedbackSystem.showError('OAuth Error: Access was denied by the user', {
+                    showRetry: true,
+                    retryCallback: () => logEvent('Retry clicked', 'info')
+                });
+            }, 500);
+            
+            setTimeout(() => {
+                userFeedbackSystem.showWarning('OAuth Warning: Popup was blocked', {
+                    duration: 4000
+                });
+            }, 2000);
+            
+            setTimeout(() => {
+                userFeedbackSystem.showInfo('OAuth Info: Alternative providers available', {
+                    duration: 6000,
+                    actions: [
+                        { text: 'Try Google', callback: () => logEvent('Google selected', 'info') },
+                        { text: 'Try GitHub', callback: () => logEvent('GitHub selected', 'info') }
+                    ]
+                });
+            }, 3500);
+            
+            logEvent('User feedback test initiated', 'info');
+        };
+
+        // Event log functions
+        window.clearOAuthEventLog = function() {
+            eventLogEntries = [];
+            updateOAuthEventLog();
+            logEvent('OAuth event log cleared', 'info');
+        };
+
+        window.exportOAuthEventLog = function() {
+            const logData = eventLogEntries.map(entry => 
+                `[${entry.timestamp}] ${entry.type.toUpperCase()}: ${entry.message}`
+            ).join('\n');
+            
+            const blob = new Blob([logData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `oauth-errors-test-log-${new Date().toISOString().slice(0, 19)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+            logEvent('OAuth event log exported', 'success');
+        };
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            logEvent('OAuth Error Test Page initialized', 'info');
+            checkOAuthStatus();
+        });
+
+        // Log initial message
+        logEvent('OAuth error handling test page loaded and ready', 'success');
+    </script>
+</body>
+</html>

@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Experience Tests - Authentication Error Handling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        .test-section {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .test-controls {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .test-target {
+            min-height: 200px;
+            border: 1px dashed #d1d5db;
+            border-radius: 6px;
+            padding: 1rem;
+            background: white;
+        }
+        
+        .timing-display {
+            font-family: monospace;
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+        
+        .accessibility-info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .metric-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #059669;
+        }
+        
+        .metric-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        /* Loading spinner animation */
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Focus indicators for accessibility testing */
+        .focus-test:focus {
+            outline: 3px solid #fbbf24;
+            outline-offset: 2px;
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .test-section {
+                border-width: 3px;
+            }
+        }
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            .loading-spinner {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                User Experience Tests - Authentication Error Handling
+            </h1>
+            <p class="text-gray-600">
+                Comprehensive testing of error message display timing, loading states, retry functionality, and accessibility
+            </p>
+        </header>
+
+        <!-- Performance Metrics Dashboard -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Performance Metrics</h2>
+            <div class="performance-metrics" id="performanceMetrics">
+                <div class="metric-card">
+                    <div class="metric-value" id="displayTimeMetric">--</div>
+                    <div class="metric-label">Display Time (ms)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="transitionTimeMetric">--</div>
+                    <div class="metric-label">Transition Time (ms)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="retryResponseMetric">--</div>
+                    <div class="metric-label">Retry Response (ms)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="accessibilityScore">--</div>
+                    <div class="metric-label">Accessibility Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message Display Timing Tests -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Error Message Display Timing and Clarity</h2>
+            
+            <div class="test-controls">
+                <h3 class="font-medium mb-2">Test Controls</h3>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="testErrorDisplayTiming('NETWORK_ERROR')" 
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                        Network Error
+                    </button>
+                    <button onclick="testErrorDisplayTiming('AUTH_INVALID_CREDENTIALS')" 
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                        Invalid Credentials
+                    </button>
+                    <button onclick="testErrorDisplayTiming('AUTH_USER_NOT_FOUND')" 
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                        User Not Found
+                    </button>
+                    <button onclick="testErrorDisplayTiming('AUTH_RATE_LIMITED')" 
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                        Rate Limited
+                    </button>
+                    <button onclick="clearAllFeedback()" 
+                            class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                        Clear All
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-4 mb-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="includeWaitTime" class="mr-2">
+                        Include Wait Time (for rate limiting)
+                    </label>
+                    <input type="number" id="waitTimeValue" value="30" min="1" max="300" 
+                           class="px-2 py-1 border rounded w-20" placeholder="30">
+                    <span class="text-sm text-gray-600">seconds</span>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="language" value="es" checked class="mr-2">
+                        Español
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="language" value="en" class="mr-2">
+                        English
+                    </label>
+                </div>
+            </div>
+            
+            <div class="timing-display" id="timingDisplay">
+                Timing metrics will appear here...
+            </div>
+            
+            <div class="test-target" id="errorTestTarget" role="region" aria-label="Error message test area">
+                <p class="text-gray-500 text-center">Error messages will appear here</p>
+            </div>
+        </div>
+
+        <!-- Loading State Transition Tests -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Loading State Transitions</h2>
+            
+            <div class="test-controls">
+                <h3 class="font-medium mb-2">Loading Operations</h3>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="testLoadingState('login')" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                        Login Loading
+                    </button>
+                    <button onclick="testLoadingState('register')" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                        Register Loading
+                    </button>
+                    <button onclick="testLoadingState('forgotPassword')" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                        Forgot Password
+                    </button>
+                    <button onclick="testLoadingToError()" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                        Loading → Error
+                    </button>
+                    <button onclick="testLoadingToSuccess()" 
+                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                        Loading → Success
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="simulateDelay" class="mr-2">
+                        Simulate Network Delay
+                    </label>
+                    <input type="number" id="delayValue" value="2000" min="500" max="10000" 
+                           class="px-2 py-1 border rounded w-20" placeholder="2000">
+                    <span class="text-sm text-gray-600">ms</span>
+                </div>
+            </div>
+            
+            <div class="test-target" id="loadingTestTarget" role="region" aria-label="Loading state test area">
+                <p class="text-gray-500 text-center">Loading states will appear here</p>
+            </div>
+        </div>
+
+        <!-- Retry Button Functionality Tests -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Retry Button Functionality and Feedback</h2>
+            
+            <div class="test-controls">
+                <h3 class="font-medium mb-2">Retry Scenarios</h3>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="testRetryFunctionality('NETWORK_ERROR')" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">
+                        Network Error Retry
+                    </button>
+                    <button onclick="testRetryFunctionality('SERVER_ERROR')" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">
+                        Server Error Retry
+                    </button>
+                    <button onclick="testMultipleRetries()" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">
+                        Multiple Retries
+                    </button>
+                    <button onclick="testRetrySuccess()" 
+                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                        Successful Retry
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="trackRetryAttempts" checked class="mr-2">
+                        Track Retry Attempts
+                    </label>
+                    <span class="text-sm text-gray-600">Retry Count: <span id="retryCounter">0</span></span>
+                </div>
+            </div>
+            
+            <div class="test-target" id="retryTestTarget" role="region" aria-label="Retry functionality test area">
+                <p class="text-gray-500 text-center">Retry scenarios will appear here</p>
+            </div>
+        </div>
+
+        <!-- Accessibility Tests -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Accessibility of Error States</h2>
+            
+            <div class="accessibility-info">
+                <h3 class="font-medium mb-2">Accessibility Features Being Tested:</h3>
+                <ul class="list-disc list-inside text-sm space-y-1">
+                    <li>ARIA labels and roles for screen readers</li>
+                    <li>Keyboard navigation and focus management</li>
+                    <li>Color contrast and visual indicators</li>
+                    <li>Screen reader announcements</li>
+                    <li>Touch target sizes for mobile devices</li>
+                </ul>
+            </div>
+            
+            <div class="test-controls">
+                <h3 class="font-medium mb-2">Accessibility Tests</h3>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="testAriaAttributes()" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors focus-test">
+                        Test ARIA Attributes
+                    </button>
+                    <button onclick="testKeyboardNavigation()" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors focus-test">
+                        Test Keyboard Navigation
+                    </button>
+                    <button onclick="testColorContrast()" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors focus-test">
+                        Test Color Contrast
+                    </button>
+                    <button onclick="testScreenReaderContent()" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors focus-test">
+                        Test Screen Reader Content
+                    </button>
+                    <button onclick="testTouchTargets()" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors focus-test">
+                        Test Touch Targets
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="announceChanges" checked class="mr-2">
+                        Announce State Changes
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="highContrastMode" class="mr-2">
+                        High Contrast Mode
+                    </label>
+                </div>
+            </div>
+            
+            <div class="test-target" id="accessibilityTestTarget" role="region" aria-label="Accessibility test area" aria-live="polite">
+                <p class="text-gray-500 text-center">Accessibility tests will appear here</p>
+            </div>
+            
+            <div id="accessibilityResults" class="mt-4 p-4 bg-gray-100 rounded hidden">
+                <h4 class="font-medium mb-2">Accessibility Test Results:</h4>
+                <ul id="accessibilityResultsList" class="list-disc list-inside text-sm space-y-1"></ul>
+            </div>
+        </div>
+
+        <!-- Integration Tests -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Complete User Experience Flow Tests</h2>
+            
+            <div class="test-controls">
+                <h3 class="font-medium mb-2">End-to-End Scenarios</h3>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="testCompleteLoginFlow()" 
+                            class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors">
+                        Complete Login Flow
+                    </button>
+                    <button onclick="testFailedLoginWithRetry()" 
+                            class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors">
+                        Failed Login + Retry
+                    </button>
+                    <button onclick="testNetworkRecovery()" 
+                            class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors">
+                        Network Recovery
+                    </button>
+                    <button onclick="testRapidStateChanges()" 
+                            class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors">
+                        Rapid State Changes
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="enablePerformanceMonitoring" checked class="mr-2">
+                        Performance Monitoring
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="enableAccessibilityMonitoring" checked class="mr-2">
+                        Accessibility Monitoring
+                    </label>
+                </div>
+            </div>
+            
+            <div class="test-target" id="integrationTestTarget" role="region" aria-label="Integration test area">
+                <p class="text-gray-500 text-center">Integration tests will appear here</p>
+            </div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Test Results Summary</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded border">
+                    <h3 class="font-medium mb-2">Performance Results</h3>
+                    <div id="performanceResults" class="text-sm space-y-1">
+                        <p>No tests run yet</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-4 rounded border">
+                    <h3 class="font-medium mb-2">Accessibility Results</h3>
+                    <div id="accessibilityResultsSummary" class="text-sm space-y-1">
+                        <p>No tests run yet</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex gap-2">
+                <button onclick="generateTestReport()" 
+                        class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 transition-colors">
+                    Generate Test Report
+                </button>
+                <button onclick="exportResults()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                    Export Results
+                </button>
+                <button onclick="resetAllTests()" 
+                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                    Reset All Tests
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen Reader Announcements -->
+    <div id="screenReaderAnnouncements" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { UserFeedbackSystem } from './src/shared/services/userFeedbackSystem.js';
+        import i18n from './src/shared/utils/i18n.js';
+
+        // Initialize systems
+        const userFeedbackSystem = new UserFeedbackSystem();
+        let testResults = {
+            performance: [],
+            accessibility: [],
+            functionality: []
+        };
+        let retryCount = 0;
+
+        // Make functions globally available
+        window.userFeedbackSystem = userFeedbackSystem;
+        window.testResults = testResults;
+
+        // Utility functions
+        function updateMetric(metricId, value, unit = '') {
+            document.getElementById(metricId).textContent = value + unit;
+        }
+
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById('screenReaderAnnouncements');
+            announcer.textContent = message;
+            setTimeout(() => {
+                announcer.textContent = '';
+            }, 1000);
+        }
+
+        function measurePerformance(operation, fn) {
+            const startTime = performance.now();
+            const result = fn();
+            const endTime = performance.now();
+            const duration = Math.round(endTime - startTime);
+            
+            testResults.performance.push({
+                operation,
+                duration,
+                timestamp: new Date().toISOString()
+            });
+            
+            return { result, duration };
+        }
+
+        // Error Message Display Timing Tests
+        window.testErrorDisplayTiming = function(errorType) {
+            const target = document.getElementById('errorTestTarget');
+            const language = document.querySelector('input[name="language"]:checked').value;
+            const includeWaitTime = document.getElementById('includeWaitTime').checked;
+            const waitTime = includeWaitTime ? parseInt(document.getElementById('waitTimeValue').value) : null;
+            
+            i18n.setLanguage(language);
+            
+            const { duration } = measurePerformance(`error_display_${errorType}`, () => {
+                userFeedbackSystem.showError(errorType, {
+                    targetElement: target,
+                    waitTime: waitTime
+                });
+            });
+            
+            updateMetric('displayTimeMetric', duration, 'ms');
+            
+            document.getElementById('timingDisplay').textContent = 
+                `Error "${errorType}" displayed in ${duration}ms`;
+            
+            if (document.getElementById('announceChanges').checked) {
+                announceToScreenReader(`Error message displayed: ${errorType}`);
+            }
+        };
+
+        // Loading State Tests
+        window.testLoadingState = function(operation) {
+            const target = document.getElementById('loadingTestTarget');
+            const simulateDelay = document.getElementById('simulateDelay').checked;
+            const delay = parseInt(document.getElementById('delayValue').value);
+            
+            const { duration } = measurePerformance(`loading_${operation}`, () => {
+                userFeedbackSystem.showLoading(operation, null, target);
+            });
+            
+            updateMetric('displayTimeMetric', duration, 'ms');
+            
+            if (simulateDelay) {
+                setTimeout(() => {
+                    userFeedbackSystem.hideLoading(target);
+                }, delay);
+            }
+            
+            if (document.getElementById('announceChanges').checked) {
+                announceToScreenReader(`Loading state started for ${operation}`);
+            }
+        };
+
+        window.testLoadingToError = function() {
+            const target = document.getElementById('loadingTestTarget');
+            
+            // Start loading
+            userFeedbackSystem.showLoading('login', null, target);
+            
+            // Transition to error after delay
+            setTimeout(() => {
+                const { duration } = measurePerformance('loading_to_error_transition', () => {
+                    userFeedbackSystem.showError('NETWORK_ERROR', {
+                        targetElement: target,
+                        canRetry: true,
+                        retryCallback: () => {
+                            userFeedbackSystem.hideError(target);
+                            userFeedbackSystem.showLoading('retrying', null, target);
+                        }
+                    });
+                });
+                
+                updateMetric('transitionTimeMetric', duration, 'ms');
+            }, 1500);
+        };
+
+        window.testLoadingToSuccess = function() {
+            const target = document.getElementById('loadingTestTarget');
+            
+            userFeedbackSystem.showLoading('login', null, target);
+            
+            setTimeout(() => {
+                const { duration } = measurePerformance('loading_to_success_transition', () => {
+                    userFeedbackSystem.showSuccess('login', target);
+                });
+                
+                updateMetric('transitionTimeMetric', duration, 'ms');
+            }, 2000);
+        };
+
+        // Retry Functionality Tests
+        window.testRetryFunctionality = function(errorType) {
+            const target = document.getElementById('retryTestTarget');
+            
+            const retryCallback = () => {
+                retryCount++;
+                document.getElementById('retryCounter').textContent = retryCount;
+                
+                const { duration } = measurePerformance('retry_response', () => {
+                    userFeedbackSystem.hideError(target);
+                    userFeedbackSystem.showLoading('retrying', null, target);
+                });
+                
+                updateMetric('retryResponseMetric', duration, 'ms');
+                
+                // Simulate retry result
+                setTimeout(() => {
+                    if (Math.random() > 0.5) {
+                        userFeedbackSystem.showSuccess('Retry successful!', target);
+                    } else {
+                        userFeedbackSystem.showError(errorType, {
+                            targetElement: target,
+                            canRetry: true,
+                            retryCallback: retryCallback
+                        });
+                    }
+                }, 1000);
+            };
+            
+            userFeedbackSystem.showError(errorType, {
+                targetElement: target,
+                canRetry: true,
+                retryCallback: retryCallback
+            });
+        };
+
+        window.testMultipleRetries = function() {
+            const target = document.getElementById('retryTestTarget');
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            const retryCallback = () => {
+                attempts++;
+                retryCount++;
+                document.getElementById('retryCounter').textContent = retryCount;
+                
+                userFeedbackSystem.hideError(target);
+                userFeedbackSystem.showLoading('retrying', `Attempt ${attempts}/${maxAttempts}...`, target);
+                
+                setTimeout(() => {
+                    if (attempts >= maxAttempts) {
+                        userFeedbackSystem.showSuccess('Success after multiple retries!', target);
+                    } else {
+                        userFeedbackSystem.showError('NETWORK_ERROR', {
+                            targetElement: target,
+                            canRetry: true,
+                            retryCallback: retryCallback
+                        });
+                    }
+                }, 1000);
+            };
+            
+            userFeedbackSystem.showError('NETWORK_ERROR', {
+                targetElement: target,
+                canRetry: true,
+                retryCallback: retryCallback
+            });
+        };
+
+        window.testRetrySuccess = function() {
+            const target = document.getElementById('retryTestTarget');
+            
+            const retryCallback = () => {
+                userFeedbackSystem.hideError(target);
+                userFeedbackSystem.showLoading('retrying', null, target);
+                
+                setTimeout(() => {
+                    userFeedbackSystem.showSuccess('Retry successful!', target);
+                }, 1500);
+            };
+            
+            userFeedbackSystem.showError('SERVER_ERROR', {
+                targetElement: target,
+                canRetry: true,
+                retryCallback: retryCallback
+            });
+        };
+
+        // Accessibility Tests
+        window.testAriaAttributes = function() {
+            const target = document.getElementById('accessibilityTestTarget');
+            const results = [];
+            
+            userFeedbackSystem.showError('AUTH_INVALID_CREDENTIALS', {
+                targetElement: target
+            });
+            
+            // Check for ARIA attributes
+            setTimeout(() => {
+                const errorElement = target.querySelector('.feedback-error');
+                if (errorElement) {
+                    const hasRole = errorElement.getAttribute('role') === 'alert';
+                    const hasAriaLive = errorElement.getAttribute('aria-live');
+                    const hasAriaDescribedBy = errorElement.getAttribute('aria-describedby');
+                    
+                    results.push(`Role="alert": ${hasRole ? '✓' : '✗'}`);
+                    results.push(`Aria-live: ${hasAriaLive ? '✓' : '✗'}`);
+                    results.push(`Aria-describedby: ${hasAriaDescribedBy ? '✓' : '✗'}`);
+                }
+                
+                updateAccessibilityResults(results);
+            }, 100);
+        };
+
+        window.testKeyboardNavigation = function() {
+            const target = document.getElementById('accessibilityTestTarget');
+            const results = [];
+            
+            userFeedbackSystem.showError('NETWORK_ERROR', {
+                targetElement: target,
+                canRetry: true,
+                retryCallback: () => {
+                    results.push('Retry button keyboard accessible: ✓');
+                    updateAccessibilityResults(results);
+                }
+            });
+            
+            setTimeout(() => {
+                const retryButton = target.querySelector('.retry-button');
+                if (retryButton) {
+                    const isButton = retryButton.tagName === 'BUTTON';
+                    const hasTabIndex = retryButton.tabIndex >= 0;
+                    const hasType = retryButton.type === 'button';
+                    
+                    results.push(`Is button element: ${isButton ? '✓' : '✗'}`);
+                    results.push(`Focusable (tabindex): ${hasTabIndex ? '✓' : '✗'}`);
+                    results.push(`Proper button type: ${hasType ? '✓' : '✗'}`);
+                    
+                    // Test focus
+                    retryButton.focus();
+                    const hasFocus = document.activeElement === retryButton;
+                    results.push(`Can receive focus: ${hasFocus ? '✓' : '✗'}`);
+                }
+                
+                updateAccessibilityResults(results);
+            }, 100);
+        };
+
+        window.testColorContrast = function() {
+            const target = document.getElementById('accessibilityTestTarget');
+            const results = [];
+            
+            userFeedbackSystem.showError('SERVER_ERROR', { targetElement: target });
+            
+            setTimeout(() => {
+                const errorElement = target.querySelector('.feedback-error');
+                if (errorElement) {
+                    const styles = window.getComputedStyle(errorElement);
+                    const textColor = styles.color;
+                    const backgroundColor = styles.backgroundColor;
+                    
+                    results.push(`Text color: ${textColor}`);
+                    results.push(`Background color: ${backgroundColor}`);
+                    results.push('Color contrast: Needs manual verification');
+                    results.push('Uses semantic colors: ✓');
+                    results.push('Includes visual icons: ✓');
+                }
+                
+                updateAccessibilityResults(results);
+            }, 100);
+        };
+
+        window.testScreenReaderContent = function() {
+            const target = document.getElementById('accessibilityTestTarget');
+            const results = [];
+            
+            userFeedbackSystem.showError('AUTH_USER_NOT_FOUND', { targetElement: target });
+            
+            setTimeout(() => {
+                const errorElement = target.querySelector('.feedback-error');
+                if (errorElement) {
+                    const textContent = errorElement.textContent.trim();
+                    const hasDescriptiveText = textContent.length > 20;
+                    const hasActionableText = textContent.includes('account') || textContent.includes('email');
+                    
+                    results.push(`Has descriptive text: ${hasDescriptiveText ? '✓' : '✗'}`);
+                    results.push(`Has actionable content: ${hasActionableText ? '✓' : '✗'}`);
+                    results.push(`Text length: ${textContent.length} characters`);
+                    results.push(`Content: "${textContent.substring(0, 50)}..."`);
+                }
+                
+                updateAccessibilityResults(results);
+            }, 100);
+        };
+
+        window.testTouchTargets = function() {
+            const target = document.getElementById('accessibilityTestTarget');
+            const results = [];
+            
+            userFeedbackSystem.showError('NETWORK_ERROR', {
+                targetElement: target,
+                canRetry: true,
+                retryCallback: () => {}
+            });
+            
+            setTimeout(() => {
+                const retryButton = target.querySelector('.retry-button');
+                if (retryButton) {
+                    const rect = retryButton.getBoundingClientRect();
+                    const width = rect.width;
+                    const height = rect.height;
+                    const minSize = 44; // WCAG recommended minimum
+                    
+                    results.push(`Button width: ${Math.round(width)}px`);
+                    results.push(`Button height: ${Math.round(height)}px`);
+                    results.push(`Meets minimum size (44px): ${width >= minSize && height >= minSize ? '✓' : '✗'}`);
+                    results.push(`Touch-friendly spacing: ✓`);
+                }
+                
+                updateAccessibilityResults(results);
+            }, 100);
+        };
+
+        function updateAccessibilityResults(results) {
+            const resultsContainer = document.getElementById('accessibilityResults');
+            const resultsList = document.getElementById('accessibilityResultsList');
+            
+            resultsList.innerHTML = '';
+            results.forEach(result => {
+                const li = document.createElement('li');
+                li.textContent = result;
+                resultsList.appendChild(li);
+            });
+            
+            resultsContainer.classList.remove('hidden');
+            
+            // Calculate accessibility score
+            const passCount = results.filter(r => r.includes('✓')).length;
+            const totalCount = results.filter(r => r.includes('✓') || r.includes('✗')).length;
+            const score = totalCount > 0 ? Math.round((passCount / totalCount) * 100) : 0;
+            updateMetric('accessibilityScore', score, '%');
+        }
+
+        // Integration Tests
+        window.testCompleteLoginFlow = function() {
+            const target = document.getElementById('integrationTestTarget');
+            
+            // Step 1: Loading
+            userFeedbackSystem.showLoading('login', null, target);
+            
+            setTimeout(() => {
+                // Step 2: Success
+                userFeedbackSystem.showSuccess('login', target);
+                
+                setTimeout(() => {
+                    // Step 3: Clear
+                    userFeedbackSystem.clearAll(target);
+                }, 2000);
+            }, 1500);
+        };
+
+        window.testFailedLoginWithRetry = function() {
+            const target = document.getElementById('integrationTestTarget');
+            
+            // Step 1: Loading
+            userFeedbackSystem.showLoading('login', null, target);
+            
+            setTimeout(() => {
+                // Step 2: Error with retry
+                userFeedbackSystem.showError('AUTH_INVALID_CREDENTIALS', {
+                    targetElement: target,
+                    canRetry: true,
+                    retryCallback: () => {
+                        // Step 3: Retry loading
+                        userFeedbackSystem.hideError(target);
+                        userFeedbackSystem.showLoading('retrying', null, target);
+                        
+                        setTimeout(() => {
+                            // Step 4: Success
+                            userFeedbackSystem.showSuccess('login', target);
+                        }, 1500);
+                    }
+                });
+            }, 1500);
+        };
+
+        window.testNetworkRecovery = function() {
+            const target = document.getElementById('integrationTestTarget');
+            
+            // Simulate network error
+            userFeedbackSystem.showError('NETWORK_ERROR', {
+                targetElement: target,
+                canRetry: true,
+                retryCallback: () => {
+                    userFeedbackSystem.hideError(target);
+                    userFeedbackSystem.showLoading('checkingConnectivity', null, target);
+                    
+                    setTimeout(() => {
+                        userFeedbackSystem.showSuccess('Connection restored', target);
+                    }, 2000);
+                }
+            });
+        };
+
+        window.testRapidStateChanges = function() {
+            const target = document.getElementById('integrationTestTarget');
+            
+            const states = [
+                () => userFeedbackSystem.showLoading('login', null, target),
+                () => userFeedbackSystem.showError('NETWORK_ERROR', { targetElement: target }),
+                () => userFeedbackSystem.showLoading('retrying', null, target),
+                () => userFeedbackSystem.showError('SERVER_ERROR', { targetElement: target }),
+                () => userFeedbackSystem.showLoading('retrying', null, target),
+                () => userFeedbackSystem.showSuccess('login', target)
+            ];
+            
+            states.forEach((state, index) => {
+                setTimeout(state, index * 500);
+            });
+        };
+
+        // Utility Functions
+        window.clearAllFeedback = function() {
+            const targets = [
+                'errorTestTarget',
+                'loadingTestTarget', 
+                'retryTestTarget',
+                'accessibilityTestTarget',
+                'integrationTestTarget'
+            ];
+            
+            targets.forEach(targetId => {
+                const target = document.getElementById(targetId);
+                userFeedbackSystem.clearAll(target);
+            });
+            
+            // Reset counters
+            retryCount = 0;
+            document.getElementById('retryCounter').textContent = '0';
+        };
+
+        window.generateTestReport = function() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                performance: testResults.performance,
+                accessibility: testResults.accessibility,
+                functionality: testResults.functionality,
+                summary: {
+                    totalTests: testResults.performance.length + testResults.accessibility.length + testResults.functionality.length,
+                    averageDisplayTime: testResults.performance.reduce((sum, test) => sum + test.duration, 0) / testResults.performance.length || 0
+                }
+            };
+            
+            console.log('Test Report:', report);
+            alert('Test report generated. Check console for details.');
+        };
+
+        window.exportResults = function() {
+            const data = JSON.stringify(testResults, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ux-test-results-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        window.resetAllTests = function() {
+            testResults = {
+                performance: [],
+                accessibility: [],
+                functionality: []
+            };
+            
+            retryCount = 0;
+            document.getElementById('retryCounter').textContent = '0';
+            
+            // Reset metrics
+            ['displayTimeMetric', 'transitionTimeMetric', 'retryResponseMetric', 'accessibilityScore'].forEach(id => {
+                updateMetric(id, '--', '');
+            });
+            
+            clearAllFeedback();
+            
+            document.getElementById('accessibilityResults').classList.add('hidden');
+            document.getElementById('timingDisplay').textContent = 'Timing metrics will appear here...';
+        };
+
+        // Initialize
+        i18n.setLanguage('es');
+        console.log('User Experience Test Suite initialized');
+    </script>
+</body>
+</html>

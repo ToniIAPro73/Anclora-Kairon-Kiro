@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Error Dashboard Test - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/components/RealTimeErrorDashboard.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .test-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .test-controls h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .test-controls button {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .test-controls .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .test-controls .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .test-controls .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .test-controls .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .test-controls button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .notification-demo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 300px;
+            display: none;
+        }
+        
+        .notification-demo.show {
+            display: block;
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #ecf0f1;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="test-controls">
+        <h4>Dashboard Controls</h4>
+        <button class="btn-primary" onclick="initializeDashboard()">Initialize Dashboard</button>
+        <button class="btn-success" onclick="generateTestData()">Generate Test Data</button>
+        <button class="btn-warning" onclick="simulateErrorSpike()">Simulate Error Spike</button>
+        <button class="btn-danger" onclick="simulateSystemIssue()">Simulate System Issue</button>
+        <button class="btn-primary" onclick="testAlertingSystem()">Test Alerting System</button>
+        <button class="btn-success" onclick="testPerformanceOptimization()">Test Performance</button>
+        <button class="btn-warning" onclick="clearAllData()">Clear All Data</button>
+    </div>
+
+    <!-- Notification Demo -->
+    <div class="notification-demo" id="notification-demo">
+        <h4>Test Notification</h4>
+        <p id="notification-message">This is a test notification from the alerting system.</p>
+        <button onclick="hideNotification()" style="margin-top: 10px; padding: 5px 10px; border: none; border-radius: 4px; background: #3498db; color: white; cursor: pointer;">Close</button>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div id="realtime-dashboard"></div>
+
+    <!-- Import modules and initialize -->
+    <script type="module">
+        import { RealTimeErrorDashboard } from './src/shared/components/RealTimeErrorDashboard.js';
+        import errorAnalytics from './src/shared/services/errorAnalytics.js';
+        import alertingSystem from './src/shared/services/alertingSystem.js';
+        import performanceOptimizer from './src/shared/services/performanceOptimizer.js';
+        import { authErrorHandler } from './src/shared/services/authErrorHandler.js';
+        
+        // Make modules available globally for testing
+        window.RealTimeErrorDashboard = RealTimeErrorDashboard;
+        window.errorAnalytics = errorAnalytics;
+        window.alertingSystem = alertingSystem;
+        window.performanceOptimizer = performanceOptimizer;
+        window.authErrorHandler = authErrorHandler;
+        
+        let dashboard = null;
+        let testDataInterval = null;
+        
+        // Initialize dashboard
+        window.initializeDashboard = async function() {
+            showLoading();
+            
+            try {
+                if (dashboard) {
+                    dashboard.destroy();
+                }
+                
+                dashboard = new RealTimeErrorDashboard('realtime-dashboard');
+                dashboard.setVisible(true);
+                
+                // Configure alerting system with custom notification handler
+                alertingSystem.configureCustomHandler((alert) => {
+                    showNotification(`Alert: ${alert.type} - ${alert.message}`);
+                    return true;
+                });
+                
+                console.log('Dashboard initialized successfully');
+                showNotification('Dashboard initialized successfully!');
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                showNotification('Error initializing dashboard. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Generate test data
+        window.generateTestData = function() {
+            showLoading();
+            
+            try {
+                const errorTypes = Object.values(authErrorHandler.getErrorTypes());
+                const operations = ['login', 'register', 'oauth_login', 'password_reset', 'logout'];
+                const severities = ['low', 'medium', 'high', 'critical'];
+                
+                // Generate error events
+                for (let i = 0; i < 100; i++) {
+                    const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+                    const operation = operations[Math.floor(Math.random() * operations.length)];
+                    const severity = severities[Math.floor(Math.random() * severities.length)];
+                    
+                    errorAnalytics.recordError({
+                        type: errorType,
+                        message: `Test error ${i + 1}: ${errorType}`,
+                        timestamp: Date.now() - Math.random() * 3600000 // Random time in last hour
+                    }, {
+                        operation: operation,
+                        attemptCount: Math.floor(Math.random() * 3),
+                        severity: severity,
+                        userId: `user_${Math.floor(Math.random() * 1000)}`,
+                        userAgent: navigator.userAgent
+                    });
+                }
+                
+                // Generate UX flow data
+                const uxTracker = errorAnalytics.getUXTracker();
+                for (let i = 0; i < 50; i++) {
+                    const flowId = `test-flow-${i}`;
+                    const flowType = operations[Math.floor(Math.random() * operations.length)];
+                    
+                    uxTracker.startAuthFlow(flowId, flowType, {});
+                    uxTracker.recordFlowStep(flowId, 'started', {});
+                    
+                    if (Math.random() > 0.2) { // 80% success rate
+                        uxTracker.recordFlowStep(flowId, 'completed', {});
+                        uxTracker.completeAuthFlow(flowId, true, {});
+                    } else {
+                        uxTracker.recordFlowError(flowId, {
+                            errorType: errorTypes[Math.floor(Math.random() * errorTypes.length)]
+                        });
+                        uxTracker.completeAuthFlow(flowId, false, {});
+                    }
+                }
+                
+                // Generate performance data
+                for (let i = 0; i < 50; i++) {
+                    const operation = operations[Math.floor(Math.random() * operations.length)];
+                    const duration = Math.random() * 5000; // 0-5 seconds
+                    const success = Math.random() > 0.1; // 90% success rate
+                    
+                    performanceOptimizer.performanceMonitor.recordMetric(
+                        'errorHandlingTime',
+                        duration,
+                        {
+                            operation: operation,
+                            success: success,
+                            timestamp: Date.now()
+                        }
+                    );
+                }
+                
+                console.log('Test data generated successfully');
+                showNotification('Test data generated successfully!');
+                
+            } catch (error) {
+                console.error('Error generating test data:', error);
+                showNotification('Error generating test data. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Simulate error spike
+        window.simulateErrorSpike = function() {
+            showLoading();
+            
+            try {
+                const errorTypes = ['NETWORK_ERROR', 'AUTH_INVALID_CREDENTIALS', 'SERVER_ERROR'];
+                
+                // Generate many errors in short time
+                for (let i = 0; i < 50; i++) {
+                    setTimeout(() => {
+                        const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+                        
+                        errorAnalytics.recordError({
+                            type: errorType,
+                            message: `Spike error ${i + 1}: ${errorType}`,
+                            timestamp: Date.now()
+                        }, {
+                            operation: 'login',
+                            attemptCount: Math.floor(Math.random() * 5),
+                            severity: 'high',
+                            userId: `spike_user_${i}`
+                        });
+                    }, i * 100); // Spread over 5 seconds
+                }
+                
+                console.log('Error spike simulation started');
+                showNotification('Error spike simulation started! Watch the dashboard for alerts.');
+                
+            } catch (error) {
+                console.error('Error simulating error spike:', error);
+                showNotification('Error simulating error spike. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Simulate system issue
+        window.simulateSystemIssue = function() {
+            showLoading();
+            
+            try {
+                // Create many error states to trigger memory warnings
+                for (let i = 0; i < 1000; i++) {
+                    performanceOptimizer.setErrorState(`system-issue-${i}`, {
+                        errorType: 'SYSTEM_OVERLOAD',
+                        timestamp: Date.now(),
+                        severity: 'critical'
+                    });
+                }
+                
+                // Generate high response times
+                for (let i = 0; i < 20; i++) {
+                    performanceOptimizer.performanceMonitor.recordMetric(
+                        'errorHandlingTime',
+                        5000 + Math.random() * 5000, // 5-10 seconds
+                        {
+                            operation: 'system_check',
+                            success: false,
+                            timestamp: Date.now()
+                        }
+                    );
+                }
+                
+                console.log('System issue simulation started');
+                showNotification('System issue simulation started! Check performance metrics.');
+                
+            } catch (error) {
+                console.error('Error simulating system issue:', error);
+                showNotification('Error simulating system issue. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Test alerting system
+        window.testAlertingSystem = async function() {
+            showLoading();
+            
+            try {
+                // Test different alert priorities
+                const priorities = ['low', 'medium', 'high', 'critical'];
+                
+                for (let i = 0; i < priorities.length; i++) {
+                    setTimeout(async () => {
+                        await alertingSystem.sendTestAlert(priorities[i]);
+                        console.log(`Test alert sent with priority: ${priorities[i]}`);
+                    }, i * 2000); // 2 second intervals
+                }
+                
+                showNotification('Testing alerting system with different priorities...');
+                
+            } catch (error) {
+                console.error('Error testing alerting system:', error);
+                showNotification('Error testing alerting system. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Test performance optimization
+        window.testPerformanceOptimization = function() {
+            showLoading();
+            
+            try {
+                const startTime = performance.now();
+                
+                // Test error classification performance
+                const errors = [];
+                for (let i = 0; i < 1000; i++) {
+                    const error = new Error(`Test error ${i}`);
+                    error.status = [400, 401, 500, 503][Math.floor(Math.random() * 4)];
+                    errors.push(error);
+                }
+                
+                // Classify errors with optimization
+                performanceOptimizer.setEnabled(true);
+                errors.forEach(error => {
+                    performanceOptimizer.optimizeErrorClassification(
+                        error,
+                        (err) => authErrorHandler.classifyError(err)
+                    );
+                });
+                
+                const optimizedTime = performance.now() - startTime;
+                
+                // Test without optimization
+                performanceOptimizer.setEnabled(false);
+                const startTime2 = performance.now();
+                
+                errors.forEach(error => {
+                    authErrorHandler.classifyError(error);
+                });
+                
+                const unoptimizedTime = performance.now() - startTime2;
+                
+                // Re-enable optimization
+                performanceOptimizer.setEnabled(true);
+                
+                const speedup = unoptimizedTime / optimizedTime;
+                
+                console.log(`Performance test results:`);
+                console.log(`Optimized: ${optimizedTime.toFixed(2)}ms`);
+                console.log(`Unoptimized: ${unoptimizedTime.toFixed(2)}ms`);
+                console.log(`Speedup: ${speedup.toFixed(2)}x`);
+                
+                showNotification(`Performance test complete! Speedup: ${speedup.toFixed(2)}x`);
+                
+            } catch (error) {
+                console.error('Error testing performance:', error);
+                showNotification('Error testing performance. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Clear all data
+        window.clearAllData = function() {
+            showLoading();
+            
+            try {
+                // Reset all systems
+                performanceOptimizer.reset();
+                errorAnalytics.setEnabled(false);
+                errorAnalytics.setEnabled(true);
+                
+                // Clear test data interval if running
+                if (testDataInterval) {
+                    clearInterval(testDataInterval);
+                    testDataInterval = null;
+                }
+                
+                console.log('All data cleared');
+                showNotification('All data cleared successfully!');
+                
+                // Reinitialize dashboard
+                setTimeout(() => {
+                    if (dashboard) {
+                        dashboard.render();
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                showNotification('Error clearing data. Check console for details.');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // Utility functions
+        window.showLoading = function() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.add('show');
+        };
+        
+        window.hideLoading = function() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('show');
+        };
+        
+        window.showNotification = function(message) {
+            const notification = document.getElementById('notification-demo');
+            const messageElement = document.getElementById('notification-message');
+            
+            messageElement.textContent = message;
+            notification.classList.add('show');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
+        };
+        
+        window.hideNotification = function() {
+            const notification = document.getElementById('notification-demo');
+            notification.classList.remove('show');
+        };
+        
+        // Start continuous test data generation
+        window.startContinuousDataGeneration = function() {
+            if (testDataInterval) {
+                clearInterval(testDataInterval);
+            }
+            
+            testDataInterval = setInterval(() => {
+                // Generate a few random errors
+                const errorTypes = Object.values(authErrorHandler.getErrorTypes());
+                const operations = ['login', 'register', 'oauth_login'];
+                
+                for (let i = 0; i < Math.floor(Math.random() * 3) + 1; i++) {
+                    const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+                    const operation = operations[Math.floor(Math.random() * operations.length)];
+                    
+                    errorAnalytics.recordError({
+                        type: errorType,
+                        message: `Continuous error: ${errorType}`,
+                        timestamp: Date.now()
+                    }, {
+                        operation: operation,
+                        attemptCount: Math.floor(Math.random() * 3),
+                        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
+                    });
+                }
+                
+                // Generate performance metrics
+                performanceOptimizer.performanceMonitor.recordMetric(
+                    'errorHandlingTime',
+                    Math.random() * 1000,
+                    {
+                        operation: 'continuous_test',
+                        success: Math.random() > 0.1,
+                        timestamp: Date.now()
+                    }
+                );
+                
+            }, 5000); // Every 5 seconds
+            
+            console.log('Continuous data generation started');
+        };
+        
+        window.stopContinuousDataGeneration = function() {
+            if (testDataInterval) {
+                clearInterval(testDataInterval);
+                testDataInterval = null;
+                console.log('Continuous data generation stopped');
+            }
+        };
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Real-time dashboard test page loaded');
+            showNotification('Real-time dashboard test page loaded. Click "Initialize Dashboard" to start.');
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (dashboard) {
+                dashboard.setVisible(!document.hidden);
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (dashboard) {
+                // Trigger dashboard re-render on resize
+                setTimeout(() => {
+                    dashboard.render();
+                }, 100);
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey || event.metaKey) {
+                switch (event.key) {
+                    case 'i':
+                        event.preventDefault();
+                        initializeDashboard();
+                        break;
+                    case 'g':
+                        event.preventDefault();
+                        generateTestData();
+                        break;
+                    case 'e':
+                        event.preventDefault();
+                        simulateErrorSpike();
+                        break;
+                    case 's':
+                        event.preventDefault();
+                        simulateSystemIssue();
+                        break;
+                    case 'a':
+                        event.preventDefault();
+                        testAlertingSystem();
+                        break;
+                    case 'p':
+                        event.preventDefault();
+                        testPerformanceOptimization();
+                        break;
+                    case 'c':
+                        event.preventDefault();
+                        clearAllData();
+                        break;
+                }
+            }
+        });
+        
+        // Add keyboard shortcuts info to console
+        console.log('Keyboard shortcuts:');
+        console.log('Ctrl/Cmd + I: Initialize Dashboard');
+        console.log('Ctrl/Cmd + G: Generate Test Data');
+        console.log('Ctrl/Cmd + E: Simulate Error Spike');
+        console.log('Ctrl/Cmd + S: Simulate System Issue');
+        console.log('Ctrl/Cmd + A: Test Alerting System');
+        console.log('Ctrl/Cmd + P: Test Performance');
+        console.log('Ctrl/Cmd + C: Clear All Data');
+    </script>
+</body>
+</html>

@@ -2,6 +2,10 @@ import { supabase } from '../config/supabase.js';
 import { authErrorHandler } from './authErrorHandler.js';
 import { retryManager } from './retryManager.js';
 import { connectionMonitor } from './connectionMonitor.js';
+import { supabaseUnavailableHandler } from './supabaseUnavailableHandler.js';
+import { networkConnectivityHandler } from './networkConnectivityHandler.js';
+import { oauthErrorHandler, OAUTH_PROVIDERS } from './oauthErrorHandler.js';
+import errorLogger from './errorLogger.js';
 
 /**
  * Authentication service for handling user authentication
@@ -102,6 +106,14 @@ class AuthService {
    * @returns {Promise<object>} - User data
    */
   async login(email, password) {
+    const startTime = Date.now();
+    const context = {
+      operation: 'login',
+      email: email,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+
     try {
       // Check connectivity before attempting login
       const connectivityResult = await this.checkConnectivityBeforeAuth('login');
@@ -119,6 +131,14 @@ class AuthService {
           throw new Error(error.message);
         }
 
+        // Log successful login performance
+        const duration = Date.now() - startTime;
+        errorLogger.logPerformanceMetric('login', duration, true, {
+          provider: 'supabase',
+          email: email,
+          hasSession: !!data.session
+        });
+
         return data.user;
       } else {
         // Fallback to mock implementation
@@ -131,12 +151,31 @@ class AuthService {
           this.currentUser = response.user;
           localStorage.setItem('auth_token', response.token);
           localStorage.setItem('user_data', JSON.stringify(this.currentUser));
+          
+          // Log successful mock login performance
+          const duration = Date.now() - startTime;
+          errorLogger.logPerformanceMetric('login', duration, true, {
+            provider: 'mock',
+            email: email
+          });
+
           return response.user;
         } else {
           throw new Error(response.message || 'Error al iniciar sesión');
         }
       }
     } catch (error) {
+      // Log login error with context
+      errorLogger.logError(error, context, errorLogger.SEVERITY_LEVELS.MEDIUM);
+      
+      // Log failed login performance
+      const duration = Date.now() - startTime;
+      errorLogger.logPerformanceMetric('login', duration, false, {
+        provider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+        email: email,
+        errorType: error.message
+      });
+
       console.error('Login error:', error);
       throw error;
     }
@@ -150,6 +189,15 @@ class AuthService {
    * @returns {Promise<object>} - User data
    */
   async register(name, email, password) {
+    const startTime = Date.now();
+    const context = {
+      operation: 'register',
+      email: email,
+      name: name,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+
     try {
       // Check connectivity before attempting registration
       const connectivityResult = await this.checkConnectivityBeforeAuth('register');
@@ -175,6 +223,15 @@ class AuthService {
         // Mark user as new for onboarding
         localStorage.setItem('is_new_user', 'true');
 
+        // Log successful registration performance
+        const duration = Date.now() - startTime;
+        errorLogger.logPerformanceMetric('register', duration, true, {
+          provider: 'supabase',
+          email: email,
+          name: name,
+          hasUser: !!data.user
+        });
+
         return data.user;
       } else {
         // Fallback to mock implementation
@@ -188,28 +245,297 @@ class AuthService {
           localStorage.setItem('auth_token', response.token);
           localStorage.setItem('user_data', JSON.stringify(this.currentUser));
           localStorage.setItem('is_new_user', 'true');
+          
+          // Log successful mock registration performance
+          const duration = Date.now() - startTime;
+          errorLogger.logPerformanceMetric('register', duration, true, {
+            provider: 'mock',
+            email: email,
+            name: name
+          });
+
           return response.user;
         } else {
           throw new Error(response.message || 'Error al crear la cuenta');
         }
       }
     } catch (error) {
+      // Log registration error with context
+      errorLogger.logError(error, context, errorLogger.SEVERITY_LEVELS.MEDIUM);
+      
+      // Log failed registration performance
+      const duration = Date.now() - startTime;
+      errorLogger.logPerformanceMetric('register', duration, false, {
+        provider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+        email: email,
+        name: name,
+        errorType: error.message
+      });
+
       console.error('Registration error:', error);
       throw error;
     }
   }
 
   /**
+   * Enhanced register method with comprehensive validation and error handling
+   * @param {string} name - User name
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {string} confirmPassword - Password confirmation
+   * @param {Object} options - Additional options (language, enableRetry, etc.)
+   * @returns {Promise<Object>} - Result object with user data or error info
+   */
+  async registerWithValidation(name, email, password, confirmPassword, options = {}) {
+    const language = options.language || 'es';
+    const enableRetry = options.enableRetry || false;
+
+    // Create the register function with validation
+    const registerFunction = async (attemptCount) => {
+      const context = {
+        operation: 'register',
+        email: email,
+        language: language,
+        attemptCount: attemptCount
+      };
+
+      try {
+        // Perform comprehensive validation
+        const validationResult = this.validateRegistrationData(name, email, password, confirmPassword, language);
+        if (!validationResult.isValid) {
+          const validationError = new Error('Validation failed');
+          validationError.type = 'VALIDATION_ERROR';
+          validationError.validationErrors = validationResult.errors;
+          throw validationError;
+        }
+
+        // Attempt registration
+        const user = await this.register(name, email, password);
+        return {
+          success: true,
+          user: user,
+          context: context
+        };
+      } catch (error) {
+        if (enableRetry && error.type !== 'VALIDATION_ERROR') {
+          // Classify the error to determine retry strategy
+          const processedError = authErrorHandler.handleError(error, context);
+          
+          // Throw with error type for RetryManager to handle
+          const enhancedError = new Error(error.message);
+          enhancedError.type = processedError.type;
+          enhancedError.processedError = processedError;
+          enhancedError.context = context;
+          enhancedError.validationErrors = error.validationErrors;
+          throw enhancedError;
+        } else {
+          // Direct error handling without retry
+          const processedError = authErrorHandler.handleError(error, context);
+          return {
+            success: false,
+            error: processedError,
+            validationErrors: error.validationErrors,
+            context: context
+          };
+        }
+      }
+    };
+
+    if (enableRetry) {
+      try {
+        // Use RetryManager for retry logic
+        const result = await retryManager.executeWithRetry(
+          registerFunction,
+          options.errorType || authErrorHandler.getErrorTypes().NETWORK_ERROR,
+          { maxRetries: options.maxRetries }
+        );
+
+        if (result.success) {
+          return result.result;
+        } else {
+          // Extract the processed error from the last attempt
+          const lastError = result.error;
+          const processedError = lastError.processedError || authErrorHandler.handleError(lastError, {
+            operation: 'register',
+            email: email,
+            language: language,
+            attemptCount: result.attemptCount
+          });
+
+          return {
+            success: false,
+            error: processedError,
+            validationErrors: lastError.validationErrors,
+            context: lastError.context || {
+              operation: 'register',
+              email: email,
+              language: language,
+              attemptCount: result.attemptCount
+            },
+            retryInfo: {
+              totalAttempts: result.totalAttempts,
+              maxRetriesExceeded: result.maxRetriesExceeded
+            }
+          };
+        }
+      } catch (error) {
+        // Fallback error handling
+        const processedError = authErrorHandler.handleError(error, {
+          operation: 'register',
+          email: email,
+          language: language,
+          attemptCount: 0
+        });
+
+        return {
+          success: false,
+          error: processedError,
+          validationErrors: error.validationErrors,
+          context: {
+            operation: 'register',
+            email: email,
+            language: language,
+            attemptCount: 0
+          }
+        };
+      }
+    } else {
+      // Execute without retry
+      return await registerFunction(0);
+    }
+  }
+
+  /**
+   * Validate registration data with comprehensive checks
+   * @param {string} name - User name
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {string} confirmPassword - Password confirmation
+   * @param {string} language - Language for error messages
+   * @returns {Object} - Validation result with errors
+   */
+  validateRegistrationData(name, email, password, confirmPassword, language = 'es') {
+    const errors = {};
+    const messages = {
+      es: {
+        nameRequired: 'El nombre es requerido',
+        nameLength: 'El nombre debe tener entre 2 y 50 caracteres',
+        emailRequired: 'El email es requerido',
+        emailInvalid: 'Por favor ingresa un email válido',
+        passwordRequired: 'La contraseña es requerida',
+        passwordWeak: 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números',
+        passwordMismatch: 'Las contraseñas no coinciden',
+        confirmPasswordRequired: 'Debes confirmar tu contraseña'
+      },
+      en: {
+        nameRequired: 'Name is required',
+        nameLength: 'Name must be between 2 and 50 characters',
+        emailRequired: 'Email is required',
+        emailInvalid: 'Please enter a valid email address',
+        passwordRequired: 'Password is required',
+        passwordWeak: 'Password must be at least 8 characters long and include uppercase, lowercase, and numbers',
+        passwordMismatch: 'Passwords do not match',
+        confirmPasswordRequired: 'You must confirm your password'
+      }
+    };
+
+    const msg = messages[language] || messages.es;
+
+    // Name validation
+    if (!name || typeof name !== 'string') {
+      errors.name = msg.nameRequired;
+    } else {
+      const trimmedName = name.trim();
+      if (trimmedName.length < 2 || trimmedName.length > 50) {
+        errors.name = msg.nameLength;
+      }
+    }
+
+    // Email validation
+    if (!email || typeof email !== 'string') {
+      errors.email = msg.emailRequired;
+    } else {
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      if (!emailRegex.test(email.trim())) {
+        errors.email = msg.emailInvalid;
+      }
+    }
+
+    // Password validation
+    if (!password || typeof password !== 'string') {
+      errors.password = msg.passwordRequired;
+    } else {
+      // Enhanced password validation
+      const hasMinLength = password.length >= 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+
+      if (!hasMinLength || !hasUpperCase || !hasLowerCase || !hasNumbers) {
+        errors.password = msg.passwordWeak;
+      }
+    }
+
+    // Confirm password validation
+    if (!confirmPassword || typeof confirmPassword !== 'string') {
+      errors.confirmPassword = msg.confirmPasswordRequired;
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = msg.passwordMismatch;
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+
+  /**
    * Login with Google OAuth
+   * @param {Object} options - OAuth options
    * @returns {Promise<object>} - User data
    */
-  async loginWithGoogle() {
+  async loginWithGoogle(options = {}) {
+    return await this.loginWithOAuth(OAUTH_PROVIDERS.GOOGLE, options);
+  }
+
+  /**
+   * Login with GitHub OAuth
+   * @param {Object} options - OAuth options
+   * @returns {Promise<object>} - User data
+   */
+  async loginWithGitHub(options = {}) {
+    return await this.loginWithOAuth(OAUTH_PROVIDERS.GITHUB, options);
+  }
+
+  /**
+   * Generic OAuth login with comprehensive error handling
+   * @param {string} provider - OAuth provider (google, github)
+   * @param {Object} options - OAuth options
+   * @returns {Promise<object>} - User data or error result
+   */
+  async loginWithOAuth(provider, options = {}) {
+    const startTime = Date.now();
+    const context = {
+      operation: 'oauth_login',
+      provider: provider,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+      language: options.language || 'es'
+    };
+
     try {
+      // Check connectivity before OAuth attempt
+      const connectivityResult = await this.checkConnectivityBeforeAuth('oauth_login');
+      if (!connectivityResult.canProceed) {
+        throw new Error(connectivityResult.error || 'Connection check failed');
+      }
+
       if (this.isSupabaseEnabled) {
         const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
+          provider: provider,
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`
+            redirectTo: `${window.location.origin}/auth/callback`,
+            ...options.oauthOptions
           }
         });
 
@@ -217,70 +543,164 @@ class AuthService {
           throw new Error(error.message);
         }
 
+        // Log successful OAuth initiation
+        const duration = Date.now() - startTime;
+        errorLogger.logPerformanceMetric('oauth_login', duration, true, {
+          provider: provider,
+          supabaseProvider: 'supabase',
+          redirectTo: `${window.location.origin}/auth/callback`
+        });
+
         // OAuth redirect will handle the rest
         return data;
       } else {
         // Fallback to mock implementation
-        const response = await this.mockApiCall('/auth/google', {
+        const response = await this.mockApiCall(`/auth/${provider}`, {
           method: 'POST',
-          body: JSON.stringify({ provider: 'google' })
+          body: JSON.stringify({ provider: provider })
         });
 
         if (response.success) {
           this.currentUser = response.user;
           localStorage.setItem('auth_token', response.token);
           localStorage.setItem('user_data', JSON.stringify(this.currentUser));
+          
+          // Log successful mock OAuth
+          const duration = Date.now() - startTime;
+          errorLogger.logPerformanceMetric('oauth_login', duration, true, {
+            provider: provider,
+            supabaseProvider: 'mock'
+          });
+
           return response.user;
         } else {
-          throw new Error(response.message || 'Error en autenticación con Google');
+          throw new Error(response.message || `Error en autenticación con ${provider}`);
         }
       }
     } catch (error) {
-      console.error('Google login error:', error);
+      // Handle OAuth error with specialized handler
+      const oauthErrorResult = oauthErrorHandler.handleOAuthError(error, provider, context);
+      
+      // Log failed OAuth performance
+      const duration = Date.now() - startTime;
+      errorLogger.logPerformanceMetric('oauth_login', duration, false, {
+        provider: provider,
+        supabaseProvider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+        errorType: oauthErrorResult.errorType,
+        retryCount: oauthErrorResult.retryCount
+      });
+
+      console.error(`${provider} login error:`, error);
+      
+      // Return structured error result instead of throwing
+      if (options.returnErrorResult) {
+        return oauthErrorResult;
+      }
+      
       throw error;
     }
   }
 
   /**
-   * Login with GitHub OAuth
-   * @returns {Promise<object>} - User data
+   * Enhanced OAuth login with error handling and fallback options
+   * @param {string} provider - OAuth provider (google, github)
+   * @param {Object} options - Enhanced options
+   * @returns {Promise<Object>} - Enhanced result with fallback options
    */
-  async loginWithGitHub() {
+  async loginWithOAuthEnhanced(provider, options = {}) {
+    const {
+      showFallback = true,
+      showRetry = true,
+      language = 'es',
+      fallbackCallback = null,
+      retryCallback = null,
+      alternativeProviderCallback = null
+    } = options;
+
     try {
-      if (this.isSupabaseEnabled) {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'github',
-          options: {
-            redirectTo: `${window.location.origin}/auth/callback`
-          }
-        });
+      const result = await this.loginWithOAuth(provider, {
+        ...options,
+        returnErrorResult: true
+      });
 
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        // OAuth redirect will handle the rest
-        return data;
-      } else {
-        // Fallback to mock implementation
-        const response = await this.mockApiCall('/auth/github', {
-          method: 'POST',
-          body: JSON.stringify({ provider: 'github' })
-        });
-
-        if (response.success) {
-          this.currentUser = response.user;
-          localStorage.setItem('auth_token', response.token);
-          localStorage.setItem('user_data', JSON.stringify(this.currentUser));
-          return response.user;
-        } else {
-          throw new Error(response.message || 'Error en autenticación con GitHub');
-        }
+      // If successful, return the result
+      if (result && !result.success === false) {
+        return {
+          success: true,
+          user: result,
+          provider: provider
+        };
       }
+
+      // Handle OAuth error result
+      if (result.success === false) {
+        // Show error with fallback options
+        oauthErrorHandler.showOAuthErrorWithFallback(result, {
+          showFallback: showFallback,
+          showRetry: showRetry,
+          language: language,
+          retryCallback: retryCallback ? () => retryCallback(provider) : null,
+          emailPasswordCallback: fallbackCallback,
+          alternativeProviderCallback: alternativeProviderCallback
+        });
+
+        return {
+          success: false,
+          error: result.processedError,
+          provider: provider,
+          fallbackOptions: result.fallbackOptions,
+          canRetry: result.canRetry,
+          shouldShowFallback: result.shouldShowFallback
+        };
+      }
+
+      return result;
+
     } catch (error) {
-      console.error('GitHub login error:', error);
-      throw error;
+      // Handle unexpected errors
+      const oauthErrorResult = oauthErrorHandler.handleOAuthError(error, provider, {
+        language: language,
+        operation: 'oauth_login_enhanced'
+      });
+
+      if (showFallback) {
+        oauthErrorHandler.showOAuthErrorWithFallback(oauthErrorResult, {
+          showFallback: showFallback,
+          showRetry: showRetry,
+          language: language,
+          retryCallback: retryCallback ? () => retryCallback(provider) : null,
+          emailPasswordCallback: fallbackCallback,
+          alternativeProviderCallback: alternativeProviderCallback
+        });
+      }
+
+      return {
+        success: false,
+        error: oauthErrorResult.processedError,
+        provider: provider,
+        fallbackOptions: oauthErrorResult.fallbackOptions,
+        canRetry: oauthErrorResult.canRetry,
+        shouldShowFallback: oauthErrorResult.shouldShowFallback
+      };
     }
+  }
+
+  /**
+   * Login with Google OAuth with enhanced error handling
+   * @param {Object} options - Enhanced options
+   * @returns {Promise<Object>} - Enhanced result
+   */
+  async loginWithGoogleEnhanced(options = {}) {
+    return await this.loginWithOAuthEnhanced(OAUTH_PROVIDERS.GOOGLE, options);
+  }
+
+  /**
+   * Login with GitHub OAuth with enhanced error handling
+   * @param {Object} options - Enhanced options
+   * @returns {Promise<Object>} - Enhanced result
+   */
+  async loginWithGitHubEnhanced(options = {}) {
+    return await this.loginWithOAuthEnhanced(OAUTH_PROVIDERS.GITHUB, options);
   }
 
   /**
@@ -323,11 +743,21 @@ class AuthService {
    * Logout user
    */
   async logout() {
+    const startTime = Date.now();
+    const context = {
+      operation: 'logout',
+      userId: this.currentUser?.id,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+
     try {
       if (this.isSupabaseEnabled) {
         const { error } = await supabase.auth.signOut();
         if (error) {
           console.error('Logout error:', error);
+          // Log logout error but don't throw - we still want to clean up locally
+          errorLogger.logError(error, context, errorLogger.SEVERITY_LEVELS.MEDIUM);
         }
       } else {
         // Mock implementation cleanup
@@ -339,8 +769,26 @@ class AuthService {
       this.session = null;
       this.handleSignOut();
       
+      // Log successful logout performance
+      const duration = Date.now() - startTime;
+      errorLogger.logPerformanceMetric('logout', duration, true, {
+        provider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+        userId: context.userId
+      });
+      
       window.location.href = '/';
     } catch (error) {
+      // Log logout error with context
+      errorLogger.logError(error, context, errorLogger.SEVERITY_LEVELS.HIGH);
+      
+      // Log failed logout performance
+      const duration = Date.now() - startTime;
+      errorLogger.logPerformanceMetric('logout', duration, false, {
+        provider: this.isSupabaseEnabled ? 'supabase' : 'mock',
+        userId: context.userId,
+        errorType: error.message
+      });
+
       console.error('Logout error:', error);
     }
   }
@@ -701,6 +1149,39 @@ class AuthService {
    */
   async checkConnectivityBeforeAuth(operation) {
     try {
+      // First check network connectivity
+      const networkStatus = networkConnectivityHandler.getNetworkStatus();
+      if (!networkStatus.isOnline) {
+        return {
+          canProceed: false,
+          status: 'network_offline',
+          error: 'No network connection available',
+          errorType: 'NETWORK_ERROR',
+          shouldRetry: true,
+          canQueue: true,
+          networkStatus: networkStatus,
+          timestamp: new Date().toISOString(),
+          operation: operation
+        };
+      }
+
+      // Check if service is known to be unavailable
+      if (!supabaseUnavailableHandler.isServiceAvailable()) {
+        const serviceStatus = supabaseUnavailableHandler.getServiceStatus();
+        
+        return {
+          canProceed: false,
+          status: 'service_unavailable',
+          error: `Service is currently ${serviceStatus.status.toLowerCase()}`,
+          errorType: serviceStatus.status === 'MAINTENANCE' ? 'SUPABASE_MAINTENANCE' : 'SUPABASE_UNAVAILABLE',
+          shouldRetry: true,
+          canQueue: true,
+          serviceStatus: serviceStatus,
+          timestamp: new Date().toISOString(),
+          operation: operation
+        };
+      }
+
       // Use ConnectionMonitor for comprehensive connectivity check
       const healthResult = await connectionMonitor.isSupabaseAvailable({
         timeout: 5000, // 5 second timeout for auth operations
@@ -712,21 +1193,37 @@ class AuthService {
           canProceed: true,
           status: 'connected',
           latency: healthResult.latency,
-          timestamp: healthResult.timestamp
+          timestamp: healthResult.timestamp,
+          networkStatus: networkStatus
         };
       } else {
         // Connection not available, determine if we should retry or fail
         const errorType = authErrorHandler.classifyError(healthResult.error);
         const shouldRetry = authErrorHandler.shouldAllowRetry(errorType, 0);
 
+        // Check if this is a service unavailable scenario
+        const isServiceUnavailable = healthResult.isServiceUnavailable || 
+          errorType === 'SUPABASE_UNAVAILABLE' || 
+          errorType === 'SUPABASE_MAINTENANCE';
+
+        // Check if this is a network connectivity issue
+        const isNetworkIssue = errorType === 'NETWORK_ERROR' || 
+          healthResult.error?.name === 'NetworkError' ||
+          healthResult.error?.message?.includes('fetch');
+
         return {
           canProceed: false,
-          status: 'disconnected',
+          status: isServiceUnavailable ? 'service_unavailable' : 
+                  isNetworkIssue ? 'network_error' : 'disconnected',
           error: healthResult.error?.message || 'Connection not available',
           errorType: errorType,
           shouldRetry: shouldRetry,
+          canQueue: isServiceUnavailable || isNetworkIssue,
+          isServiceUnavailable: isServiceUnavailable,
+          isNetworkIssue: isNetworkIssue,
           timestamp: healthResult.timestamp,
-          operation: operation
+          operation: operation,
+          networkStatus: networkStatus
         };
       }
     } catch (error) {
@@ -1042,6 +1539,289 @@ class AuthService {
           message: 'Endpoint no encontrado'
         };
     }
+  }
+  /**
+   * Handle authentication operation with connectivity issues (network and service)
+   * @param {Function} operation - The auth operation to execute
+   * @param {Object} context - Operation context
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Operation result
+   */
+  async handleAuthWithConnectivityIssues(operation, context, options = {}) {
+    const { allowQueue = true, showFeedback = true } = options;
+
+    try {
+      // Check connectivity first
+      const connectivityResult = await this.checkConnectivityBeforeAuth(context.operation);
+
+      if (connectivityResult.canProceed) {
+        // Service is available, execute operation normally
+        return await operation();
+      }
+
+      // Handle different types of connectivity issues
+      if (connectivityResult.canQueue && allowQueue) {
+        let queueHandler, queueMessage;
+
+        if (connectivityResult.status === 'network_offline' || connectivityResult.isNetworkIssue) {
+          // Network connectivity issue - use network handler
+          queueHandler = networkConnectivityHandler;
+          queueMessage = context.language === 'en' ? 
+            'Operation queued. We\'ll retry automatically when network connection is restored.' :
+            'Operación en cola. Reintentaremos automáticamente cuando se restaure la conexión de red.';
+        } else if (connectivityResult.isServiceUnavailable) {
+          // Service unavailable - use service handler
+          queueHandler = supabaseUnavailableHandler;
+          queueMessage = context.language === 'en' ? 
+            'Operation queued. We\'ll retry automatically when service is restored.' :
+            'Operación en cola. Reintentaremos automáticamente cuando el servicio se restaure.';
+        }
+
+        if (queueHandler) {
+          // Show feedback if requested
+          if (showFeedback) {
+            const errorMessage = authErrorHandler.generateUserMessage(
+              connectivityResult.errorType,
+              context.language || 'es'
+            );
+            console.log(`${errorMessage} ${queueMessage}`);
+          }
+
+          // Queue the operation with appropriate handler
+          return await queueHandler.queueOperation(operation, context);
+        }
+      }
+
+      // Cannot queue or queueing not allowed, return error
+      const processedError = authErrorHandler.handleError(
+        new Error(connectivityResult.error),
+        context
+      );
+
+      return {
+        success: false,
+        error: processedError,
+        canRetry: connectivityResult.shouldRetry,
+        isServiceUnavailable: connectivityResult.isServiceUnavailable,
+        isNetworkIssue: connectivityResult.isNetworkIssue,
+        connectivityStatus: connectivityResult.status
+      };
+
+    } catch (error) {
+      // Handle unexpected errors
+      const processedError = authErrorHandler.handleError(error, context);
+      return {
+        success: false,
+        error: processedError,
+        canRetry: false,
+        isServiceUnavailable: false,
+        isNetworkIssue: false
+      };
+    }
+  }
+
+  /**
+   * Handle authentication operation with Supabase unavailable scenarios (legacy method)
+   * @param {Function} operation - The auth operation to execute
+   * @param {Object} context - Operation context
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Operation result
+   */
+  async handleAuthWithUnavailableService(operation, context, options = {}) {
+    // Delegate to the enhanced connectivity handler
+    return await this.handleAuthWithConnectivityIssues(operation, context, options);
+  }
+
+  /**
+   * Enhanced login with connectivity issues handling (network and service)
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Login result
+   */
+  async loginWithConnectivityHandling(email, password, options = {}) {
+    const context = {
+      operation: 'login',
+      email: email,
+      language: options.language || 'es',
+      timestamp: new Date().toISOString()
+    };
+
+    const loginOperation = async () => {
+      return await this.login(email, password);
+    };
+
+    return await this.handleAuthWithConnectivityIssues(loginOperation, context, options);
+  }
+
+  /**
+   * Enhanced register with connectivity issues handling (network and service)
+   * @param {string} name - User name
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Registration result
+   */
+  async registerWithConnectivityHandling(name, email, password, options = {}) {
+    const context = {
+      operation: 'register',
+      name: name,
+      email: email,
+      language: options.language || 'es',
+      timestamp: new Date().toISOString()
+    };
+
+    const registerOperation = async () => {
+      return await this.register(name, email, password);
+    };
+
+    return await this.handleAuthWithConnectivityIssues(registerOperation, context, options);
+  }
+
+  /**
+   * Enhanced login with Supabase unavailable handling (legacy method)
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Login result
+   */
+  async loginWithUnavailableHandling(email, password, options = {}) {
+    return await this.loginWithConnectivityHandling(email, password, options);
+  }
+
+  /**
+   * Enhanced register with Supabase unavailable handling (legacy method)
+   * @param {string} name - User name
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Registration result
+   */
+  async registerWithUnavailableHandling(name, email, password, options = {}) {
+    return await this.registerWithConnectivityHandling(name, email, password, options);
+  }
+
+  /**
+   * Check if network is currently available
+   * @returns {boolean} Network availability status
+   */
+  isNetworkAvailable() {
+    return networkConnectivityHandler.isNetworkAvailable();
+  }
+
+  /**
+   * Check if Supabase service is currently available
+   * @returns {boolean} Service availability status
+   */
+  isSupabaseServiceAvailable() {
+    return supabaseUnavailableHandler.isServiceAvailable();
+  }
+
+  /**
+   * Get current network status information
+   * @returns {Object} Network status information
+   */
+  getNetworkStatus() {
+    return networkConnectivityHandler.getNetworkStatus();
+  }
+
+  /**
+   * Get current service status information
+   * @returns {Object} Service status information
+   */
+  getServiceStatus() {
+    return supabaseUnavailableHandler.getServiceStatus();
+  }
+
+  /**
+   * Get comprehensive connectivity status (network + service)
+   * @returns {Object} Complete connectivity status
+   */
+  getConnectivityStatus() {
+    return {
+      network: this.getNetworkStatus(),
+      service: this.getServiceStatus(),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Manually trigger network connectivity check
+   * @returns {Promise<Object>} Network check result
+   */
+  async checkNetworkConnectivity() {
+    return await networkConnectivityHandler.forceConnectivityCheck();
+  }
+
+  /**
+   * Manually trigger service availability check
+   * @returns {Promise<Object>} Service check result
+   */
+  async checkServiceAvailability() {
+    return await supabaseUnavailableHandler.checkServiceAvailability();
+  }
+
+  /**
+   * Add listener for network status changes
+   * @param {string} eventType - Event type
+   * @param {Function} callback - Event callback
+   * @returns {Function} Unsubscribe function
+   */
+  onNetworkStatusChange(eventType, callback) {
+    return networkConnectivityHandler.addEventListener(eventType, callback);
+  }
+
+  /**
+   * Add listener for service status changes
+   * @param {string} eventType - Event type
+   * @param {Function} callback - Event callback
+   * @returns {Function} Unsubscribe function
+   */
+  onServiceStatusChange(eventType, callback) {
+    return supabaseUnavailableHandler.addEventListener(eventType, callback);
+  }
+
+  /**
+   * Get OAuth provider error statistics
+   * @returns {Object} OAuth error statistics
+   */
+  getOAuthErrorStats() {
+    return oauthErrorHandler.getProviderErrorStats();
+  }
+
+  /**
+   * Reset OAuth provider errors
+   * @param {string} provider - Provider to reset (optional)
+   */
+  resetOAuthErrors(provider = null) {
+    oauthErrorHandler.resetProviderErrors(provider);
+  }
+
+  /**
+   * Check if OAuth provider has failed recently
+   * @param {string} provider - Provider to check
+   * @returns {boolean} Whether provider has failed
+   */
+  hasOAuthProviderFailed(provider) {
+    return oauthErrorHandler.hasProviderFailed(provider);
+  }
+
+  /**
+   * Get available OAuth providers (excluding failed ones)
+   * @returns {Array} Array of available providers
+   */
+  getAvailableOAuthProviders() {
+    const allProviders = [OAUTH_PROVIDERS.GOOGLE, OAUTH_PROVIDERS.GITHUB];
+    return allProviders.filter(provider => !this.hasOAuthProviderFailed(provider));
+  }
+
+  /**
+   * Get OAuth provider display name
+   * @param {string} provider - Provider identifier
+   * @returns {string} Display name
+   */
+  getOAuthProviderDisplayName(provider) {
+    return oauthErrorHandler.getProviderDisplayName(provider);
   }
 }
 

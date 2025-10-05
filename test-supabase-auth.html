@@ -250,6 +250,40 @@
                 </div>
             </div>
 
+            <!-- Error Simulation Section -->
+            <div class="card p-6 mb-8">
+                <h2 class="text-xl font-bold mb-4 text-[#EF4444]">🧪 Simulación de Errores</h2>
+                <p class="text-sm opacity-70 mb-4">
+                    Prueba diferentes escenarios de error para validar el manejo de errores
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button id="simulate-network-error" class="btn-secondary text-sm">
+                        📡 Error de Red
+                    </button>
+                    <button id="simulate-invalid-credentials" class="btn-secondary text-sm">
+                        🔐 Credenciales Inválidas
+                    </button>
+                    <button id="simulate-user-exists" class="btn-secondary text-sm">
+                        👤 Usuario Existe
+                    </button>
+                    <button id="simulate-weak-password" class="btn-secondary text-sm">
+                        🔒 Contraseña Débil
+                    </button>
+                    <button id="simulate-rate-limit" class="btn-secondary text-sm">
+                        ⏱️ Rate Limit
+                    </button>
+                    <button id="simulate-server-error" class="btn-secondary text-sm">
+                        🔥 Error Servidor
+                    </button>
+                    <button id="test-connectivity" class="btn-secondary text-sm">
+                        🌐 Test Conectividad
+                    </button>
+                    <button id="clear-errors" class="btn-secondary text-sm">
+                        ✨ Limpiar Errores
+                    </button>
+                </div>
+            </div>
+
             <!-- Messages -->
             <div id="messages" class="space-y-4"></div>
         </div>
@@ -259,10 +293,18 @@
         import { authService } from './src/shared/services/authService.js';
         import { onboardingWizard } from './src/shared/components/OnboardingWizard.js';
         import { supabase } from './src/shared/config/supabase.js';
+        import { authErrorHandler } from './src/shared/services/authErrorHandler.js';
+        import { UserFeedbackSystem } from './src/shared/services/userFeedbackSystem.js';
+        import { connectionMonitor } from './src/shared/services/connectionMonitor.js';
 
         // Make services available globally
         window.authService = authService;
         window.supabase = supabase;
+        window.authErrorHandler = authErrorHandler;
+        
+        // Initialize enhanced error handling
+        const feedbackSystem = new UserFeedbackSystem();
+        window.feedbackSystem = feedbackSystem;
 
         // DOM elements
         const elements = {
@@ -279,24 +321,29 @@
             userDetails: document.getElementById('user-details')
         };
 
-        // Show message
+        // Enhanced message function using UserFeedbackSystem
         function showMessage(message, type = 'info') {
-            const colors = {
-                success: 'bg-green-900/20 border-green-400/30 text-green-400',
-                error: 'bg-red-900/20 border-red-400/30 text-red-400',
-                info: 'bg-blue-900/20 border-blue-400/30 text-blue-400',
-                warning: 'bg-yellow-900/20 border-yellow-400/30 text-yellow-400'
-            };
+            if (type === 'success') {
+                feedbackSystem.showSuccess(message);
+            } else if (type === 'error') {
+                feedbackSystem.showError(message);
+            } else {
+                // Fallback to original implementation for info/warning
+                const colors = {
+                    info: 'bg-blue-900/20 border-blue-400/30 text-blue-400',
+                    warning: 'bg-yellow-900/20 border-yellow-400/30 text-yellow-400'
+                };
 
-            const messageEl = document.createElement('div');
-            messageEl.className = `p-4 rounded-lg border ${colors[type]} mb-4`;
-            messageEl.textContent = message;
-            
-            elements.messages.appendChild(messageEl);
-            
-            setTimeout(() => {
-                messageEl.remove();
-            }, 5000);
+                const messageEl = document.createElement('div');
+                messageEl.className = `p-4 rounded-lg border ${colors[type]} mb-4`;
+                messageEl.textContent = message;
+                
+                elements.messages.appendChild(messageEl);
+                
+                setTimeout(() => {
+                    messageEl.remove();
+                }, 5000);
+            }
         }
 
         // Update status display
@@ -351,15 +398,19 @@
             }
         }
 
-        // Event listeners
+        // Event listeners with enhanced error handling
         elements.registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('register-name').value;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
 
+            // Show loading state
+            feedbackSystem.showLoading('register', null, elements.registerForm);
+
             try {
                 const user = await authService.register(name, email, password);
+                feedbackSystem.hideLoading(elements.registerForm);
                 showMessage('¡Registro exitoso! Revisa tu email para confirmar la cuenta.', 'success');
                 updateStatus();
                 
@@ -370,7 +421,19 @@
                     }, 2000);
                 }
             } catch (error) {
-                showMessage(`Error en registro: ${error.message}`, 'error');
+                feedbackSystem.hideLoading(elements.registerForm);
+                const processedError = authErrorHandler.handleError(error, { 
+                    operation: 'register',
+                    language: 'es'
+                });
+                
+                feedbackSystem.showError(processedError.type, {
+                    canRetry: processedError.canRetry,
+                    retryCallback: processedError.canRetry ? () => {
+                        elements.registerForm.dispatchEvent(new Event('submit'));
+                    } : null,
+                    targetElement: elements.registerForm
+                });
             }
         });
 
@@ -379,12 +442,28 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
 
+            // Show loading state
+            feedbackSystem.showLoading('login', null, elements.loginForm);
+
             try {
                 const user = await authService.login(email, password);
+                feedbackSystem.hideLoading(elements.loginForm);
                 showMessage('¡Inicio de sesión exitoso!', 'success');
                 updateStatus();
             } catch (error) {
-                showMessage(`Error en login: ${error.message}`, 'error');
+                feedbackSystem.hideLoading(elements.loginForm);
+                const processedError = authErrorHandler.handleError(error, { 
+                    operation: 'login',
+                    language: 'es'
+                });
+                
+                feedbackSystem.showError(processedError.type, {
+                    canRetry: processedError.canRetry,
+                    retryCallback: processedError.canRetry ? () => {
+                        elements.loginForm.dispatchEvent(new Event('submit'));
+                    } : null,
+                    targetElement: elements.loginForm
+                });
             }
         });
 
@@ -436,6 +515,112 @@
             localStorage.clear();
             showMessage('Datos locales limpiados', 'info');
             updateStatus();
+        });
+
+        // Error simulation event listeners
+        document.getElementById('simulate-network-error').addEventListener('click', () => {
+            const networkError = new Error('Network request failed');
+            networkError.name = 'NetworkError';
+            feedbackSystem.showError(networkError, {
+                canRetry: true,
+                retryCallback: () => {
+                    showMessage('Reintentando operación...', 'info');
+                    feedbackSystem.hideError();
+                }
+            });
+        });
+
+        document.getElementById('simulate-invalid-credentials').addEventListener('click', () => {
+            const credentialsError = new Error('Invalid login credentials');
+            credentialsError.code = 'invalid_credentials';
+            feedbackSystem.showError(credentialsError, {
+                canRetry: true,
+                retryCallback: () => {
+                    showMessage('Reintentando con credenciales correctas...', 'info');
+                    feedbackSystem.hideError();
+                }
+            });
+        });
+
+        document.getElementById('simulate-user-exists').addEventListener('click', () => {
+            const userExistsError = new Error('User already registered');
+            userExistsError.code = 'user_already_registered';
+            feedbackSystem.showError(userExistsError, {
+                canRetry: false
+            });
+        });
+
+        document.getElementById('simulate-weak-password').addEventListener('click', () => {
+            const weakPasswordError = new Error('Password too weak');
+            weakPasswordError.code = 'weak_password';
+            feedbackSystem.showError(weakPasswordError, {
+                canRetry: true,
+                retryCallback: () => {
+                    showMessage('Intenta con una contraseña más fuerte...', 'info');
+                    feedbackSystem.hideError();
+                }
+            });
+        });
+
+        document.getElementById('simulate-rate-limit').addEventListener('click', () => {
+            const rateLimitError = new Error('Too many requests');
+            rateLimitError.code = 'too_many_requests';
+            feedbackSystem.showError(rateLimitError, {
+                canRetry: true,
+                waitTime: 30,
+                retryCallback: () => {
+                    showMessage('Esperando antes de reintentar...', 'info');
+                    setTimeout(() => {
+                        feedbackSystem.hideError();
+                        showMessage('Ahora puedes intentar de nuevo', 'success');
+                    }, 2000);
+                }
+            });
+        });
+
+        document.getElementById('simulate-server-error').addEventListener('click', () => {
+            const serverError = new Error('Internal server error');
+            serverError.status = 500;
+            feedbackSystem.showError(serverError, {
+                canRetry: true,
+                retryCallback: () => {
+                    showMessage('Reintentando operación...', 'info');
+                    feedbackSystem.hideError();
+                }
+            });
+        });
+
+        document.getElementById('test-connectivity').addEventListener('click', async () => {
+            showMessage('Probando conectividad con Supabase...', 'info');
+            
+            try {
+                const result = await connectionMonitor.isSupabaseAvailable();
+                if (result.available) {
+                    showMessage(`✅ Conectividad OK - Latencia: ${result.latency}ms`, 'success');
+                } else {
+                    showMessage(`❌ Sin conectividad - Error: ${result.error?.message || 'Desconocido'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error al probar conectividad: ${error.message}`, 'error');
+            }
+        });
+
+        document.getElementById('clear-errors').addEventListener('click', () => {
+            feedbackSystem.clearAll();
+            showMessage('Errores limpiados', 'info');
+        });
+
+        // Initialize connection monitoring
+        connectionMonitor.startMonitoring();
+        
+        // Listen for connection status changes
+        connectionMonitor.onConnectionChange('statusChange', (event) => {
+            console.log('Connection status changed:', event);
+            if (event.to === 'CONNECTED') {
+                showMessage('✅ Conexión restaurada', 'success');
+            } else if (event.to === 'DISCONNECTED') {
+                showMessage('❌ Conexión perdida', 'error');
+            }
         });
 
         // Initial status update

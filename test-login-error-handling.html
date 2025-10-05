@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Error Handling - Anclora Kairon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+    <style>
+        /* Custom styles for enhanced error handling */
+        .feedback-loading {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: #f3f4f6;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .loading-spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #2EAFC4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-message {
+            color: #374151;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-[#162032] min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-[#F6F7F9] mb-8 text-center">
+                Test Login Error Handling
+            </h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Test Buttons -->
+                <div class="bg-[#202837] rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-[#F6F7F9] mb-4">Error Scenarios</h2>
+                    <div class="space-y-3">
+                        <button id="test-user-not-found" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                            Test User Not Found
+                        </button>
+                        <button id="test-invalid-credentials" class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                            Test Invalid Credentials
+                        </button>
+                        <button id="test-rate-limited" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                            Test Rate Limited
+                        </button>
+                        <button id="test-unconfirmed-email" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Test Unconfirmed Email
+                        </button>
+                        <button id="test-network-error" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                            Test Network Error
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Language Toggle -->
+                <div class="bg-[#202837] rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-[#F6F7F9] mb-4">Settings</h2>
+                    <div class="space-y-3">
+                        <button id="toggle-language" class="w-full px-4 py-2 bg-[#2EAFC4] text-white rounded-lg hover:bg-[#2EAFC4]/80 transition-colors">
+                            Switch to English
+                        </button>
+                        <button id="open-auth-modal" class="w-full px-4 py-2 bg-[#FFC979] text-[#162032] rounded-lg hover:bg-[#FFC979]/80 transition-colors font-semibold">
+                            Open Auth Modal
+                        </button>
+                        <button id="clear-tests" class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                            Clear Test Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Test Results -->
+            <div class="bg-[#202837] rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-[#F6F7F9] mb-4">Test Results</h2>
+                <div id="test-results" class="space-y-4">
+                    <p class="text-[#F6F7F9]/70">Click the test buttons above to simulate different login error scenarios.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import AuthModalVanilla from './src/shared/components/AuthModalVanilla.js';
+        import { authService } from './src/shared/services/authService.js';
+        import { authErrorHandler } from './src/shared/services/authErrorHandler.js';
+        import i18n from './src/shared/utils/i18n.js';
+
+        // Initialize components
+        const authModal = new AuthModalVanilla();
+        let currentLanguage = 'es';
+
+        // Mock error scenarios
+        const mockErrors = {
+            userNotFound: new Error('User not found'),
+            invalidCredentials: new Error('Invalid login credentials'),
+            rateLimited: new Error('Too many requests. Rate limit exceeded'),
+            unconfirmedEmail: new Error('Email not confirmed'),
+            networkError: new Error('Network connection failed')
+        };
+
+        // Set error codes for better classification
+        mockErrors.userNotFound.code = 'user_not_found';
+        mockErrors.invalidCredentials.code = 'invalid_credentials';
+        mockErrors.rateLimited.code = 'too_many_requests';
+        mockErrors.unconfirmedEmail.code = 'email_not_confirmed';
+        mockErrors.networkError.name = 'NetworkError';
+
+        // Test functions
+        function testErrorScenario(errorType, errorObj) {
+            const testResults = document.getElementById('test-results');
+            
+            // Process error through authErrorHandler
+            const processedError = authErrorHandler.handleError(errorObj, {
+                operation: 'login',
+                email: 'test@example.com',
+                language: currentLanguage,
+                attemptCount: 1
+            });
+
+            // Create test result display
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'bg-[#162032] border border-[#2EAFC4]/30 rounded-lg p-4';
+            resultDiv.innerHTML = `
+                <h3 class="text-lg font-semibold text-[#F6F7F9] mb-2">${errorType} Test</h3>
+                <div class="space-y-2 text-sm">
+                    <p><span class="text-[#2EAFC4] font-medium">Error Type:</span> <span class="text-[#F6F7F9]">${processedError.type}</span></p>
+                    <p><span class="text-[#2EAFC4] font-medium">User Message:</span> <span class="text-[#F6F7F9]">${processedError.userMessage}</span></p>
+                    <p><span class="text-[#2EAFC4] font-medium">Can Retry:</span> <span class="text-[#F6F7F9]">${processedError.canRetry}</span></p>
+                    <p><span class="text-[#2EAFC4] font-medium">Max Retries:</span> <span class="text-[#F6F7F9]">${processedError.maxRetries}</span></p>
+                    <p><span class="text-[#2EAFC4] font-medium">Language:</span> <span class="text-[#F6F7F9]">${currentLanguage}</span></p>
+                </div>
+            `;
+            
+            testResults.appendChild(resultDiv);
+            
+            console.log(`${errorType} Test Result:`, processedError);
+        }
+
+        // Event listeners
+        document.getElementById('test-user-not-found').addEventListener('click', () => {
+            testErrorScenario('User Not Found', mockErrors.userNotFound);
+        });
+
+        document.getElementById('test-invalid-credentials').addEventListener('click', () => {
+            testErrorScenario('Invalid Credentials', mockErrors.invalidCredentials);
+        });
+
+        document.getElementById('test-rate-limited').addEventListener('click', () => {
+            testErrorScenario('Rate Limited', mockErrors.rateLimited);
+        });
+
+        document.getElementById('test-unconfirmed-email').addEventListener('click', () => {
+            testErrorScenario('Unconfirmed Email', mockErrors.unconfirmedEmail);
+        });
+
+        document.getElementById('test-network-error').addEventListener('click', () => {
+            testErrorScenario('Network Error', mockErrors.networkError);
+        });
+
+        document.getElementById('toggle-language').addEventListener('click', () => {
+            currentLanguage = currentLanguage === 'es' ? 'en' : 'es';
+            i18n.setLanguage(currentLanguage);
+            
+            const button = document.getElementById('toggle-language');
+            button.textContent = currentLanguage === 'es' ? 'Switch to English' : 'Cambiar a Español';
+            
+            console.log('Language changed to:', currentLanguage);
+        });
+
+        document.getElementById('open-auth-modal').addEventListener('click', () => {
+            authModal.open('login');
+        });
+
+        document.getElementById('clear-tests').addEventListener('click', () => {
+            const testResults = document.getElementById('test-results');
+            testResults.innerHTML = '<p class="text-[#F6F7F9]/70">Click the test buttons above to simulate different login error scenarios.</p>';
+        });
+
+        // Initialize language
+        i18n.setLanguage(currentLanguage);
+        
+        console.log('Login Error Handling Test Page Loaded');
+        console.log('Available test scenarios:', Object.keys(mockErrors));
+    </script>
+</body>
+</html>
