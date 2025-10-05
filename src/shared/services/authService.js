@@ -1,8 +1,11 @@
 import { supabase } from '../config/supabase.js';
+import { authErrorHandler } from './authErrorHandler.js';
+import { retryManager } from './retryManager.js';
 
 /**
  * Authentication service for handling user authentication
  * Uses Supabase Auth with fallback to mock implementation
+ * Enhanced with comprehensive error handling and retry logic
  */
 
 class AuthService {
@@ -410,6 +413,271 @@ class AuthService {
       return this.session?.access_token || null;
     } else {
       return localStorage.getItem('auth_token');
+    }
+  }
+
+  /**
+   * Enhanced register method with comprehensive error handling and optional retry
+   * @param {string} name - User name
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options (language, enableRetry, etc.)
+   * @returns {Promise<Object>} - Result object with user data or error info
+   */
+  async registerWithErrorHandling(name, email, password, options = {}) {
+    const language = options.language || 'es';
+    const enableRetry = options.enableRetry || false;
+
+    // Create the register function
+    const registerFunction = async (attemptCount) => {
+      const context = {
+        operation: 'register',
+        email: email,
+        language: language,
+        attemptCount: attemptCount
+      };
+
+      try {
+        const user = await this.register(name, email, password);
+        return {
+          success: true,
+          user: user,
+          context: context
+        };
+      } catch (error) {
+        if (enableRetry) {
+          // Classify the error to determine retry strategy
+          const processedError = authErrorHandler.handleError(error, context);
+          
+          // Throw with error type for RetryManager to handle
+          const enhancedError = new Error(error.message);
+          enhancedError.type = processedError.type;
+          enhancedError.processedError = processedError;
+          enhancedError.context = context;
+          throw enhancedError;
+        } else {
+          // Direct error handling without retry
+          const processedError = authErrorHandler.handleError(error, context);
+          return {
+            success: false,
+            error: processedError,
+            context: context
+          };
+        }
+      }
+    };
+
+    if (enableRetry) {
+      try {
+        // Use RetryManager for retry logic
+        const result = await retryManager.executeWithRetry(
+          registerFunction,
+          options.errorType || authErrorHandler.getErrorTypes().NETWORK_ERROR,
+          { maxRetries: options.maxRetries }
+        );
+
+        if (result.success) {
+          return result.result;
+        } else {
+          // Extract the processed error from the last attempt
+          const lastError = result.error;
+          const processedError = lastError.processedError || authErrorHandler.handleError(lastError, {
+            operation: 'register',
+            email: email,
+            language: language,
+            attemptCount: result.attemptCount
+          });
+
+          return {
+            success: false,
+            error: processedError,
+            context: lastError.context || {
+              operation: 'register',
+              email: email,
+              language: language,
+              attemptCount: result.attemptCount
+            },
+            retryInfo: {
+              totalAttempts: result.totalAttempts,
+              maxRetriesExceeded: result.maxRetriesExceeded
+            }
+          };
+        }
+      } catch (error) {
+        // Fallback error handling
+        const processedError = authErrorHandler.handleError(error, {
+          operation: 'register',
+          email: email,
+          language: language,
+          attemptCount: 0
+        });
+
+        return {
+          success: false,
+          error: processedError,
+          context: {
+            operation: 'register',
+            email: email,
+            language: language,
+            attemptCount: 0
+          }
+        };
+      }
+    } else {
+      // Execute without retry
+      return await registerFunction(0);
+    }
+  }
+
+  /**
+   * Enhanced login method with automatic retry logic using RetryManager
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {Object} options - Additional options (maxRetries, language, etc.)
+   * @returns {Promise<Object>} - Result object with user data or error info
+   */
+  async loginWithRetry(email, password, options = {}) {
+    const language = options.language || 'es';
+    
+    // Create the login function that will be retried
+    const loginFunction = async (attemptCount) => {
+      const context = {
+        operation: 'login',
+        email: email,
+        language: language,
+        attemptCount: attemptCount
+      };
+
+      try {
+        const user = await this.login(email, password);
+        return {
+          success: true,
+          user: user,
+          context: context
+        };
+      } catch (error) {
+        // Classify the error to determine retry strategy
+        const processedError = authErrorHandler.handleError(error, context);
+        
+        // Throw with error type for RetryManager to handle
+        const enhancedError = new Error(error.message);
+        enhancedError.type = processedError.type;
+        enhancedError.processedError = processedError;
+        enhancedError.context = context;
+        throw enhancedError;
+      }
+    };
+
+    try {
+      // Use RetryManager to execute with appropriate retry strategy
+      // Default to NETWORK_ERROR type if not specified, RetryManager will handle classification
+      const result = await retryManager.executeWithRetry(
+        loginFunction,
+        options.errorType || authErrorHandler.getErrorTypes().NETWORK_ERROR,
+        { maxRetries: options.maxRetries }
+      );
+
+      if (result.success) {
+        return result.result;
+      } else {
+        // Extract the processed error from the last attempt
+        const lastError = result.error;
+        const processedError = lastError.processedError || authErrorHandler.handleError(lastError, {
+          operation: 'login',
+          email: email,
+          language: language,
+          attemptCount: result.attemptCount
+        });
+
+        return {
+          success: false,
+          error: processedError,
+          context: lastError.context || {
+            operation: 'login',
+            email: email,
+            language: language,
+            attemptCount: result.attemptCount
+          },
+          retryInfo: {
+            totalAttempts: result.totalAttempts,
+            maxRetriesExceeded: result.maxRetriesExceeded
+          }
+        };
+      }
+    } catch (error) {
+      // Fallback error handling if RetryManager fails
+      const processedError = authErrorHandler.handleError(error, {
+        operation: 'login',
+        email: email,
+        language: language,
+        attemptCount: 0
+      });
+
+      return {
+        success: false,
+        error: processedError,
+        context: {
+          operation: 'login',
+          email: email,
+          language: language,
+          attemptCount: 0
+        }
+      };
+    }
+  }
+
+  /**
+   * Check connectivity with Supabase
+   * @returns {Promise<Object>} - Connectivity status and details
+   */
+  async checkConnectivity() {
+    const context = {
+      operation: 'connectivity_check',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      if (this.isSupabaseEnabled) {
+        // Try to get the current session as a connectivity test
+        const startTime = Date.now();
+        const { data, error } = await supabase.auth.getSession();
+        const latency = Date.now() - startTime;
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          success: true,
+          connected: true,
+          latency: latency,
+          supabaseAvailable: true,
+          context: context
+        };
+      } else {
+        // For mock implementation, simulate connectivity check
+        const startTime = Date.now();
+        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
+        const latency = Date.now() - startTime;
+
+        return {
+          success: true,
+          connected: true,
+          latency: latency,
+          supabaseAvailable: false,
+          mockMode: true,
+          context: context
+        };
+      }
+    } catch (error) {
+      const processedError = authErrorHandler.handleError(error, context);
+      return {
+        success: false,
+        connected: false,
+        supabaseAvailable: false,
+        error: processedError,
+        context: context
+      };
     }
   }
 

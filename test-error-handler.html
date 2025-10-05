@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth Error Handler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error-demo {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Auth Error Handler Test</h1>
+        <p>Esta página permite probar el manejo de errores de autenticación.</p>
+
+        <div class="test-section">
+            <h3>1. Clasificación de Errores</h3>
+            <p>Prueba la clasificación automática de diferentes tipos de errores:</p>
+            <button onclick="testErrorClassification()">Probar Clasificación</button>
+            <div id="classification-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Generación de Mensajes</h3>
+            <p>Prueba la generación de mensajes en español e inglés:</p>
+            <button onclick="testMessageGeneration()">Probar Mensajes</button>
+            <div id="messages-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Lógica de Reintentos</h3>
+            <p>Prueba la lógica de reintentos para diferentes tipos de errores:</p>
+            <button onclick="testRetryLogic()">Probar Reintentos</button>
+            <div id="retry-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Simulación de Errores</h3>
+            <p>Simula diferentes escenarios de error:</p>
+            <button onclick="simulateNetworkError()">Error de Red</button>
+            <button onclick="simulateInvalidCredentials()">Credenciales Inválidas</button>
+            <button onclick="simulateUserExists()">Usuario Existe</button>
+            <button onclick="simulateServerError()">Error del Servidor</button>
+            <div id="simulation-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Prueba Completa</h3>
+            <p>Ejecuta todas las pruebas automáticamente:</p>
+            <button onclick="runAllTests()">Ejecutar Todas las Pruebas</button>
+            <div id="complete-result" class="result"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { AuthErrorHandler, AUTH_ERROR_TYPES } from './src/shared/services/authErrorHandler.js';
+        import { runTests } from './src/shared/test/authErrorHandler.test.js';
+
+        // Create global instance for testing
+        window.errorHandler = new AuthErrorHandler();
+        window.AUTH_ERROR_TYPES = AUTH_ERROR_TYPES;
+
+        // Test functions
+        window.testErrorClassification = function() {
+            const result = document.getElementById('classification-result');
+            result.innerHTML = 'Probando clasificación de errores...\n\n';
+
+            const testCases = [
+                { error: new Error('Network error occurred'), expected: 'NETWORK_ERROR' },
+                { error: new Error('Invalid login credentials'), expected: 'AUTH_INVALID_CREDENTIALS' },
+                { error: new Error('User already registered'), expected: 'AUTH_USER_EXISTS' },
+                { error: new Error('User not found'), expected: 'AUTH_USER_NOT_FOUND' },
+                { error: { message: 'Password is too weak', code: 'weak_password' }, expected: 'AUTH_WEAK_PASSWORD' }
+            ];
+
+            testCases.forEach((testCase, index) => {
+                const classified = window.errorHandler.classifyError(testCase.error);
+                const passed = classified === AUTH_ERROR_TYPES[testCase.expected];
+                const status = passed ? '✅ PASS' : '❌ FAIL';
+                result.innerHTML += `Test ${index + 1}: ${status} - ${testCase.error.message || testCase.error.code}\n`;
+                result.innerHTML += `  Clasificado como: ${classified}\n\n`;
+            });
+        };
+
+        window.testMessageGeneration = function() {
+            const result = document.getElementById('messages-result');
+            result.innerHTML = 'Generando mensajes de error...\n\n';
+
+            result.innerHTML += 'MENSAJES EN ESPAÑOL:\n';
+            Object.values(AUTH_ERROR_TYPES).forEach(errorType => {
+                const message = window.errorHandler.generateUserMessage(errorType, 'es');
+                result.innerHTML += `${errorType}: ${message}\n`;
+            });
+
+            result.innerHTML += '\nMENSAJES EN INGLÉS:\n';
+            Object.values(AUTH_ERROR_TYPES).forEach(errorType => {
+                const message = window.errorHandler.generateUserMessage(errorType, 'en');
+                result.innerHTML += `${errorType}: ${message}\n`;
+            });
+        };
+
+        window.testRetryLogic = function() {
+            const result = document.getElementById('retry-result');
+            result.innerHTML = 'Probando lógica de reintentos...\n\n';
+
+            const testCases = [
+                { errorType: AUTH_ERROR_TYPES.NETWORK_ERROR, attemptCount: 0, shouldRetry: true },
+                { errorType: AUTH_ERROR_TYPES.NETWORK_ERROR, attemptCount: 3, shouldRetry: false },
+                { errorType: AUTH_ERROR_TYPES.AUTH_USER_NOT_FOUND, attemptCount: 0, shouldRetry: false },
+                { errorType: AUTH_ERROR_TYPES.AUTH_INVALID_CREDENTIALS, attemptCount: 2, shouldRetry: true }
+            ];
+
+            testCases.forEach((testCase, index) => {
+                const canRetry = window.errorHandler.shouldAllowRetry(testCase.errorType, testCase.attemptCount);
+                const passed = canRetry === testCase.shouldRetry;
+                const status = passed ? '✅ PASS' : '❌ FAIL';
+                result.innerHTML += `Test ${index + 1}: ${status} - ${testCase.errorType} (intento ${testCase.attemptCount})\n`;
+                result.innerHTML += `  Puede reintentar: ${canRetry}\n\n`;
+            });
+        };
+
+        window.simulateNetworkError = function() {
+            const result = document.getElementById('simulation-result');
+            const error = new Error('Network connection failed');
+            const context = { operation: 'login', attemptCount: 1, language: 'es' };
+            
+            const handled = window.errorHandler.handleError(error, context);
+            
+            result.innerHTML = `🔴 Error de Red Simulado:\n\n`;
+            result.innerHTML += `Tipo: ${handled.type}\n`;
+            result.innerHTML += `Mensaje: ${handled.userMessage}\n`;
+            result.innerHTML += `Puede reintentar: ${handled.canRetry}\n`;
+            result.innerHTML += `Intentos máximos: ${handled.maxRetries}\n`;
+        };
+
+        window.simulateInvalidCredentials = function() {
+            const result = document.getElementById('simulation-result');
+            const error = new Error('Invalid login credentials');
+            const context = { operation: 'login', attemptCount: 1, language: 'es' };
+            
+            const handled = window.errorHandler.handleError(error, context);
+            
+            result.innerHTML = `🔴 Credenciales Inválidas Simuladas:\n\n`;
+            result.innerHTML += `Tipo: ${handled.type}\n`;
+            result.innerHTML += `Mensaje: ${handled.userMessage}\n`;
+            result.innerHTML += `Puede reintentar: ${handled.canRetry}\n`;
+            result.innerHTML += `Intentos máximos: ${handled.maxRetries}\n`;
+        };
+
+        window.simulateUserExists = function() {
+            const result = document.getElementById('simulation-result');
+            const error = new Error('User already registered');
+            const context = { operation: 'register', attemptCount: 0, language: 'es' };
+            
+            const handled = window.errorHandler.handleError(error, context);
+            
+            result.innerHTML = `🔴 Usuario Existente Simulado:\n\n`;
+            result.innerHTML += `Tipo: ${handled.type}\n`;
+            result.innerHTML += `Mensaje: ${handled.userMessage}\n`;
+            result.innerHTML += `Puede reintentar: ${handled.canRetry}\n`;
+            result.innerHTML += `Intentos máximos: ${handled.maxRetries}\n`;
+        };
+
+        window.simulateServerError = function() {
+            const result = document.getElementById('simulation-result');
+            const error = new Error('Internal server error');
+            error.status = 500;
+            const context = { operation: 'login', attemptCount: 0, language: 'es' };
+            
+            const handled = window.errorHandler.handleError(error, context);
+            
+            result.innerHTML = `🔴 Error del Servidor Simulado:\n\n`;
+            result.innerHTML += `Tipo: ${handled.type}\n`;
+            result.innerHTML += `Mensaje: ${handled.userMessage}\n`;
+            result.innerHTML += `Puede reintentar: ${handled.canRetry}\n`;
+            result.innerHTML += `Intentos máximos: ${handled.maxRetries}\n`;
+        };
+
+        window.runAllTests = function() {
+            const result = document.getElementById('complete-result');
+            result.innerHTML = 'Ejecutando todas las pruebas...\n\n';
+            
+            // Redirect console.log to our result div
+            const originalLog = console.log;
+            console.log = function(...args) {
+                result.innerHTML += args.join(' ') + '\n';
+                originalLog.apply(console, args);
+            };
+            
+            try {
+                runTests();
+            } finally {
+                // Restore original console.log
+                console.log = originalLog;
+            }
+        };
+
+        // Show ready message
+        console.log('✅ Auth Error Handler test page loaded successfully!');
+        console.log('🧪 Use the buttons above to test different functionality');
+    </script>
+</body>
+</html>
