@@ -14,7 +14,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3002,
+    port: 5175,
     open: true
   },
   publicDir: '../../public'
