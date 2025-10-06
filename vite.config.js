@@ -4,6 +4,7 @@ import { resolve } from 'path'
 // Default config for development - serves both landing and app
 export default defineConfig({
   root: '.',
+  envDir: '.',
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -15,6 +16,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    open: '/test-auth-complete.html'
+    open: '/src/landing/index.html'
   }
 })

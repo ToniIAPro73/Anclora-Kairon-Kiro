@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Config</title>
+</head>
+<body>
+    <h1>Testing Supabase Configuration</h1>
+    <div id="status">Loading...</div>
+
+    <script type="module">
+        // Test if environment variables are loaded
+        console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+        console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Loaded' : 'Not loaded');
+
+        // Test Supabase import
+        import('../src/shared/config/supabase.js').then(({ supabase }) => {
+            document.getElementById('status').innerHTML = `
+                <h2>Configuration Status</h2>
+                <p><strong>Supabase URL:</strong> ${import.meta.env.VITE_SUPABASE_URL || 'Not loaded'}</p>
+                <p><strong>Supabase Key:</strong> ${import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Loaded' : 'Not loaded'}</p>
+                <p><strong>Supabase Client:</strong> ${supabase ? 'Connected' : 'Null - Mock mode'}</p>
+            `;
+
+            if (supabase) {
+                document.getElementById('status').innerHTML += '<p style="color: green;">✅ Supabase is properly configured!</p>';
+            } else {
+                document.getElementById('status').innerHTML += '<p style="color: red;">❌ Supabase configuration missing - using mock authentication</p>';
+            }
+        }).catch(error => {
+            document.getElementById('status').innerHTML = `<p style="color: red;">Error loading Supabase config: ${error.message}</p>`;
+        });
+    </script>
+</body>
+</html>

@@ -6,10 +6,15 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase configuration missing. Using mock authentication.');
+  console.log('Environment check:', {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || 'undefined',
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'undefined',
+    allEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+  });
 }
 
 // Create Supabase client
-export const supabase = supabaseUrl && supabaseAnonKey 
+export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,

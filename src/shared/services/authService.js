@@ -18,7 +18,8 @@ class AuthService {
     this.currentUser = null;
     this.session = null;
     this.isSupabaseEnabled = !!supabase;
-    
+    this.authInitialized = false;
+
     // Initialize auth state
     this.initializeAuth();
   }
@@ -32,13 +33,14 @@ class AuthService {
       const { data: { session } } = await supabase.auth.getSession();
       this.session = session;
       this.currentUser = session?.user || null;
+      this.authInitialized = true;
 
       // Listen for auth changes
       supabase.auth.onAuthStateChange((event, session) => {
         console.log('Auth state changed:', event, session);
         this.session = session;
         this.currentUser = session?.user || null;
-        
+
         // Handle auth events
         if (event === 'SIGNED_IN') {
           this.handleSignIn(session);
@@ -52,7 +54,37 @@ class AuthService {
       if (token) {
         this.getCurrentUser();
       }
+      this.authInitialized = true;
     }
+  }
+
+  /**
+   * Wait for authentication initialization to complete
+   * @returns {Promise<void>}
+   */
+  async waitForAuthInitialization() {
+    const maxWaitTime = 5000; // 5 seconds max wait
+    const checkInterval = 100; // Check every 100ms
+    const startTime = Date.now();
+
+    return new Promise((resolve) => {
+      const checkInitialization = () => {
+        if (this.authInitialized) {
+          resolve();
+          return;
+        }
+
+        if (Date.now() - startTime >= maxWaitTime) {
+          console.warn('Auth initialization timeout - proceeding anyway');
+          resolve();
+          return;
+        }
+
+        setTimeout(checkInitialization, checkInterval);
+      };
+
+      checkInitialization();
+    });
   }
 
   /**

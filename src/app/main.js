@@ -9,9 +9,22 @@ console.log('Anclora Kairon App loaded')
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('App DOM loaded')
-  
+
   const appRoot = document.getElementById('app-root')
-  
+
+  // Wait for auth service to initialize before checking authentication
+  await authService.waitForAuthInitialization()
+
+  // Check if we should redirect to app (from OAuth callback)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('app') === 'true') {
+    // Redirect to app if authenticated
+    if (authService.isAuthenticated()) {
+      window.location.href = '/src/app/';
+      return;
+    }
+  }
+
   // Check authentication status
   const isAuthenticated = authService.isAuthenticated()
   
