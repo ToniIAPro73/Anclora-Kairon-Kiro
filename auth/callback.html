@@ -39,7 +39,66 @@
 
         async function handleAuthCallback() {
             try {
-                // Get the session from the URL
+                console.log('🔗 Procesando callback de autenticación...');
+                console.log('URL completa:', window.location.href);
+                
+                // Check both URL parameters and hash for tokens
+                const urlParams = new URLSearchParams(window.location.search);
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                
+                // Get type from either source
+                const type = urlParams.get('type') || hashParams.get('type');
+                
+                // Get tokens from hash (Supabase default) or query params
+                const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');
+                const errorParam = hashParams.get('error') || urlParams.get('error');
+                const errorDescription = hashParams.get('error_description') || urlParams.get('error_description');
+                
+                console.log('Callback type:', type);
+                console.log('Has access token:', !!accessToken);
+                console.log('Has refresh token:', !!refreshToken);
+                console.log('Error param:', errorParam);
+                
+                // Check for errors first
+                if (errorParam) {
+                    console.error('Auth callback error:', errorParam, errorDescription);
+                    window.location.href = `/?error=${errorParam}&description=${encodeURIComponent(errorDescription || '')}`;
+                    return;
+                }
+
+                // Handle password recovery callback
+                if (type === 'recovery' || (accessToken && window.location.hash.includes('type=recovery'))) {
+                    console.log('🔐 Detectado enlace de recuperación de contraseña');
+                    
+                    // Set the session from tokens if available
+                    if (accessToken && refreshToken) {
+                        console.log('🔑 Estableciendo sesión de recuperación...');
+                        
+                        const { data, error } = await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken
+                        });
+                        
+                        if (error) {
+                            console.error('Error setting recovery session:', error);
+                            window.location.href = `/?error=recovery_session_failed&details=${encodeURIComponent(error.message)}`;
+                            return;
+                        }
+                        
+                        console.log('✅ Sesión de recuperación establecida:', data.session?.user?.email);
+                        
+                        // Redirect to password reset page immediately
+                        window.location.href = '/auth/reset-password.html?type=recovery';
+                        return;
+                    } else {
+                        console.error('❌ No se encontraron tokens de recuperación');
+                        window.location.href = '/?error=missing_recovery_tokens';
+                        return;
+                    }
+                }
+
+                // Handle regular authentication callback
                 const { data, error } = await supabase.auth.getSession();
                 
                 if (error) {
@@ -49,6 +108,8 @@
                 }
 
                 if (data.session) {
+                    console.log('✅ Sesión de autenticación válida');
+                    
                     // Check if user is new
                     const { data: userProfile } = await supabase
                         .from('users')
@@ -58,11 +119,14 @@
 
                     if (!userProfile?.onboarding_completed) {
                         localStorage.setItem('is_new_user', 'true');
+                        console.log('👤 Usuario nuevo detectado');
                     }
 
                     // Redirect to app
-                    window.location.href = '/app/dashboard';
+                    console.log('🚀 Redirigiendo a la aplicación...');
+                    window.location.href = '/src/app/index.html';
                 } else {
+                    console.log('❌ No hay sesión válida');
                     // No session, redirect to login
                     window.location.href = '/?error=no_session';
                 }

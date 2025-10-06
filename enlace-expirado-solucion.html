@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⏰ Enlace Expirado - Solución</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card auth-card-large">
+            <div class="auth-text-center">
+                <div class="auth-icon-large auth-icon-warning">
+                    ⏰
+                </div>
+                <h1 class="auth-title auth-mb-4">Enlace de Recuperación Expirado</h1>
+                <p class="auth-subtitle auth-mb-6">No te preocupes, esto es normal y tiene solución fácil</p>
+            </div>
+
+            <!-- Por qué expiran los enlaces -->
+            <div class="auth-info-box auth-info-box-warning">
+                <h3 class="auth-section-title">🤔 ¿Por qué expiran los enlaces?</h3>
+                <ul class="auth-text">
+                    <li>• <strong>Seguridad:</strong> Los enlaces expiran en 1 hora por tu protección</li>
+                    <li>• <strong>Uso único:</strong> Cada enlace solo se puede usar una vez</li>
+                    <li>• <strong>Sesión activa:</strong> Si ya tienes una sesión abierta, puede interferir</li>
+                </ul>
+            </div>
+
+            <!-- Solución paso a paso -->
+            <div class="auth-mb-6">
+                <h2 class="auth-section-title auth-mb-4">🔧 Solución Paso a Paso</h2>
+                
+                <div class="auth-step">
+                    <div class="auth-step-number">1</div>
+                    <div>
+                        <h4 style="font-weight: 600; margin-bottom: 0.25rem;">Cerrar todas las pestañas</h4>
+                        <p class="auth-text">Cierra todas las pestañas de Anclora para limpiar la sesión</p>
+                    </div>
+                </div>
+
+                <div class="auth-step">
+                    <div class="auth-step-number">2</div>
+                    <div>
+                        <h4 style="font-weight: 600; margin-bottom: 0.25rem;">Solicitar nuevo enlace</h4>
+                        <p class="auth-text">Usa el botón de abajo para solicitar un enlace fresco</p>
+                    </div>
+                </div>
+
+                <div class="auth-step">
+                    <div class="auth-step-number">3</div>
+                    <div>
+                        <h4 style="font-weight: 600; margin-bottom: 0.25rem;">Actuar rápidamente</h4>
+                        <p class="auth-text">Haz clic en el nuevo enlace dentro de los primeros 10 minutos</p>
+                    </div>
+                </div>
+
+                <div class="auth-step">
+                    <div class="auth-step-number">4</div>
+                    <div>
+                        <h4 style="font-weight: 600; margin-bottom: 0.25rem;">Cambiar contraseña inmediatamente</h4>
+                        <p class="auth-text">No navegues a otras páginas, cambia la contraseña directamente</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones principales -->
+            <div class="auth-text-center auth-mb-6">
+                <h3 class="auth-section-title auth-mb-4">🚀 Acciones Recomendadas</h3>
+                <div class="auth-space-y-3">
+                    <a href="test-recuperacion-mejorada.html" class="auth-btn auth-btn-primary auth-btn-full">
+                        📧 Solicitar Nuevo Enlace de Recuperación
+                    </a>
+                    
+                    <div class="auth-grid auth-grid-2">
+                        <a href="diagnostico-email-recuperacion.html" class="auth-btn auth-btn-secondary">
+                            🔍 Diagnóstico Completo
+                        </a>
+                        <a href="test-login-directo.html" class="auth-btn auth-btn-secondary">
+                            🔑 Probar Login Directo
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consejos para evitar el problema -->
+            <div class="auth-info-box auth-info-box-success">
+                <h3 class="auth-section-title">💡 Consejos para Evitar Este Problema</h3>
+                <ul class="auth-text">
+                    <li>• <strong>Actúa rápido:</strong> Usa el enlace dentro de los primeros 10 minutos</li>
+                    <li>• <strong>Una pestaña:</strong> Abre el enlace en una sola pestaña</li>
+                    <li>• <strong>Sin distracciones:</strong> Cambia la contraseña inmediatamente</li>
+                    <li>• <strong>Navegador limpio:</strong> Usa modo incógnito si tienes problemas</li>
+                </ul>
+            </div>
+
+            <!-- Información técnica -->
+            <details class="mt-6">
+                <summary class="cursor-pointer font-semibold text-gray-700 hover:text-gray-900">
+                    🔧 Información Técnica (para desarrolladores)
+                </summary>
+                <div class="mt-3 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                    <h4 class="font-semibold mb-2">Posibles causas técnicas:</h4>
+                    <ul class="space-y-1 text-gray-600">
+                        <li>• Token JWT expirado (1 hora de vida útil)</li>
+                        <li>• Conflicto de sesiones múltiples</li>
+                        <li>• Problemas de CORS o configuración de dominio</li>
+                        <li>• Cache del navegador interfiriendo</li>
+                        <li>• Configuración incorrecta de redirectTo en Supabase</li>
+                    </ul>
+                    
+                    <h4 class="font-semibold mt-3 mb-2">URLs de configuración actual:</h4>
+                    <ul class="space-y-1 text-gray-600 font-mono text-xs">
+                        <li>• Callback: /auth/reset-password.html</li>
+                        <li>• Confirmación: /password-updated.html</li>
+                        <li>• Diagnóstico: /diagnostico-email-recuperacion.html</li>
+                    </ul>
+                </div>
+            </details>
+
+            <!-- Enlaces de ayuda -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-500 mb-3">¿Sigues teniendo problemas?</p>
+                <div class="space-x-2">
+                    <a href="mailto:soporte@anclora.com?subject=Enlace de recuperación expirado" class="text-blue-600 hover:text-blue-800 text-sm">
+                        📧 Contactar Soporte
+                    </a>
+                    <span class="text-gray-300">|</span>
+                    <a href="test-flujo-completo-recuperacion.html" class="text-blue-600 hover:text-blue-800 text-sm">
+                        🔄 Test Completo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detectar si venimos de una página de error
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        
+        if (error) {
+            console.log('🔍 Error detectado:', error);
+            
+            // Mostrar información específica del error
+            const errorInfo = {
+                'recovery_session_failed': 'Error al establecer la sesión de recuperación',
+                'missing_recovery_tokens': 'Tokens de recuperación no encontrados',
+                'session_expired': 'La sesión de recuperación ha expirado'
+            };
+            
+            if (errorInfo[error]) {
+                const infoBox = document.createElement('div');
+                infoBox.className = 'info-box info-error';
+                infoBox.innerHTML = `
+                    <h3 class="font-semibold mb-2">🚨 Error Específico Detectado</h3>
+                    <p class="text-sm">${errorInfo[error]}</p>
+                `;
+                
+                document.querySelector('.solution-container').insertBefore(
+                    infoBox, 
+                    document.querySelector('.info-box')
+                );
+            }
+        }
+
+        console.log('⏰ Página de solución de enlace expirado cargada');
+    </script>
+</body>
+</html>

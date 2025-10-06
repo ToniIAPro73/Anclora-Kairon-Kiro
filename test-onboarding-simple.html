@@ -4,20 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prueba Onboarding - Anclora Kairon</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --azul-profundo: #23436B;
-            --azul-claro: #2EAFC4;
-            --teal-secundario: #37B5A4;
-            --ambar-suave: #FFC979;
-            --gris-claro: #F6F7F9;
-            --negro-azulado: #162032;
-            --blanco: #FFFFFF;
+    <link rel="stylesheet" href="src/shared/styles/auth-theme.css">
             --gradient-hero: linear-gradient(120deg, #23436B 0%, #2EAFC4 100%);
             --gradient-action: linear-gradient(90deg, #2EAFC4 0%, #FFC979 100%);
         }
@@ -75,7 +62,7 @@
         .status-error { background-color: #EF4444; }
     </style>
 </head>
-<body>
+<body class="auth-page">
     <div class="min-h-screen flex items-center justify-center p-4">
         <div class="card p-12 max-w-lg w-full text-center">
             <div class="mb-8">

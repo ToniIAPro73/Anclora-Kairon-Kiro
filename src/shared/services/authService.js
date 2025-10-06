@@ -773,7 +773,7 @@ class AuthService {
         console.log('Sending password reset email to:', email);
         
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${window.location.origin}/auth/reset-password`
+          redirectTo: `${window.location.origin}/auth/reset-password.html`
         });
 
         if (error) {

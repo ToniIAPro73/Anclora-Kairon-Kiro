@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Test Flujo Completo - Recuperación de Contraseña</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme.css">
+
+
+
+        .step {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+        }
+
+        .step.completed {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step.active .step-number {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0284c7;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .status-indicator {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            color: #065f46;
+        }
+
+        .status-error {
+            background: #fef2f2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .status-info {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            color: #0c4a6e;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0ea5e9;
+        }
+</head>
+<body class="auth-page">
+    <div class="container">
+        <div class="test-container">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">🔄 Test Flujo Completo</h1>
+                <p class="text-gray-600">Recuperación de Contraseña - Paso a Paso</p>
+            </div>
+
+            <!-- Paso 1: Solicitar recuperación -->
+            <div class="step active" id="step-1">
+                <div class="flex items-start">
+                    <div class="step-number">1</div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold mb-2">📧 Solicitar Email de Recuperación</h3>
+                        <p class="text-gray-600 mb-4">Ingresa tu email para recibir el enlace de recuperación</p>
+                        
+                        <form id="recovery-form">
+                            <div class="form-group">
+                                <label for="email">Email:</label>
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    required 
+                                    placeholder="tu@email.com"
+                                >
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                📤 Enviar Email de Recuperación
+                            </button>
+                        </form>
+                        
+                        <div id="step-1-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paso 2: Revisar email -->
+            <div class="step" id="step-2">
+                <div class="flex items-start">
+                    <div class="step-number">2</div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold mb-2">📬 Revisar Email</h3>
+                        <p class="text-gray-600 mb-4">Busca el email en tu bandeja de entrada</p>
+                        
+                        <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Lugares donde buscar:</h4>
+                            <ul class="text-sm text-yellow-700 space-y-1">
+                                <li>• Bandeja de entrada principal</li>
+                                <li>• <strong>Carpeta de SPAM</strong> (más común)</li>
+                                <li>• Promociones/Actualizaciones (Gmail)</li>
+                                <li>• Buscar: "noreply@supabase.co" o "Anclora"</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <button id="email-found-btn" class="btn btn-success w-full" disabled>
+                                ✅ Encontré el email
+                            </button>
+                            <button id="email-not-found-btn" class="btn btn-secondary w-full" disabled>
+                                ❌ No encuentro el email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paso 3: Hacer clic en el enlace -->
+            <div class="step" id="step-3">
+                <div class="flex items-start">
+                    <div class="step-number">3</div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold mb-2">🔗 Hacer Clic en el Enlace</h3>
+                        <p class="text-gray-600 mb-4">Haz clic en el enlace del email para cambiar tu contraseña</p>
+                        
+                        <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-blue-800 mb-2">📋 Qué esperar:</h4>
+                            <ul class="text-sm text-blue-700 space-y-1">
+                                <li>• El enlace te llevará a una página de cambio de contraseña</li>
+                                <li>• Verás un formulario para ingresar nueva contraseña</li>
+                                <li>• La página validará los requisitos de seguridad</li>
+                            </ul>
+                        </div>
+                        
+                        <button id="clicked-link-btn" class="btn btn-success w-full" disabled>
+                            ✅ Hice clic en el enlace
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paso 4: Cambiar contraseña -->
+            <div class="step" id="step-4">
+                <div class="flex items-start">
+                    <div class="step-number">4</div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold mb-2">🔒 Cambiar Contraseña</h3>
+                        <p class="text-gray-600 mb-4">Ingresa tu nueva contraseña en el formulario</p>
+                        
+                        <div class="bg-green-50 border-2 border-green-300 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-green-800 mb-2">🔐 Requisitos de contraseña:</h4>
+                            <ul class="text-sm text-green-700 space-y-1">
+                                <li>• Al menos 8 caracteres</li>
+                                <li>• Al menos una mayúscula</li>
+                                <li>• Al menos una minúscula</li>
+                                <li>• Al menos un número</li>
+                            </ul>
+                        </div>
+                        
+                        <button id="password-changed-btn" class="btn btn-success w-full" disabled>
+                            ✅ Cambié mi contraseña
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paso 5: Confirmar éxito -->
+            <div class="step" id="step-5">
+                <div class="flex items-start">
+                    <div class="step-number">5</div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold mb-2">🎉 ¡Proceso Completado!</h3>
+                        <p class="text-gray-600 mb-4">Tu contraseña ha sido actualizada exitosamente</p>
+                        
+                        <div class="space-y-2">
+                            <a href="test-login-directo.html" class="btn btn-primary w-full">
+                                🔑 Probar Login con Nueva Contraseña
+                            </a>
+                            <button id="restart-test-btn" class="btn btn-secondary w-full">
+                                🔄 Reiniciar Test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información sobre enlaces expirados -->
+            <div class="mt-6 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+                <h3 class="font-semibold text-yellow-800 mb-2">⏰ ¿Enlace Expirado?</h3>
+                <p class="text-sm text-yellow-700 mb-3">
+                    Si el enlace del email dice que está expirado, es normal. Los enlaces expiran en 1 hora por seguridad.
+                </p>
+                <a href="enlace-expirado-solucion.html" class="btn btn-secondary text-sm">
+                    🔧 Solución para Enlaces Expirados
+                </a>
+            </div>
+
+            <!-- Enlaces de ayuda -->
+            <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 class="font-semibold mb-3">🛠️ Herramientas de Ayuda</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <a href="test-recuperacion-mejorada.html" class="btn btn-secondary text-sm">
+                        🔧 Recuperación Mejorada
+                    </a>
+                    <a href="diagnostico-email-recuperacion.html" class="btn btn-secondary text-sm">
+                        🔍 Diagnóstico Email
+                    </a>
+                    <a href="enlace-expirado-solucion.html" class="btn btn-secondary text-sm">
+                        ⏰ Enlace Expirado
+                    </a>
+                    <a href="test-login-directo.html" class="btn btn-secondary text-sm">
+                        🔑 Test Login Directo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+
+        // Estado del test
+        let currentStep = 1;
+        let testEmail = '';
+
+        // Elementos del DOM
+        const recoveryForm = document.getElementById('recovery-form');
+        const emailInput = document.getElementById('email');
+        const step1Status = document.getElementById('step-1-status');
+        
+        const emailFoundBtn = document.getElementById('email-found-btn');
+        const emailNotFoundBtn = document.getElementById('email-not-found-btn');
+        const clickedLinkBtn = document.getElementById('clicked-link-btn');
+        const passwordChangedBtn = document.getElementById('password-changed-btn');
+        const restartTestBtn = document.getElementById('restart-test-btn');
+
+        // Funciones de UI
+        function updateStepStatus(stepNumber, status) {
+            const step = document.getElementById(`step-${stepNumber}`);
+            step.className = `step ${status}`;
+        }
+
+        function activateStep(stepNumber) {
+            // Desactivar todos los pasos
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById(`step-${i}`);
+                if (i < stepNumber) {
+                    step.className = 'step completed';
+                } else if (i === stepNumber) {
+                    step.className = 'step active';
+                } else {
+                    step.className = 'step';
+                }
+            }
+            currentStep = stepNumber;
+        }
+
+        function showStatus(containerId, type, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="status-indicator status-${type} mt-4">
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Event Listeners
+        recoveryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            if (!email) return;
+
+            testEmail = email;
+            
+            try {
+                showStatus('step-1-status', 'info', '⏳ Enviando email de recuperación...');
+                
+                const result = await authService.resetPassword(email, {
+                    language: 'es',
+                    enableDiagnostics: true
+                });
+
+                if (result.success) {
+                    showStatus('step-1-status', 'success', `✅ Email enviado a ${email}. Revisa tu bandeja de entrada y spam.`);
+                    
+                    // Activar paso 2
+                    setTimeout(() => {
+                        activateStep(2);
+                        emailFoundBtn.disabled = false;
+                        emailNotFoundBtn.disabled = false;
+                    }, 1000);
+                } else {
+                    showStatus('step-1-status', 'error', `❌ Error: ${result.error.message}`);
+                }
+            } catch (error) {
+                showStatus('step-1-status', 'error', `❌ Error inesperado: ${error.message}`);
+            }
+        });
+
+        emailFoundBtn.addEventListener('click', () => {
+            activateStep(3);
+            clickedLinkBtn.disabled = false;
+        });
+
+        emailNotFoundBtn.addEventListener('click', () => {
+            alert('💡 Sugerencias:\n\n1. Revisa tu carpeta de SPAM\n2. Busca "noreply@supabase.co"\n3. Usa el diagnóstico de email\n4. Espera unos minutos más');
+        });
+
+        clickedLinkBtn.addEventListener('click', () => {
+            activateStep(4);
+            passwordChangedBtn.disabled = false;
+            
+            // Abrir la página de reset en nueva pestaña
+            window.open('auth/reset-password.html', '_blank');
+        });
+
+        passwordChangedBtn.addEventListener('click', () => {
+            activateStep(5);
+        });
+
+        restartTestBtn.addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Detectar si venimos de una página de éxito
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('step')) {
+            const step = parseInt(urlParams.get('step'));
+            activateStep(step);
+            
+            if (step >= 2) {
+                emailFoundBtn.disabled = false;
+                emailNotFoundBtn.disabled = false;
+            }
+            if (step >= 3) {
+                clickedLinkBtn.disabled = false;
+            }
+            if (step >= 4) {
+                passwordChangedBtn.disabled = false;
+            }
+        }
+
+        console.log('🔄 Test de flujo completo de recuperación cargado');
+    </script>
+</body>
+</html>

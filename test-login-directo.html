@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Test Login Directo - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme.css">
+    <link rel="stylesheet" href="src/shared/styles/userFeedback.css">
+</head>
+
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-text-center auth-mb-6">
+                <h1 class="auth-title">🔐 Test Login Directo</h1>
+                <p class="auth-subtitle">Prueba todas las funcionalidades de autenticación</p>
+            </div>
+
+            <!-- Estado de Autenticación -->
+            <div class="auth-info-box auth-info-box-info auth-mb-4">
+                <h2 class="auth-section-title">📊 Estado Actual</h2>
+                <div id="auth-status" class="auth-status auth-status-info">
+                    ⏳ Verificando estado de autenticación...
+                </div>
+                <div id="user-info"></div>
+            </div>
+
+            <!-- Opciones de Prueba -->
+            <div class="auth-info-box auth-info-box-success auth-mb-4">
+                <h2 class="auth-section-title">🧪 Opciones de Prueba</h2>
+
+                <div class="auth-space-y-3">
+                    <button id="open-auth-modal" class="auth-btn auth-btn-primary auth-btn-full">
+                        🔑 Abrir Modal de Autenticación
+                    </button>
+
+                    <button id="test-recovery" class="auth-btn auth-btn-secondary auth-btn-full">
+                        📧 Probar Recuperación de Contraseña
+                    </button>
+
+                    <button id="test-oauth" class="auth-btn auth-btn-secondary auth-btn-full">
+                        🔗 Probar OAuth (Google/GitHub)
+                    </button>
+
+                    <button id="logout-btn" class="auth-btn auth-btn-outline auth-btn-full" style="display: none;">
+                        🚪 Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+
+            <!-- Enlaces a Otras Pruebas -->
+            <div class="auth-info-box auth-info-box-warning auth-mb-4">
+                <h2 class="auth-section-title">🔗 Otras Pruebas Disponibles</h2>
+
+                <div class="auth-grid auth-grid-2">
+                    <a href="test-recuperacion-mejorada.html" class="auth-btn auth-btn-secondary">
+                        🔧 Recuperación Mejorada
+                    </a>
+
+                    <a href="diagnostico-email-recuperacion.html" class="auth-btn auth-btn-secondary">
+                        🔍 Diagnóstico Email
+                    </a>
+
+                    <a href="test-auth-complete.html" class="auth-btn auth-btn-secondary">
+                        ✅ Prueba Completa
+                    </a>
+
+                    <a href="test-auth-modal-enhanced.html" class="auth-btn auth-btn-secondary">
+                        🎨 Modal Mejorado
+                    </a>
+                </div>
+            </div>
+
+            <!-- Información de Configuración -->
+            <div class="auth-info-box auth-info-box-info auth-mb-4">
+                <h2 class="auth-section-title">⚙️ Configuración</h2>
+                <div id="config-info" class="auth-text">
+                    <div>🔧 Cargando información de configuración...</div>
+                </div>
+            </div>
+
+            <!-- Instrucciones -->
+            <div class="auth-info-box auth-info-box-success">
+                <h2 class="auth-section-title">📋 Instrucciones</h2>
+                <div class="auth-text">
+                    <p><strong>Para probar login:</strong></p>
+                    <ol style="margin: 0.5rem 0; padding-left: 1.25rem;">
+                        <li>Haz clic en "Abrir Modal de Autenticación"</li>
+                        <li>Prueba login con email/contraseña</li>
+                        <li>Prueba registro de nuevo usuario</li>
+                        <li>Prueba "¿Olvidaste tu contraseña?"</li>
+                    </ol>
+
+                    <p style="margin-top: 1rem;"><strong>Para recuperación de contraseña:</strong></p>
+                    <ol style="margin: 0.5rem 0; padding-left: 1.25rem;">
+                        <li>Usa "Recuperación Mejorada" para diagnósticos</li>
+                        <li>Usa "Diagnóstico Email" si no llega el email</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="auth-modal-container"></div>
+
+    <script type="module">
+        import { authService } from './src/shared/services/authService.js';
+        import AuthModalVanilla from './src/shared/components/AuthModalVanilla.js';
+
+        // Elementos del DOM
+        const authStatusDiv = document.getElementById('auth-status');
+        const userInfoDiv = document.getElementById('user-info');
+        const configInfoDiv = document.getElementById('config-info');
+        const openModalBtn = document.getElementById('open-auth-modal');
+        const testRecoveryBtn = document.getElementById('test-recovery');
+        const testOAuthBtn = document.getElementById('test-oauth');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // Instancia del modal
+        const authModal = new AuthModalVanilla();
+
+        // Verificar estado de autenticación
+        async function checkAuthStatus() {
+            try {
+                const isAuthenticated = authService.isAuthenticated();
+                const currentUser = authService.getCurrentUser();
+
+                if (isAuthenticated && currentUser) {
+                    authStatusDiv.className = 'auth-status auth-status-success';
+                    authStatusDiv.innerHTML = '✅ Usuario autenticado';
+
+                    userInfoDiv.innerHTML = `
+                        <div class="auth-mt-2" style="padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
+                            <p class="auth-text"><strong>Email:</strong> ${currentUser.email}</p>
+                            <p class="auth-text"><strong>ID:</strong> ${currentUser.id}</p>
+                            <p class="auth-text"><strong>Nombre:</strong> ${currentUser.user_metadata?.name || 'No especificado'}</p>
+                        </div>
+                    `;
+
+                    openModalBtn.textContent = '👤 Ver Perfil de Usuario';
+                    logoutBtn.style.display = 'block';
+                } else {
+                    authStatusDiv.className = 'auth-status auth-status-error';
+                    authStatusDiv.innerHTML = '❌ Usuario no autenticado';
+
+                    userInfoDiv.innerHTML = `
+                        <div class="auth-mt-2" style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px;">
+                            <p class="auth-text">No hay usuario autenticado. Usa el modal para iniciar sesión.</p>
+                        </div>
+                    `;
+
+                    openModalBtn.textContent = '🔑 Abrir Modal de Autenticación';
+                    logoutBtn.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                authStatusDiv.className = 'auth-status auth-status-error';
+                authStatusDiv.innerHTML = '⚠️ Error verificando autenticación';
+            }
+        }
+
+        // Mostrar información de configuración
+        function showConfigInfo() {
+            const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL;
+            const hasAnonKey = !!import.meta.env?.VITE_SUPABASE_ANON_KEY;
+
+            configInfoDiv.innerHTML = `
+                <div class="auth-space-y-2">
+                    <div class="auth-text"><strong>Supabase URL:</strong> ${supabaseUrl ? '✅ Configurado' : '❌ No configurado'}</div>
+                    <div class="auth-text"><strong>Supabase Key:</strong> ${hasAnonKey ? '✅ Configurado' : '❌ No configurado'}</div>
+                    <div class="auth-text"><strong>Modo:</strong> ${import.meta.env?.MODE || 'development'}</div>
+                    <div class="auth-text"><strong>Puerto actual:</strong> ${window.location.port || '80'}</div>
+                </div>
+            `;
+        }
+
+        // Event Listeners
+        openModalBtn.addEventListener('click', () => {
+            if (authService.isAuthenticated()) {
+                alert('Ya estás autenticado. Usa "Cerrar Sesión" para probar el login nuevamente.');
+            } else {
+                authModal.open('login');
+            }
+        });
+
+        testRecoveryBtn.addEventListener('click', () => {
+            window.open('test-recuperacion-mejorada.html', '_blank');
+        });
+
+        testOAuthBtn.addEventListener('click', async () => {
+            try {
+                console.log('Probando OAuth...');
+                await authService.loginWithGoogle();
+            } catch (error) {
+                console.error('Error OAuth:', error);
+                alert('Error en OAuth: ' + error.message);
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await authService.logout();
+                setTimeout(checkAuthStatus, 500);
+            } catch (error) {
+                console.error('Error logout:', error);
+                alert('Error cerrando sesión: ' + error.message);
+            }
+        });
+
+        // Escuchar cambios de autenticación
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'supabase.auth.token') {
+                setTimeout(checkAuthStatus, 500);
+            }
+        });
+
+        // Inicializar
+        checkAuthStatus();
+        showConfigInfo();
+
+        // Actualizar estado cada 5 segundos
+        setInterval(checkAuthStatus, 5000);
+
+        console.log('🔐 Test Login Directo cargado');
+        console.log('AuthService disponible:', !!authService);
+        console.log('Modal disponible:', !!authModal);
+    </script>
+</body>
+
+</html>
