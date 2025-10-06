@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Vanilla Test - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme-v2.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-text-center auth-mb-6">
+                <h1 class="auth-title">⚡ OAuth Vanilla Test</h1>
+                <p class="auth-subtitle">Test sin módulos ES6 - Solo JavaScript vanilla</p>
+            </div>
+
+            <!-- URLs de OAuth manuales -->
+            <div class="auth-info-box auth-info-box-success auth-mb-4">
+                <h2 class="auth-section-title">🔗 OAuth Manual</h2>
+                <p class="auth-text auth-mb-4">Test directo con URLs de Supabase</p>
+                <div class="auth-grid auth-grid-2">
+                    <button id="manual-google" class="auth-btn auth-btn-primary">
+                        🔍 Google Manual
+                    </button>
+                    <button id="manual-github" class="auth-btn auth-btn-primary">
+                        🐙 GitHub Manual
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test con fetch directo -->
+            <div class="auth-info-box auth-info-box-info auth-mb-4">
+                <h2 class="auth-section-title">🌐 Test Fetch Directo</h2>
+                <button id="test-fetch" class="auth-btn auth-btn-secondary auth-btn-full">
+                    Probar API Supabase con Fetch
+                </button>
+                <div id="fetch-result" class="auth-mt-4"></div>
+            </div>
+
+            <!-- Información de configuración -->
+            <div class="auth-info-box auth-info-box-warning auth-mb-4">
+                <h2 class="auth-section-title">⚙️ Configuración Actual</h2>
+                <div id="config-info" class="auth-text">
+                    <div>Supabase URL: https://kfkubggvdbnrblfeukoz.supabase.co</div>
+                    <div>Google Client ID: 221126288220-vu96h1dkv5cn0sahvgfg2kste61p5cu6.apps.googleusercontent.com</div>
+                    <div>GitHub Client ID: Ov23li6dR84akEmQAm4T</div>
+                    <div>Callback URL: ${window.location.origin}/auth/callback</div>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="auth-info-box auth-info-box-error">
+                <h2 class="auth-section-title">📋 Logs</h2>
+                <div id="logs" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; max-height: 150px; overflow-y: auto; color: #F6F7F9;">
+                    Test vanilla iniciado...<br>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración
+        const SUPABASE_URL = 'https://kfkubggvdbnrblfeukoz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtma3ViZ2d2ZGJucmJsZmV1a296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2NTM4NDQsImV4cCI6MjA3NTIyOTg0NH0.KZi-p-nrC_t175jY3SBHq9GmsIxEAnGO2X8UttUZkkw';
+        const CALLBACK_URL = window.location.origin + '/auth/callback';
+
+        // Simple logging
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#F6F7F9';
+            logsDiv.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[OAuth Vanilla] ${message}`);
+        }
+
+        // Test OAuth manual (redirigir directamente)
+        function testOAuthManual(provider) {
+            log(`Iniciando OAuth manual con ${provider}...`);
+            
+            try {
+                // Construir URL de OAuth manualmente
+                const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(CALLBACK_URL)}`;
+                
+                log(`URL OAuth: ${oauthUrl}`);
+                log(`Redirigiendo a ${provider}...`, 'success');
+                
+                // Redirigir directamente
+                window.location.href = oauthUrl;
+                
+            } catch (error) {
+                log(`Error OAuth manual ${provider}: ${error.message}`, 'error');
+            }
+        }
+
+        // Test fetch directo a Supabase
+        async function testFetchDirect() {
+            log('Probando fetch directo a Supabase...');
+            const resultDiv = document.getElementById('fetch-result');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log('Fetch exitoso', 'success');
+                
+                resultDiv.innerHTML = `
+                    <div class="auth-text" style="color: #10b981;">
+                        ✅ Conexión exitosa<br>
+                        Providers disponibles: ${data.external ? Object.keys(data.external).join(', ') : 'No disponibles'}
+                    </div>
+                `;
+                
+            } catch (error) {
+                log(`Error fetch: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="auth-text" style="color: #ef4444;">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('manual-google').addEventListener('click', function() {
+            testOAuthManual('google');
+        });
+
+        document.getElementById('manual-github').addEventListener('click', function() {
+            testOAuthManual('github');
+        });
+
+        document.getElementById('test-fetch').addEventListener('click', function() {
+            testFetchDirect();
+        });
+
+        // Initialize
+        log('Test OAuth vanilla cargado correctamente', 'success');
+        log('Los botones manuales redirigirán directamente a OAuth');
+        
+        // Update config info with current URL
+        document.getElementById('config-info').innerHTML = `
+            <div>Supabase URL: ${SUPABASE_URL}</div>
+            <div>Callback URL: ${CALLBACK_URL}</div>
+            <div>Origen actual: ${window.location.origin}</div>
+            <div>Puerto: ${window.location.port || '80'}</div>
+        `;
+    </script>
+</body>
+</html>

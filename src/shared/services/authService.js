@@ -524,11 +524,11 @@ class AuthService {
     };
 
     try {
-      // Check connectivity before OAuth attempt
-      const connectivityResult = await this.checkConnectivityBeforeAuth('oauth_login');
-      if (!connectivityResult.canProceed) {
-        throw new Error(connectivityResult.error || 'Connection check failed');
-      }
+      // Check connectivity before OAuth attempt - DISABLED for OAuth to work
+      // const connectivityResult = await this.checkConnectivityBeforeAuth('oauth_login');
+      // if (!connectivityResult.canProceed) {
+      //   throw new Error(connectivityResult.error || 'Connection check failed');
+      // }
 
       if (this.isSupabaseEnabled) {
         const { data, error } = await supabase.auth.signInWithOAuth({

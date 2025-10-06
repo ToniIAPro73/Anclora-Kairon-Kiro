@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Simple Test - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme-v2.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-text-center auth-mb-6">
+                <h1 class="auth-title">🔧 OAuth Simple Test</h1>
+                <p class="auth-subtitle">Test directo sin dependencias complejas</p>
+            </div>
+
+            <!-- Test básico de Supabase -->
+            <div class="auth-info-box auth-info-box-info auth-mb-4">
+                <h2 class="auth-section-title">🔗 Test Supabase Directo</h2>
+                <button id="test-supabase" class="auth-btn auth-btn-primary auth-btn-full">
+                    Probar Conexión Supabase
+                </button>
+                <div id="supabase-result" class="auth-mt-4"></div>
+            </div>
+
+            <!-- Test OAuth directo -->
+            <div class="auth-info-box auth-info-box-success auth-mb-4">
+                <h2 class="auth-section-title">🚀 OAuth Directo</h2>
+                <div class="auth-grid auth-grid-2">
+                    <button id="direct-google" class="auth-btn auth-btn-primary">
+                        🔍 Google Directo
+                    </button>
+                    <button id="direct-github" class="auth-btn auth-btn-primary">
+                        🐙 GitHub Directo
+                    </button>
+                </div>
+                <div id="oauth-result" class="auth-mt-4"></div>
+            </div>
+
+            <!-- Logs -->
+            <div class="auth-info-box auth-info-box-warning">
+                <h2 class="auth-section-title">📋 Logs</h2>
+                <div id="logs" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; max-height: 150px; overflow-y: auto; color: #F6F7F9;">
+                    Iniciando test...<br>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Simple logging
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#F6F7F9';
+            logsDiv.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[OAuth Test] ${message}`);
+        }
+
+        // Test Supabase connection
+        async function testSupabase() {
+            log('Probando conexión con Supabase...');
+            const resultDiv = document.getElementById('supabase-result');
+            
+            try {
+                // Import Supabase directly
+                const { createClient } = await import('https://cdn.skypack.dev/@supabase/supabase-js');
+                log('Supabase SDK cargado correctamente', 'success');
+
+                const supabaseUrl = 'https://kfkubggvdbnrblfeukoz.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtma3ViZ2d2ZGJucmJsZmV1a296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2NTM4NDQsImV4cCI6MjA3NTIyOTg0NH0.KZi-p-nrC_t175jY3SBHq9GmsIxEAnGO2X8UttUZkkw';
+
+                const supabase = createClient(supabaseUrl, supabaseKey);
+                log('Cliente Supabase creado', 'success');
+
+                // Test basic connection
+                const { data, error } = await supabase.auth.getSession();
+                if (error) {
+                    throw error;
+                }
+
+                log('Conexión con Supabase exitosa', 'success');
+                resultDiv.innerHTML = '<div class="auth-text" style="color: #10b981;">✅ Supabase conectado correctamente</div>';
+                
+                return supabase;
+            } catch (error) {
+                log(`Error conectando con Supabase: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="auth-text" style="color: #ef4444;">❌ Error: ${error.message}</div>`;
+                return null;
+            }
+        }
+
+        // Test OAuth directly
+        async function testOAuthDirect(provider) {
+            log(`Iniciando OAuth con ${provider}...`);
+            const resultDiv = document.getElementById('oauth-result');
+            
+            try {
+                const supabase = await testSupabase();
+                if (!supabase) {
+                    throw new Error('Supabase no disponible');
+                }
+
+                log(`Llamando signInWithOAuth para ${provider}...`);
+                
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: {
+                        redirectTo: `${window.location.origin}/auth/callback`
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                log(`OAuth ${provider} iniciado correctamente`, 'success');
+                resultDiv.innerHTML = `<div class="auth-text" style="color: #10b981;">✅ Redirigiendo a ${provider}...</div>`;
+                
+            } catch (error) {
+                log(`Error OAuth ${provider}: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="auth-text" style="color: #ef4444;">❌ Error ${provider}: ${error.message}</div>`;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('test-supabase').addEventListener('click', async () => {
+            await testSupabase();
+        });
+
+        document.getElementById('direct-google').addEventListener('click', async () => {
+            await testOAuthDirect('google');
+        });
+
+        document.getElementById('direct-github').addEventListener('click', async () => {
+            await testOAuthDirect('github');
+        });
+
+        // Initialize
+        log('Test OAuth simple cargado', 'success');
+        log('Haz clic en los botones para probar cada funcionalidad');
+    </script>
+</body>
+</html>

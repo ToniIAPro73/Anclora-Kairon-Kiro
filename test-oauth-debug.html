@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug OAuth - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme-v2.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-text-center auth-mb-6">
+                <h1 class="auth-title">🔍 Debug OAuth</h1>
+                <p class="auth-subtitle">Diagnóstico del login social</p>
+            </div>
+
+            <!-- Estado de configuración -->
+            <div class="auth-info-box auth-info-box-info auth-mb-4">
+                <h2 class="auth-section-title">⚙️ Configuración</h2>
+                <div id="config-status" class="auth-space-y-2">
+                    <div>Cargando configuración...</div>
+                </div>
+            </div>
+
+            <!-- Test directo de OAuth -->
+            <div class="auth-info-box auth-info-box-success auth-mb-4">
+                <h2 class="auth-section-title">🧪 Test Directo</h2>
+                <div class="auth-grid auth-grid-2">
+                    <button id="test-google" class="auth-btn auth-btn-primary">
+                        🔍 Test Google
+                    </button>
+                    <button id="test-github" class="auth-btn auth-btn-primary">
+                        🐙 Test GitHub
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test con Modal -->
+            <div class="auth-info-box auth-info-box-warning auth-mb-4">
+                <h2 class="auth-section-title">🎭 Test con Modal</h2>
+                <button id="open-modal" class="auth-btn auth-btn-secondary auth-btn-full">
+                    Abrir Modal de Login
+                </button>
+            </div>
+
+            <!-- Logs de debug -->
+            <div class="auth-info-box auth-info-box-error">
+                <h2 class="auth-section-title">📋 Logs de Debug</h2>
+                <div id="debug-logs" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">
+                    <div>Iniciando diagnóstico...</div>
+                </div>
+                <button id="clear-logs" class="auth-btn auth-btn-secondary" style="margin-top: 1rem;">
+                    Limpiar Logs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Debug logging function
+        function debugLog(message, type = 'info') {
+            const logsDiv = document.getElementById('debug-logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#F6F7F9';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        // Check configuration
+        function checkConfiguration() {
+            const configDiv = document.getElementById('config-status');
+            
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+            const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+
+            configDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Supabase URL:</span>
+                    <span class="${supabaseUrl ? 'status-success' : 'status-error'}">
+                        ${supabaseUrl ? '✅ Configurado' : '❌ Faltante'}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Supabase Key:</span>
+                    <span class="${supabaseKey ? 'status-success' : 'status-error'}">
+                        ${supabaseKey ? '✅ Configurado' : '❌ Faltante'}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Google Client ID:</span>
+                    <span class="${googleClientId ? 'status-success' : 'status-error'}">
+                        ${googleClientId ? '✅ Configurado' : '❌ Faltante'}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>GitHub Client ID:</span>
+                    <span class="${githubClientId ? 'status-success' : 'status-error'}">
+                        ${githubClientId ? '✅ Configurado' : '❌ Faltante'}
+                    </span>
+                </div>
+            `;
+
+            debugLog('Configuración verificada');
+            debugLog(`Supabase URL: ${supabaseUrl ? 'OK' : 'MISSING'}`);
+            debugLog(`Google Client ID: ${googleClientId ? 'OK' : 'MISSING'}`);
+            debugLog(`GitHub Client ID: ${githubClientId ? 'OK' : 'MISSING'}`);
+        }
+
+        // Test OAuth directly
+        async function testOAuthDirect(provider) {
+            debugLog(`Iniciando test directo de ${provider}...`);
+            
+            try {
+                // Import authService
+                const { authService } = await import('./src/shared/services/authService.js');
+                debugLog(`AuthService importado correctamente`);
+
+                // Test the specific provider
+                if (provider === 'google') {
+                    debugLog('Llamando authService.loginWithGoogle()...');
+                    await authService.loginWithGoogle();
+                } else if (provider === 'github') {
+                    debugLog('Llamando authService.loginWithGitHub()...');
+                    await authService.loginWithGitHub();
+                }
+
+                debugLog(`${provider} OAuth iniciado correctamente`, 'success');
+            } catch (error) {
+                debugLog(`Error en ${provider} OAuth: ${error.message}`, 'error');
+                console.error('OAuth Error:', error);
+            }
+        }
+
+        // Test with modal
+        async function testWithModal() {
+            debugLog('Abriendo modal de autenticación...');
+            
+            try {
+                const { default: AuthModalVanilla } = await import('./src/shared/components/AuthModalVanilla.js');
+                debugLog('AuthModal importado correctamente');
+                
+                const modal = new AuthModalVanilla();
+                modal.open('login');
+                debugLog('Modal abierto correctamente', 'success');
+            } catch (error) {
+                debugLog(`Error abriendo modal: ${error.message}`, 'error');
+                console.error('Modal Error:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('test-google').addEventListener('click', () => {
+            testOAuthDirect('google');
+        });
+
+        document.getElementById('test-github').addEventListener('click', () => {
+            testOAuthDirect('github');
+        });
+
+        document.getElementById('open-modal').addEventListener('click', () => {
+            testWithModal();
+        });
+
+        document.getElementById('clear-logs').addEventListener('click', () => {
+            document.getElementById('debug-logs').innerHTML = '<div>Logs limpiados...</div>';
+        });
+
+        // Initialize
+        checkConfiguration();
+        debugLog('Página de debug cargada correctamente', 'success');
+    </script>
+</body>
+</html>
