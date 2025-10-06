@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Prueba: Recuperación de Contraseña Mejorada</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #0ea5e9;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #0284c7;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .result-success {
+            background: #f0fdf4;
+            border-color: #10b981;
+        }
+
+        .result-error {
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 1rem;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .instructions ul {
+            margin: 0.5rem 0;
+            padding-left: 1.25rem;
+        }
+
+        .instructions li {
+            margin-bottom: 0.5rem;
+        }
+
+        .warning-box {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .warning-box h4 {
+            color: #d97706;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .diagnostic-info {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Recuperación de Contraseña Mejorada</h1>
+            <p>Prueba la nueva funcionalidad con diagnósticos completos</p>
+        </div>
+
+        <form id="recovery-form">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required 
+                    placeholder="tu@email.com"
+                    autocomplete="email"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                📧 Enviar enlace de recuperación
+            </button>
+        </form>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            Enviando email de recuperación...
+        </div>
+
+        <div id="result-container" class="result-container hidden">
+            <!-- Los resultados se mostrarán aquí -->
+        </div>
+
+        <div class="instructions">
+            <h3>📋 ¿Qué hace esta prueba?</h3>
+            <ul>
+                <li>✅ Verifica la conectividad con Supabase</li>
+                <li>🔍 Ejecuta diagnósticos técnicos completos</li>
+                <li>📧 Intenta enviar el email de recuperación</li>
+                <li>📊 Muestra información detallada del resultado</li>
+                <li>💡 Proporciona instrucciones específicas sobre dónde buscar el email</li>
+                <li>🛠️ Incluye información técnica para soporte</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        // Elementos del DOM
+        const form = document.getElementById('recovery-form');
+        const emailInput = document.getElementById('email');
+        const submitBtn = document.getElementById('submit-btn');
+        const loading = document.getElementById('loading');
+        const resultContainer = document.getElementById('result-container');
+
+        // Manejar envío del formulario
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            if (!email) {
+                alert('Por favor ingresa tu email');
+                return;
+            }
+
+            // Mostrar estado de carga
+            submitBtn.disabled = true;
+            loading.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+
+            try {
+                console.log('🔐 Iniciando recuperación mejorada para:', email);
+                
+                // Importar authService dinámicamente
+                const { authService } = await import('./src/shared/services/authService.js');
+                
+                // Llamar a la función mejorada de reset de contraseña
+                const result = await authService.resetPassword(email, {
+                    language: 'es',
+                    enableDiagnostics: true
+                });
+
+                console.log('📧 Resultado completo:', result);
+
+                // Mostrar resultado detallado
+                showDetailedResult(result, email);
+
+            } catch (error) {
+                console.error('❌ Error inesperado:', error);
+                
+                // Mostrar error genérico
+                showErrorResult(error, email);
+            } finally {
+                // Ocultar estado de carga
+                submitBtn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        });
+
+        function showDetailedResult(result, email) {
+            resultContainer.classList.remove('hidden');
+            
+            if (result.success) {
+                resultContainer.className = 'result-container result-success';
+                resultContainer.innerHTML = `
+                    <h3>✅ Email enviado exitosamente</h3>
+                    <p><strong>Email enviado a:</strong> ${email}</p>
+                    <p><strong>Mensaje:</strong> ${result.message}</p>
+                    
+                    <div class="instructions">
+                        <h4>📧 Instrucciones importantes:</h4>
+                        <ul>
+                            ${result.instructions ? result.instructions.map(instruction => `<li>${instruction}</li>`).join('') : '<li>Revisa tu bandeja de entrada y carpeta de spam</li>'}
+                        </ul>
+                    </div>
+
+                    <div class="warning-box">
+                        <h4>⚠️ MUY IMPORTANTE</h4>
+                        <p>Si no ves el email en 2-3 minutos, <strong>revisa tu carpeta de SPAM</strong>. Esta es la causa más común de emails "perdidos".</p>
+                        <button class="btn btn-secondary" onclick="showEmailGuide('${email}')">
+                            🔍 Guía: ¿Dónde buscar el email?
+                        </button>
+                    </div>
+
+                    ${result.diagnostics ? `
+                        <details class="diagnostic-info">
+                            <summary>🔧 Información técnica (para soporte)</summary>
+                            <pre>${JSON.stringify(result.diagnostics, null, 2)}</pre>
+                        </details>
+                    ` : ''}
+
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="location.reload()">
+                            🔄 Probar con otro email
+                        </button>
+                    </div>
+                `;
+            } else {
+                resultContainer.className = 'result-container result-error';
+                resultContainer.innerHTML = `
+                    <h3>❌ No se pudo enviar el email</h3>
+                    <p><strong>Error:</strong> ${result.error.message}</p>
+                    <p><strong>Tipo de error:</strong> ${result.error.type}</p>
+                    
+                    <div class="instructions">
+                        <h4>💡 Soluciones recomendadas:</h4>
+                        <ul>
+                            ${result.troubleshooting ? result.troubleshooting.map(step => `<li>${step}</li>`).join('') : '<li>Verifica que el email esté correcto e intenta nuevamente</li>'}
+                        </ul>
+                    </div>
+
+                    ${result.diagnostics ? `
+                        <details class="diagnostic-info">
+                            <summary>🔧 Información para soporte técnico</summary>
+                            <pre>${JSON.stringify(result.diagnostics, null, 2)}</pre>
+                        </details>
+                    ` : ''}
+
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="location.reload()">
+                            🔄 Intentar nuevamente
+                        </button>
+                        <button class="btn btn-secondary" onclick="contactSupport('${email}', '${result.error.type}')">
+                            📞 Contactar soporte
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function showErrorResult(error, email) {
+            resultContainer.classList.remove('hidden');
+            resultContainer.className = 'result-container result-error';
+            resultContainer.innerHTML = `
+                <h3>❌ Error inesperado</h3>
+                <p><strong>Error:</strong> ${error.message}</p>
+                
+                <div class="instructions">
+                    <h4>💡 Posibles causas:</h4>
+                    <ul>
+                        <li>Problema de configuración de Supabase</li>
+                        <li>Error de conectividad</li>
+                        <li>Variables de entorno no configuradas</li>
+                    </ul>
+                </div>
+
+                <div class="diagnostic-info">
+                    <strong>Información del error:</strong><br>
+                    ${error.stack || error.message}
+                </div>
+
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        🔄 Intentar nuevamente
+                    </button>
+                    <button class="btn btn-secondary" onclick="contactSupport('${email}', 'UNEXPECTED_ERROR')">
+                        📞 Contactar soporte
+                    </button>
+                </div>
+            `;
+        }
+
+        // Función para mostrar guía de email
+        window.showEmailGuide = function(email) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 1rem;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3>🔍 ¿Dónde buscar tu email de recuperación?</h3>
+                        <button onclick="this.closest('div').parentElement.remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">×</button>
+                    </div>
+                    
+                    <p><strong>Email enviado a:</strong> ${email}</p>
+                    
+                    <div style="margin: 1rem 0;">
+                        <h4 style="color: #059669;">📥 1. Bandeja de entrada principal</h4>
+                        <p>Busca un email de <code>noreply@supabase.co</code></p>
+                    </div>
+                    
+                    <div style="background: #fffbeb; border: 2px solid #f59e0b; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                        <h4 style="color: #d97706;">🚨 2. Carpeta de SPAM (MUY IMPORTANTE)</h4>
+                        <p>Esta es la causa más común. Revisa:</p>
+                        <ul>
+                            <li>Spam / Correo no deseado</li>
+                            <li>Correo basura</li>
+                            <li>Quarantine</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin: 1rem 0;">
+                        <h4 style="color: #059669;">📂 3. Otras carpetas (Gmail)</h4>
+                        <ul>
+                            <li>Promociones</li>
+                            <li>Actualizaciones</li>
+                            <li>Social</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin: 1rem 0;">
+                        <h4 style="color: #059669;">🔍 4. Buscar directamente</h4>
+                        <p>Busca en tu email: <code>Anclora</code> o <code>recuperación</code></p>
+                    </div>
+                    
+                    <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                        <h4 style="color: #0369a1;">💡 Para evitar esto en el futuro:</h4>
+                        <ul>
+                            <li>Agrega <code>noreply@supabase.co</code> a tus contactos</li>
+                            <li>Marca como "No es spam" si lo encuentras en spam</li>
+                            <li>Configura filtros para permitir emails de Supabase</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <button onclick="this.closest('div').parentElement.remove()" class="btn btn-primary">
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        };
+
+        // Función para contactar soporte
+        window.contactSupport = function(email, errorType) {
+            const subject = encodeURIComponent('No llega email de recuperación de contraseña');
+            const body = encodeURIComponent(`
+Hola,
+
+No me está llegando el email para recuperar mi contraseña usando la nueva funcionalidad mejorada.
+
+Detalles:
+- Email: ${email}
+- Tipo de error: ${errorType}
+- Hora del intento: ${new Date().toLocaleString()}
+- Navegador: ${navigator.userAgent}
+- URL de prueba: ${window.location.href}
+
+He probado la funcionalidad mejorada con diagnósticos y el resultado está en la consola del navegador.
+
+Por favor, ayúdenme a resolver este problema.
+
+Gracias.
+            `);
+            
+            window.open(`mailto:soporte@anclora.com?subject=${subject}&body=${body}`);
+        };
+
+        // Auto-focus en el campo de email
+        emailInput.focus();
+
+        // Mostrar información de configuración en consola
+        console.log('🔧 Configuración actual:');
+        console.log('- Supabase URL:', import.meta.env?.VITE_SUPABASE_URL);
+        console.log('- Supabase Key configurada:', !!import.meta.env?.VITE_SUPABASE_ANON_KEY);
+        console.log('- Página de prueba cargada correctamente');
+    </script>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Diagnóstico: Email de Recuperación No Llega</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .status-card {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .status-success {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .status-warning {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .status-error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .diagnostic-item {
+            display: flex;
+            align-items: center;
+            margin: 0.75rem 0;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .diagnostic-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0284c7;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .results {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .checklist input[type="checkbox"] {
+            margin-right: 0.75rem;
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Diagnóstico: Email de Recuperación</h1>
+            <p>Vamos a diagnosticar por qué no te llega el email de recuperación de contraseña</p>
+        </div>
+
+        <!-- Paso 1: Información básica -->
+        <div class="status-card">
+            <h2>📋 Paso 1: Información del problema</h2>
+            <div>
+                <label for="email-input">Email que usaste para recuperar:</label>
+                <input type="email" id="email-input" placeholder="tu@email.com" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #d1d5db; border-radius: 6px;">
+            </div>
+            <div>
+                <label for="time-input">¿Hace cuánto tiempo intentaste? (minutos):</label>
+                <input type="number" id="time-input" placeholder="5" min="1" max="120" style="width: 100px; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #d1d5db; border-radius: 6px;">
+            </div>
+            <button class="btn btn-primary" onclick="startDiagnosis()">🚀 Iniciar Diagnóstico</button>
+        </div>
+
+        <!-- Paso 2: Verificaciones automáticas -->
+        <div id="auto-checks" class="status-card hidden">
+            <h2>🔧 Paso 2: Verificaciones automáticas</h2>
+            <div id="auto-checks-results">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Ejecutando verificaciones automáticas...
+                </div>
+            </div>
+        </div>
+
+        <!-- Paso 3: Checklist manual -->
+        <div id="manual-checks" class="status-card hidden">
+            <h2>✅ Paso 3: Verificación manual</h2>
+            <p>Por favor, revisa estos elementos en tu email:</p>
+            <ul class="checklist">
+                <li>
+                    <input type="checkbox" id="check-inbox">
+                    <label for="check-inbox">He revisado mi bandeja de entrada principal</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="check-spam">
+                    <label for="check-spam">He revisado la carpeta de SPAM/Correo no deseado</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="check-promotions">
+                    <label for="check-promotions">He revisado carpetas como Promociones, Actualizaciones, Social (Gmail)</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="check-search">
+                    <label for="check-search">He buscado "Anclora", "recuperación" o "noreply@supabase.co"</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="check-email-correct">
+                    <label for="check-email-correct">He verificado que el email esté escrito correctamente</label>
+                </li>
+            </ul>
+            <button class="btn btn-primary" onclick="analyzeChecklist()">📊 Analizar Resultados</button>
+        </div>
+
+        <!-- Paso 4: Diagnóstico técnico -->
+        <div id="technical-diagnosis" class="status-card hidden">
+            <h2>🔬 Paso 4: Diagnóstico técnico</h2>
+            <button class="btn btn-warning" onclick="runTechnicalDiagnosis()">🧪 Ejecutar Prueba Técnica</button>
+            <div id="technical-results"></div>
+        </div>
+
+        <!-- Resultados y recomendaciones -->
+        <div id="final-results" class="results hidden">
+            <h2>📋 Diagnóstico Completo</h2>
+            <div id="diagnosis-summary"></div>
+            <div id="recommendations"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        let diagnosticData = {
+            email: '',
+            timeAgo: 0,
+            autoChecks: {},
+            manualChecks: {},
+            technicalResults: {}
+        };
+
+        window.startDiagnosis = function() {
+            const email = document.getElementById('email-input').value;
+            const timeAgo = parseInt(document.getElementById('time-input').value) || 5;
+
+            if (!email) {
+                alert('Por favor ingresa tu email');
+                return;
+            }
+
+            diagnosticData.email = email;
+            diagnosticData.timeAgo = timeAgo;
+
+            // Mostrar verificaciones automáticas
+            document.getElementById('auto-checks').classList.remove('hidden');
+            
+            // Ejecutar verificaciones automáticas
+            setTimeout(runAutoChecks, 1000);
+        };
+
+        async function runAutoChecks() {
+            const resultsDiv = document.getElementById('auto-checks-results');
+            
+            try {
+                // Verificar configuración de Supabase
+                const supabaseConfigured = !!(import.meta.env?.VITE_SUPABASE_URL && import.meta.env?.VITE_SUPABASE_ANON_KEY);
+                
+                // Verificar conectividad
+                let connectivityOk = false;
+                try {
+                    if (import.meta.env?.VITE_SUPABASE_URL) {
+                        const response = await fetch(import.meta.env.VITE_SUPABASE_URL + '/rest/v1/', {
+                            method: 'HEAD',
+                            timeout: 5000
+                        });
+                        connectivityOk = response.ok;
+                    }
+                } catch (error) {
+                    connectivityOk = false;
+                }
+
+                // Verificar formato de email
+                const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(diagnosticData.email);
+
+                // Verificar tiempo transcurrido
+                const timeAppropriate = diagnosticData.timeAgo >= 2 && diagnosticData.timeAgo <= 60;
+
+                diagnosticData.autoChecks = {
+                    supabaseConfigured,
+                    connectivityOk,
+                    emailValid,
+                    timeAppropriate
+                };
+
+                // Mostrar resultados
+                resultsDiv.innerHTML = `
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">${supabaseConfigured ? '✅' : '❌'}</div>
+                        <div>
+                            <strong>Configuración de Supabase:</strong> 
+                            ${supabaseConfigured ? 'Configurado correctamente' : 'No configurado o incompleto'}
+                        </div>
+                    </div>
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">${connectivityOk ? '✅' : '❌'}</div>
+                        <div>
+                            <strong>Conectividad:</strong> 
+                            ${connectivityOk ? 'Conexión exitosa con Supabase' : 'No se puede conectar con Supabase'}
+                        </div>
+                    </div>
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">${emailValid ? '✅' : '❌'}</div>
+                        <div>
+                            <strong>Formato de email:</strong> 
+                            ${emailValid ? 'Formato válido' : 'Formato inválido'}
+                        </div>
+                    </div>
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">${timeAppropriate ? '✅' : '⚠️'}</div>
+                        <div>
+                            <strong>Tiempo transcurrido:</strong> 
+                            ${timeAppropriate ? `${diagnosticData.timeAgo} minutos (apropiado)` : 
+                              diagnosticData.timeAgo < 2 ? 'Muy poco tiempo, espera al menos 2-3 minutos' :
+                              'Demasiado tiempo, puede haber un problema'}
+                        </div>
+                    </div>
+                `;
+
+                // Mostrar checklist manual
+                document.getElementById('manual-checks').classList.remove('hidden');
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">❌</div>
+                        <div>
+                            <strong>Error en verificaciones automáticas:</strong> ${error.message}
+                        </div>
+                    </div>
+                `;
+                
+                // Aún así mostrar checklist manual
+                document.getElementById('manual-checks').classList.remove('hidden');
+            }
+        }
+
+        window.analyzeChecklist = function() {
+            const checks = {
+                inbox: document.getElementById('check-inbox').checked,
+                spam: document.getElementById('check-spam').checked,
+                promotions: document.getElementById('check-promotions').checked,
+                search: document.getElementById('check-search').checked,
+                emailCorrect: document.getElementById('check-email-correct').checked
+            };
+
+            diagnosticData.manualChecks = checks;
+
+            // Mostrar diagnóstico técnico
+            document.getElementById('technical-diagnosis').classList.remove('hidden');
+
+            // Si no ha revisado spam, mostrar alerta inmediata
+            if (!checks.spam) {
+                alert('⚠️ IMPORTANTE: No has revisado tu carpeta de SPAM. Esta es la causa más común de emails "perdidos". Por favor revísala antes de continuar.');
+            }
+        };
+
+        window.runTechnicalDiagnosis = async function() {
+            const resultsDiv = document.getElementById('technical-results');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Ejecutando prueba técnica...</div>';
+
+            try {
+                // Importar authService dinámicamente
+                const { authService } = await import('./src/shared/services/authService.js');
+                
+                console.log('🔬 Iniciando diagnóstico técnico para:', diagnosticData.email);
+
+                // Ejecutar resetPassword con diagnósticos completos
+                const result = await authService.resetPassword(diagnosticData.email, {
+                    language: 'es',
+                    enableDiagnostics: true
+                });
+
+                diagnosticData.technicalResults = result;
+
+                // Mostrar resultados técnicos
+                resultsDiv.innerHTML = `
+                    <div class="code-block">
+                        <strong>Resultado de la prueba técnica:</strong><br>
+                        ${JSON.stringify(result, null, 2)}
+                    </div>
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">${result.success ? '✅' : '❌'}</div>
+                        <div>
+                            <strong>Envío de email:</strong> 
+                            ${result.success ? 'Exitoso según Supabase' : `Error: ${result.error?.message}`}
+                        </div>
+                    </div>
+                `;
+
+                // Mostrar resultados finales
+                showFinalResults();
+
+            } catch (error) {
+                console.error('Error en diagnóstico técnico:', error);
+                
+                resultsDiv.innerHTML = `
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">❌</div>
+                        <div>
+                            <strong>Error en prueba técnica:</strong> ${error.message}
+                        </div>
+                    </div>
+                `;
+
+                diagnosticData.technicalResults = {
+                    success: false,
+                    error: { message: error.message, type: 'TECHNICAL_ERROR' }
+                };
+
+                // Aún así mostrar resultados finales
+                showFinalResults();
+            }
+        };
+
+        function showFinalResults() {
+            const finalDiv = document.getElementById('final-results');
+            const summaryDiv = document.getElementById('diagnosis-summary');
+            const recommendationsDiv = document.getElementById('recommendations');
+
+            // Analizar todos los datos
+            const analysis = analyzeDiagnosticData();
+
+            summaryDiv.innerHTML = `
+                <h3>📊 Resumen del Diagnóstico</h3>
+                <div class="status-card ${analysis.severity === 'high' ? 'status-error' : 
+                                        analysis.severity === 'medium' ? 'status-warning' : 'status-success'}">
+                    <h4>${analysis.title}</h4>
+                    <p>${analysis.description}</p>
+                    <p><strong>Causa más probable:</strong> ${analysis.mostLikelyCause}</p>
+                </div>
+            `;
+
+            recommendationsDiv.innerHTML = `
+                <h3>💡 Recomendaciones Específicas</h3>
+                ${analysis.recommendations.map(rec => `
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-icon">${rec.priority === 'high' ? '🚨' : rec.priority === 'medium' ? '⚠️' : '💡'}</div>
+                        <div>
+                            <strong>${rec.title}:</strong> ${rec.description}
+                            ${rec.action ? `<br><button class="btn btn-primary" onclick="${rec.action}">${rec.actionText}</button>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+
+            finalDiv.classList.remove('hidden');
+        }
+
+        function analyzeDiagnosticData() {
+            const { autoChecks, manualChecks, technicalResults } = diagnosticData;
+
+            // Determinar la causa más probable
+            let mostLikelyCause = 'Desconocida';
+            let severity = 'low';
+            let title = 'Diagnóstico Completado';
+            let description = 'Se ha completado el análisis.';
+            let recommendations = [];
+
+            // Análisis de verificaciones automáticas
+            if (!autoChecks.supabaseConfigured) {
+                mostLikelyCause = 'Configuración de Supabase incompleta';
+                severity = 'high';
+                title = 'Problema de Configuración';
+                description = 'El sistema no está configurado correctamente para enviar emails.';
+                recommendations.push({
+                    priority: 'high',
+                    title: 'Configurar Supabase',
+                    description: 'Verifica que las variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY estén configuradas.',
+                    action: 'window.open("https://supabase.com/docs/guides/getting-started")',
+                    actionText: 'Ver Documentación'
+                });
+            } else if (!autoChecks.connectivityOk) {
+                mostLikelyCause = 'Problemas de conectividad con Supabase';
+                severity = 'high';
+                title = 'Problema de Conectividad';
+                description = 'No se puede conectar con el servicio de Supabase.';
+                recommendations.push({
+                    priority: 'high',
+                    title: 'Verificar Conectividad',
+                    description: 'Revisa tu conexión a internet y el estado de Supabase.',
+                    action: 'window.open("https://status.supabase.com")',
+                    actionText: 'Ver Estado de Supabase'
+                });
+            } else if (!autoChecks.emailValid) {
+                mostLikelyCause = 'Formato de email inválido';
+                severity = 'medium';
+                title = 'Email Inválido';
+                description = 'El formato del email no es válido.';
+                recommendations.push({
+                    priority: 'high',
+                    title: 'Corregir Email',
+                    description: 'Verifica que el email esté escrito correctamente.'
+                });
+            } else if (technicalResults.success && !manualChecks.spam) {
+                mostLikelyCause = 'Email en carpeta de SPAM';
+                severity = 'medium';
+                title = 'Probable Email en SPAM';
+                description = 'El email se envió correctamente pero no has revisado la carpeta de spam.';
+                recommendations.push({
+                    priority: 'high',
+                    title: 'Revisar SPAM',
+                    description: 'Revisa tu carpeta de spam/correo no deseado. Esta es la causa más común.',
+                    action: 'alert("Ve a tu email y revisa la carpeta de SPAM o Correo no deseado")',
+                    actionText: 'Ir a Email'
+                });
+            } else if (technicalResults.success) {
+                mostLikelyCause = 'Email enviado correctamente - revisar todas las carpetas';
+                severity = 'low';
+                title = 'Email Enviado Exitosamente';
+                description = 'El sistema confirma que el email se envió. Debe estar en alguna carpeta de tu email.';
+                recommendations.push({
+                    priority: 'medium',
+                    title: 'Búsqueda Exhaustiva',
+                    description: 'Busca "noreply@supabase.co" o "Anclora" en todo tu email.'
+                });
+            } else if (technicalResults.error) {
+                mostLikelyCause = `Error del sistema: ${technicalResults.error.type}`;
+                severity = 'high';
+                title = 'Error del Sistema';
+                description = `Error técnico: ${technicalResults.error.message}`;
+                recommendations.push({
+                    priority: 'high',
+                    title: 'Contactar Soporte',
+                    description: 'Hay un problema técnico que requiere asistencia.',
+                    action: `contactSupport('${diagnosticData.email}', '${technicalResults.error.type}')`,
+                    actionText: 'Contactar Soporte'
+                });
+            }
+
+            // Recomendaciones adicionales basadas en el tiempo
+            if (diagnosticData.timeAgo < 2) {
+                recommendations.unshift({
+                    priority: 'medium',
+                    title: 'Esperar Más Tiempo',
+                    description: 'Han pasado menos de 2 minutos. Los emails pueden tardar hasta 5 minutos en llegar.'
+                });
+            }
+
+            // Recomendaciones generales
+            recommendations.push({
+                priority: 'low',
+                title: 'Prevención Futura',
+                description: 'Agrega noreply@supabase.co a tus contactos para evitar que vaya a spam.'
+            });
+
+            return {
+                mostLikelyCause,
+                severity,
+                title,
+                description,
+                recommendations
+            };
+        }
+
+        // Función para contactar soporte
+        window.contactSupport = function(email, errorType) {
+            const subject = encodeURIComponent('Diagnóstico: No llega email de recuperación');
+            const body = encodeURIComponent(`
+Hola,
+
+He ejecutado el diagnóstico automático y no me llega el email de recuperación.
+
+DATOS DEL DIAGNÓSTICO:
+- Email: ${email}
+- Tiempo transcurrido: ${diagnosticData.timeAgo} minutos
+- Error técnico: ${errorType}
+
+VERIFICACIONES AUTOMÁTICAS:
+${JSON.stringify(diagnosticData.autoChecks, null, 2)}
+
+VERIFICACIONES MANUALES:
+${JSON.stringify(diagnosticData.manualChecks, null, 2)}
+
+RESULTADO TÉCNICO:
+${JSON.stringify(diagnosticData.technicalResults, null, 2)}
+
+INFORMACIÓN DEL SISTEMA:
+- Navegador: ${navigator.userAgent}
+- Hora: ${new Date().toLocaleString()}
+- URL: ${window.location.href}
+
+Por favor, ayúdenme a resolver este problema.
+
+Gracias.
+            `);
+            
+            window.open(`mailto:soporte@anclora.com?subject=${subject}&body=${body}`);
+        };
+
+        // Mostrar información inicial
+        console.log('🔍 Diagnóstico de Email de Recuperación iniciado');
+        console.log('Configuración actual:', {
+            supabaseUrl: import.meta.env?.VITE_SUPABASE_URL,
+            hasAnonKey: !!import.meta.env?.VITE_SUPABASE_ANON_KEY
+        });
+    </script>
+</body>
+</html>

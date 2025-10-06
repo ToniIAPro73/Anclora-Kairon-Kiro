@@ -1514,7 +1514,7 @@ export default class AuthModalVanilla {
   }
 
   /**
-   * Handle forgot password form submission with enhanced error handling
+   * Handle forgot password form submission with enhanced error handling and diagnostics
    */
   async handleForgotPassword(form) {
     const formData = new FormData(form);
@@ -1529,16 +1529,33 @@ export default class AuthModalVanilla {
       return;
     }
 
-    // Show loading state
+    // Show loading state with detailed message
     const forgotContainer = form.parentElement;
-    this.feedbackSystem.showLoading('forgotPassword', null, forgotContainer);
+    this.feedbackSystem.showLoading('forgotPassword', 'Enviando email de recuperación...', forgotContainer);
 
     try {
-      await authService.resetPassword(email);
-      // Show success message
-      this.feedbackSystem.showSuccess('forgotPassword', forgotContainer, 5000);
+      console.log('🔐 Iniciando recuperación de contraseña para:', email);
+      
+      // Use the enhanced resetPassword function with diagnostics
+      const result = await authService.resetPassword(email, {
+        language: 'es',
+        enableDiagnostics: true
+      });
+
+      console.log('📧 Resultado de recuperación:', result);
+
+      if (result.success) {
+        // Show detailed success message with instructions
+        this.showEnhancedForgotPasswordSuccess(email, result);
+      } else {
+        // Show detailed error with troubleshooting
+        this.showEnhancedForgotPasswordError(email, result);
+      }
+
     } catch (error) {
-      // Handle error with retry option
+      console.error('❌ Error inesperado en recuperación:', error);
+      
+      // Handle unexpected errors
       this.feedbackSystem.showError(error, {
         canRetry: true,
         retryCallback: () => this.handleForgotPassword(form),
@@ -1912,6 +1929,405 @@ export default class AuthModalVanilla {
 
     // Add new status indicator if needed
     this.addConnectionStatusToModal();
+  }
+
+  /**
+   * Show enhanced forgot password success message with detailed instructions
+   */
+  showEnhancedForgotPasswordSuccess(email, result) {
+    this.modalElement.innerHTML = `
+      <div class="p-6">
+        <!-- Close button -->
+        <button id="auth-close-btn" class="absolute top-5 right-5 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#202837] hover:bg-[#2EAFC4]/20 transition-all duration-200 border border-[#2EAFC4]/30">
+          <svg class="w-5 h-5 text-[#F6F7F9]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <!-- Success icon -->
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-[#F6F7F9] mb-2">📧 Email enviado exitosamente</h2>
+          <p class="text-[#F6F7F9]/80 text-sm">Se envió un enlace de recuperación a:</p>
+          <p class="text-[#2EAFC4] font-semibold text-sm mt-1">${email}</p>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-[#202837] rounded-xl p-4 mb-4 border border-[#2EAFC4]/20">
+          <h3 class="text-[#F6F7F9] font-semibold mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-[#2EAFC4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Instrucciones importantes:
+          </h3>
+          <ul class="text-[#F6F7F9]/80 text-sm space-y-2">
+            ${result.instructions ? result.instructions.map(instruction => `
+              <li class="flex items-start">
+                <span class="text-[#2EAFC4] mr-2 mt-0.5">•</span>
+                ${instruction}
+              </li>
+            `).join('') : `
+              <li class="flex items-start">
+                <span class="text-[#2EAFC4] mr-2 mt-0.5">•</span>
+                Revisa tu bandeja de entrada y carpeta de spam
+              </li>
+              <li class="flex items-start">
+                <span class="text-[#2EAFC4] mr-2 mt-0.5">•</span>
+                El enlace expira en 1 hora
+              </li>
+            `}
+          </ul>
+        </div>
+
+        <!-- Important: Check Spam -->
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h4 class="text-yellow-500 font-semibold text-sm mb-1">⚠️ MUY IMPORTANTE</h4>
+              <p class="text-[#F6F7F9]/80 text-sm">
+                Si no ves el email en 2-3 minutos, <strong>revisa tu carpeta de SPAM</strong>. 
+                Esta es la causa más común de emails "perdidos".
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="space-y-3">
+          <button id="check-email-guide" class="w-full py-3 px-4 bg-[#FFC979] text-[#162032] rounded-xl font-semibold hover:bg-[#FFC979]/90 transition-all duration-200 flex items-center justify-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            🔍 Guía: ¿Dónde buscar el email?
+          </button>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <button id="resend-email-enhanced" class="py-3 px-4 border border-[#2EAFC4]/30 text-[#2EAFC4] rounded-xl font-semibold hover:bg-[#2EAFC4]/10 transition-all duration-200 text-sm">
+              📤 Reenviar
+            </button>
+            <button id="back-to-login-success" class="py-3 px-4 bg-[#2EAFC4] text-[#162032] rounded-xl font-semibold hover:bg-[#2EAFC4]/90 transition-all duration-200 text-sm">
+              ← Volver
+            </button>
+          </div>
+        </div>
+
+        ${result.diagnostics ? `
+          <details class="mt-4 bg-[#202837] rounded-xl p-3 border border-[#2EAFC4]/20">
+            <summary class="text-[#F6F7F9]/80 text-sm cursor-pointer hover:text-[#F6F7F9] transition-colors">
+              🔧 Información técnica (para soporte)
+            </summary>
+            <pre class="text-xs text-[#F6F7F9]/60 mt-2 overflow-x-auto">${JSON.stringify(result.diagnostics, null, 2)}</pre>
+          </details>
+        ` : ''}
+      </div>
+    `;
+
+    this.setupEnhancedSuccessEventListeners(email);
+  }
+
+  /**
+   * Show enhanced forgot password error message with troubleshooting
+   */
+  showEnhancedForgotPasswordError(email, result) {
+    this.modalElement.innerHTML = `
+      <div class="p-6">
+        <!-- Close button -->
+        <button id="auth-close-btn" class="absolute top-5 right-5 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#202837] hover:bg-[#2EAFC4]/20 transition-all duration-200 border border-[#2EAFC4]/30">
+          <svg class="w-5 h-5 text-[#F6F7F9]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <!-- Error icon -->
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-[#F6F7F9] mb-2">❌ No se pudo enviar el email</h2>
+          <p class="text-red-400 font-medium text-sm">${result.error.message}</p>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="bg-[#202837] rounded-xl p-4 mb-4 border border-red-500/20">
+          <h3 class="text-[#F6F7F9] font-semibold mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            Soluciones recomendadas:
+          </h3>
+          <ul class="text-[#F6F7F9]/80 text-sm space-y-2">
+            ${result.troubleshooting ? result.troubleshooting.map(step => `
+              <li class="flex items-start">
+                <span class="text-red-400 mr-2 mt-0.5">•</span>
+                ${step}
+              </li>
+            `).join('') : `
+              <li class="flex items-start">
+                <span class="text-red-400 mr-2 mt-0.5">•</span>
+                Verifica que el email esté escrito correctamente
+              </li>
+              <li class="flex items-start">
+                <span class="text-red-400 mr-2 mt-0.5">•</span>
+                Intenta nuevamente en unos minutos
+              </li>
+            `}
+          </ul>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="space-y-3">
+          <button id="retry-password-reset" class="w-full py-3 px-4 bg-[#2EAFC4] text-[#162032] rounded-xl font-semibold hover:bg-[#2EAFC4]/90 transition-all duration-200">
+            🔄 Intentar nuevamente
+          </button>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <button id="contact-support-btn" class="py-3 px-4 bg-[#FFC979] text-[#162032] rounded-xl font-semibold hover:bg-[#FFC979]/90 transition-all duration-200 text-sm">
+              📞 Soporte
+            </button>
+            <button id="back-to-login-error" class="py-3 px-4 border border-[#2EAFC4]/30 text-[#2EAFC4] rounded-xl font-semibold hover:bg-[#2EAFC4]/10 transition-all duration-200 text-sm">
+              ← Volver
+            </button>
+          </div>
+        </div>
+
+        ${result.diagnostics ? `
+          <details class="mt-4 bg-[#202837] rounded-xl p-3 border border-red-500/20">
+            <summary class="text-[#F6F7F9]/80 text-sm cursor-pointer hover:text-[#F6F7F9] transition-colors">
+              🔧 Información para soporte técnico
+            </summary>
+            <pre class="text-xs text-[#F6F7F9]/60 mt-2 overflow-x-auto">${JSON.stringify(result.diagnostics, null, 2)}</pre>
+          </details>
+        ` : ''}
+      </div>
+    `;
+
+    this.setupEnhancedErrorEventListeners(email, result);
+  }
+
+  /**
+   * Setup event listeners for enhanced success page
+   */
+  setupEnhancedSuccessEventListeners(email) {
+    // Close button
+    const closeBtn = document.getElementById('auth-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.close());
+    }
+
+    // Back to login
+    const backBtn = document.getElementById('back-to-login-success');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        this.showForgotPassword = false;
+        this.activeTab = 'login';
+        this.render();
+        this.setupEventListeners();
+      });
+    }
+
+    // Email guide
+    const guideBtn = document.getElementById('check-email-guide');
+    if (guideBtn) {
+      guideBtn.addEventListener('click', () => {
+        this.showEmailLocationGuide(email);
+      });
+    }
+
+    // Resend email
+    const resendBtn = document.getElementById('resend-email-enhanced');
+    if (resendBtn) {
+      resendBtn.addEventListener('click', async () => {
+        // Check rate limiting
+        const lastSent = localStorage.getItem('last_password_reset');
+        const now = Date.now();
+        
+        if (lastSent && (now - parseInt(lastSent)) < 30000) {
+          const remaining = Math.ceil((30000 - (now - parseInt(lastSent))) / 1000);
+          alert(`Espera ${remaining} segundos antes de reenviar el email.`);
+          return;
+        }
+        
+        localStorage.setItem('last_password_reset', now.toString());
+        
+        // Show loading and retry
+        resendBtn.disabled = true;
+        resendBtn.innerHTML = '⏳ Reenviando...';
+        
+        try {
+          const result = await authService.resetPassword(email, {
+            language: 'es',
+            enableDiagnostics: true
+          });
+          
+          if (result.success) {
+            alert('Email reenviado. Revisa tu bandeja de entrada y spam.');
+          } else {
+            alert(`Error al reenviar: ${result.error.message}`);
+          }
+        } catch (error) {
+          alert('Error al reenviar. Intenta más tarde.');
+        } finally {
+          resendBtn.disabled = false;
+          resendBtn.innerHTML = '📤 Reenviar';
+        }
+      });
+    }
+  }
+
+  /**
+   * Setup event listeners for enhanced error page
+   */
+  setupEnhancedErrorEventListeners(email, result) {
+    // Close button
+    const closeBtn = document.getElementById('auth-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.close());
+    }
+
+    // Back to login
+    const backBtn = document.getElementById('back-to-login-error');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        this.showForgotPassword = false;
+        this.activeTab = 'login';
+        this.render();
+        this.setupEventListeners();
+      });
+    }
+
+    // Retry
+    const retryBtn = document.getElementById('retry-password-reset');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => {
+        this.showForgotPassword = true;
+        this.render();
+        this.setupEventListeners();
+      });
+    }
+
+    // Contact support
+    const supportBtn = document.getElementById('contact-support-btn');
+    if (supportBtn) {
+      supportBtn.addEventListener('click', () => {
+        const subject = encodeURIComponent('No llega email de recuperación de contraseña');
+        const body = encodeURIComponent(`
+Hola,
+
+No me está llegando el email para recuperar mi contraseña.
+
+Detalles:
+- Email: ${email}
+- Tipo de error: ${result.error.type}
+- Mensaje: ${result.error.message}
+- Hora del intento: ${new Date().toLocaleString()}
+- Navegador: ${navigator.userAgent}
+
+Información técnica:
+${result.diagnostics ? JSON.stringify(result.diagnostics, null, 2) : 'No disponible'}
+
+Por favor, ayúdenme a resolver este problema.
+
+Gracias.
+        `);
+        
+        window.open(`mailto:soporte@anclora.com?subject=${subject}&body=${body}`);
+      });
+    }
+  }
+
+  /**
+   * Show email location guide modal
+   */
+  showEmailLocationGuide(email) {
+    const guideModal = document.createElement('div');
+    guideModal.className = 'fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4';
+    guideModal.innerHTML = `
+      <div class="bg-[#162032] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#2EAFC4]/30">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-[#F6F7F9]">🔍 ¿Dónde buscar tu email de recuperación?</h3>
+            <button class="close-guide-btn w-8 h-8 flex items-center justify-center rounded-full bg-[#202837] hover:bg-[#2EAFC4]/20 transition-all duration-200">
+              <svg class="w-4 h-4 text-[#F6F7F9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <p class="text-[#F6F7F9]/80 mb-4">Email enviado a: <span class="text-[#2EAFC4] font-semibold">${email}</span></p>
+          
+          <div class="space-y-4">
+            <div class="bg-[#202837] rounded-xl p-4 border border-[#2EAFC4]/20">
+              <h4 class="text-[#F6F7F9] font-semibold mb-2">📥 1. Bandeja de entrada principal</h4>
+              <p class="text-[#F6F7F9]/80 text-sm">Busca un email de <code class="bg-[#2EAFC4]/20 px-2 py-1 rounded text-[#2EAFC4]">noreply@supabase.co</code></p>
+            </div>
+            
+            <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+              <h4 class="text-yellow-500 font-semibold mb-2">🚨 2. Carpeta de SPAM (MUY IMPORTANTE)</h4>
+              <p class="text-[#F6F7F9]/80 text-sm mb-2">Esta es la causa más común. Revisa:</p>
+              <ul class="text-[#F6F7F9]/80 text-sm space-y-1 ml-4">
+                <li>• Spam / Correo no deseado</li>
+                <li>• Correo basura</li>
+                <li>• Quarantine</li>
+              </ul>
+            </div>
+            
+            <div class="bg-[#202837] rounded-xl p-4 border border-[#2EAFC4]/20">
+              <h4 class="text-[#F6F7F9] font-semibold mb-2">📂 3. Otras carpetas (Gmail)</h4>
+              <ul class="text-[#F6F7F9]/80 text-sm space-y-1 ml-4">
+                <li>• Promociones</li>
+                <li>• Actualizaciones</li>
+                <li>• Social</li>
+              </ul>
+            </div>
+            
+            <div class="bg-[#202837] rounded-xl p-4 border border-[#2EAFC4]/20">
+              <h4 class="text-[#F6F7F9] font-semibold mb-2">🔍 4. Buscar directamente</h4>
+              <p class="text-[#F6F7F9]/80 text-sm">Busca en tu email: <code class="bg-[#2EAFC4]/20 px-2 py-1 rounded text-[#2EAFC4]">Anclora</code> o <code class="bg-[#2EAFC4]/20 px-2 py-1 rounded text-[#2EAFC4]">recuperación</code></p>
+            </div>
+            
+            <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <h4 class="text-blue-400 font-semibold mb-2">💡 Para evitar esto en el futuro:</h4>
+              <ul class="text-[#F6F7F9]/80 text-sm space-y-1 ml-4">
+                <li>• Agrega <code class="bg-blue-500/20 px-2 py-1 rounded text-blue-400">noreply@supabase.co</code> a tus contactos</li>
+                <li>• Marca como "No es spam" si lo encuentras en spam</li>
+                <li>• Configura filtros para permitir emails de Supabase</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="mt-6 text-center">
+            <button class="close-guide-btn bg-[#2EAFC4] text-[#162032] px-6 py-3 rounded-xl font-semibold hover:bg-[#2EAFC4]/90 transition-all duration-200">
+              Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(guideModal);
+    
+    // Setup close handlers
+    guideModal.querySelectorAll('.close-guide-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        guideModal.remove();
+      });
+    });
+    
+    // Close on backdrop click
+    guideModal.addEventListener('click', (e) => {
+      if (e.target === guideModal) {
+        guideModal.remove();
+      }
+    });
   }
 }
 
