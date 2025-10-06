@@ -1,0 +1,320 @@
+/* 
+ * Anclora Kairon - Auth Theme V2
+ * Exact replica of the modal design
+ */
+
+/* Color Variables - Exact modal colors */
+:root {
+  --modal-bg: #162032;
+  --modal-card-bg: rgba(32, 40, 55, 0.85);
+  --modal-input-bg: rgba(32, 40, 55, 0.9);
+  --modal-border: rgba(46, 175, 196, 0.1);
+  --modal-border-focus: rgba(46, 175, 196, 0.3);
+  --modal-text: #F6F7F9;
+  --modal-text-muted: rgba(246, 247, 249, 0.7);
+  --modal-teal: #2EAFC4;
+  --modal-gold: #FFC979;
+}
+
+/* Base Page */
+.auth-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container - Full screen centered */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Main Card - Exact modal style */
+.auth-card {
+  background: var(--modal-card-bg);
+  border: 1px solid var(--modal-border);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  max-width: 500px;
+  width: 100%;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.auth-card-large {
+  max-width: 900px;
+}
+
+/* Typography - Exact modal typography */
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--modal-text);
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+
+.auth-subtitle {
+  color: var(--modal-text-muted);
+  text-align: center;
+  margin: 0 0 2rem 0;
+  font-size: 0.875rem;
+}
+
+.auth-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--modal-text);
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-text {
+  color: var(--modal-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Inputs - Exact modal input style */
+.auth-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--modal-border);
+  border-radius: 8px;
+  background: var(--modal-input-bg);
+  color: var(--modal-text);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.auth-input::placeholder {
+  color: var(--modal-text-muted);
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: var(--modal-border-focus);
+  background: rgba(32, 40, 55, 0.95);
+}
+
+/* Buttons - Exact modal button style */
+.auth-btn {
+  padding: 0.875rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.auth-btn-primary {
+  background: linear-gradient(90deg, var(--modal-teal) 0%, var(--modal-gold) 100%);
+  color: var(--modal-bg);
+  font-weight: 700;
+}
+
+.auth-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 175, 196, 0.3);
+}
+
+.auth-btn-secondary {
+  background: rgba(32, 40, 55, 0.8);
+  color: var(--modal-text);
+  border: 1px solid var(--modal-border);
+}
+
+.auth-btn-secondary:hover {
+  border-color: var(--modal-border-focus);
+  background: rgba(32, 40, 55, 0.9);
+}
+
+.auth-btn-full {
+  width: 100%;
+}
+
+/* Info Boxes - Subtle like modal sections */
+.auth-info-box {
+  background: rgba(32, 40, 55, 0.3);
+  border: 1px solid var(--modal-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-info-box-success {
+  border-color: rgba(46, 175, 196, 0.15);
+}
+
+.auth-info-box-warning {
+  border-color: rgba(245, 158, 11, 0.15);
+}
+
+.auth-info-box-error {
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.auth-info-box-info {
+  border-color: rgba(46, 175, 196, 0.15);
+}
+
+/* Grid System */
+.auth-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.auth-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.auth-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Spacing Utilities */
+.auth-mb-2 { margin-bottom: 0.5rem; }
+.auth-mb-4 { margin-bottom: 1rem; }
+.auth-mb-6 { margin-bottom: 1.5rem; }
+.auth-mb-8 { margin-bottom: 2rem; }
+
+.auth-mt-2 { margin-top: 0.5rem; }
+.auth-mt-4 { margin-top: 1rem; }
+.auth-mt-6 { margin-top: 1.5rem; }
+.auth-mt-8 { margin-top: 2rem; }
+
+.auth-space-y-2 > * + * { margin-top: 0.5rem; }
+.auth-space-y-3 > * + * { margin-top: 0.75rem; }
+.auth-space-y-4 > * + * { margin-top: 1rem; }
+
+/* Text Alignment */
+.auth-text-center { text-align: center; }
+.auth-text-left { text-align: left; }
+.auth-text-right { text-align: right; }
+
+/* Status Colors */
+.status-success { color: #10b981; }
+.status-error { color: #ef4444; }
+.status-warning { color: #f59e0b; }
+.status-info { color: #0ea5e9; }
+
+/* Loading States */
+.auth-loading {
+  display: none;
+  text-align: center;
+  margin: 1rem 0;
+  color: var(--modal-text-muted);
+}
+
+.auth-loading.show {
+  display: block;
+}
+
+.auth-spinner {
+  border: 2px solid rgba(46, 175, 196, 0.2);
+  border-top: 2px solid var(--modal-teal);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 1rem;
+  }
+  
+  .auth-card {
+    padding: 1.5rem;
+  }
+  
+  .auth-grid-2,
+  .auth-grid-3,
+  .auth-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  .auth-btn {
+    width: 100%;
+    margin: 0.25rem 0;
+  }
+}
+
+/* Form Groups */
+.auth-form-group {
+  margin-bottom: 1rem;
+}
+
+.auth-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--modal-text);
+  font-size: 0.875rem;
+}
+
+/* Status Messages */
+.auth-status {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid;
+}
+
+.auth-status-success {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.auth-status-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.auth-status-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.auth-status-info {
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: #0ea5e9;
+}

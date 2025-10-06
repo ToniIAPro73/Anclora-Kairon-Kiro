@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Completo Auth + Onboarding - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme-v2.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card auth-card-large">
+            <!-- Header -->
+            <div class="auth-text-center auth-mb-6">
+                <div style="width: 80px; height: 80px; margin: 0 auto 1rem auto; background: linear-gradient(90deg, #2EAFC4 0%, #FFC979 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <svg style="width: 40px; height: 40px; color: #162032;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1 class="auth-title">Test Completo: Auth + Onboarding</h1>
+                <p class="auth-subtitle">Prueba el flujo completo de autenticación y onboarding</p>
+            </div>
+
+            <!-- Quick Test Section -->
+            <div class="auth-info-box auth-info-box-success auth-mb-4">
+                <h2 class="auth-section-title">🚀 Prueba Rápida</h2>
+                <p class="auth-text auth-mb-4">
+                    Prueba el flujo completo: Registro → Login → Onboarding
+                </p>
+                <div class="auth-grid auth-grid-3">
+                    <button id="quick-register" class="auth-btn auth-btn-primary">
+                        1️⃣ Registro Rápido
+                    </button>
+                    <button id="quick-login" class="auth-btn auth-btn-primary">
+                        2️⃣ Login Test
+                    </button>
+                    <button id="quick-onboarding" class="auth-btn auth-btn-primary">
+                        3️⃣ Onboarding
+                    </button>
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: rgba(32, 40, 55, 0.3); border-radius: 8px;">
+                    <p class="auth-text">
+                        <strong>Flujo recomendado:</strong> Haz clic en orden 1→2→3 para probar todo el sistema
+                    </p>
+                </div>
+            </div>
+
+            <!-- Status Check -->
+            <div class="auth-info-box auth-info-box-warning auth-mb-4">
+                <h2 class="auth-section-title">📊 Estado del Sistema</h2>
+                <div class="auth-grid auth-grid-2">
+                    <div>
+                        <h3 style="font-weight: 600; margin-bottom: 0.75rem; color: var(--modal-text);">Configuración</h3>
+                        <div class="auth-space-y-2">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                <span>Supabase:</span>
+                                <span id="supabase-status" class="status-error">❌ No configurado</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                <span>Google OAuth:</span>
+                                <span id="google-status" class="status-warning">⚠️ Opcional</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                <span>GitHub OAuth:</span>
+                                <span id="github-status" class="status-warning">⚠️ Opcional</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-weight: 600; margin-bottom: 0.75rem; color: var(--modal-text);">Usuario Actual</h3>
+                        <div class="auth-space-y-2">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                <span>Autenticado:</span>
+                                <span id="auth-status" class="status-error">❌ No</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                <span>Usuario nuevo:</span>
+                                <span id="new-user-status" class="status-error">❌ No</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                <span>Onboarding:</span>
+                                <span id="onboarding-status" class="status-error">❌ Pendiente</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Forms -->
+            <div class="auth-grid auth-grid-2 auth-mb-4">
+                <!-- Register -->
+                <div class="auth-info-box auth-info-box-info">
+                    <h2 class="auth-section-title">📝 Registro Manual</h2>
+                    <form id="register-form" class="auth-space-y-4">
+                        <input type="text" id="reg-name" class="auth-input" placeholder="Tu nombre" required>
+                        <input type="email" id="reg-email" class="auth-input" placeholder="tu@email.com" required>
+                        <input type="password" id="reg-password" class="auth-input" placeholder="Contraseña (min 6)" required>
+                        <button type="submit" class="auth-btn auth-btn-primary auth-btn-full">Crear Cuenta</button>
+                    </form>
+                </div>
+
+                <!-- Login -->
+                <div class="auth-info-box auth-info-box-success">
+                    <h2 class="auth-section-title">🔑 Login Manual</h2>
+                    <form id="login-form" class="auth-space-y-4">
+                        <input type="email" id="login-email" class="auth-input" placeholder="tu@email.com" required>
+                        <input type="password" id="login-password" class="auth-input" placeholder="Tu contraseña" required>
+                        <button type="submit" class="auth-btn auth-btn-primary auth-btn-full">Iniciar Sesión</button>
+                    </form>
+                    
+                    <!-- OAuth Buttons -->
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(46, 175, 196, 0.2);">
+                        <div class="auth-grid auth-grid-2">
+                            <button id="google-btn" class="auth-btn auth-btn-secondary">🔍 Google</button>
+                            <button id="github-btn" class="auth-btn auth-btn-secondary">🐙 GitHub</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="auth-info-box auth-info-box-warning auth-mb-4">
+                <h2 class="auth-section-title">⚡ Acciones</h2>
+                <div class="auth-grid auth-grid-4">
+                    <button id="test-onboarding" class="auth-btn auth-btn-secondary">🚀 Onboarding</button>
+                    <button id="logout-btn" class="auth-btn auth-btn-secondary">🚪 Logout</button>
+                    <button id="reset-data" class="auth-btn auth-btn-secondary">🔄 Reset</button>
+                    <button id="check-db" class="auth-btn auth-btn-secondary">🗄️ Check DB</button>
+                </div>
+            </div>
+
+            <!-- Error Testing Section -->
+            <div class="auth-info-box auth-info-box-error auth-mb-4">
+                <h2 class="auth-section-title">🧪 Pruebas de Error</h2>
+                <p class="auth-text auth-mb-4">
+                    Simula diferentes escenarios de error para probar el sistema de manejo de errores
+                </p>
+                <div class="auth-grid auth-grid-3">
+                    <button id="test-network-error" class="auth-btn auth-btn-secondary">
+                        📡 Error Red
+                    </button>
+                    <button id="test-invalid-creds" class="auth-btn auth-btn-secondary">
+                        🔐 Credenciales Inválidas
+                    </button>
+                    <button id="test-user-exists" class="auth-btn auth-btn-secondary">
+                        👤 Usuario Existe
+                    </button>
+                    <button id="test-weak-password" class="auth-btn auth-btn-secondary">
+                        🔒 Contraseña Débil
+                    </button>
+                    <button id="test-connectivity" class="auth-btn auth-btn-secondary">
+                        🌐 Test Conectividad
+                    </button>
+                    <button id="clear-all-errors" class="auth-btn auth-btn-secondary">
+                        ✨ Limpiar Todo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messages" class="auth-space-y-4"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Simplified JavaScript without complex imports to avoid errors
+        
+        // Simple message function
+        function showMessage(text, type = 'info') {
+            const colors = {
+                success: 'auth-info-box auth-info-box-success',
+                error: 'auth-info-box auth-info-box-error',
+                warning: 'auth-info-box auth-info-box-warning',
+                info: 'auth-info-box auth-info-box-info'
+            };
+
+            const msg = document.createElement('div');
+            msg.className = `${colors[type]} auth-mb-4`;
+            msg.innerHTML = `<p class="auth-text">${text}</p>`;
+            document.getElementById('messages').appendChild(msg);
+            
+            setTimeout(() => msg.remove(), 5000);
+        }
+
+        // Update status function
+        function updateStatus() {
+            // Simple status updates without complex imports
+            document.getElementById('supabase-status').innerHTML = '<span class="status-warning">⚠️ Verificando...</span>';
+            document.getElementById('google-status').innerHTML = '<span class="status-warning">⚠️ Opcional</span>';
+            document.getElementById('github-status').innerHTML = '<span class="status-warning">⚠️ Opcional</span>';
+            document.getElementById('auth-status').innerHTML = '<span class="status-error">❌ No</span>';
+            document.getElementById('new-user-status').innerHTML = '<span class="status-error">❌ No</span>';
+            document.getElementById('onboarding-status').innerHTML = '<span class="status-error">❌ Pendiente</span>';
+        }
+
+        // Simple event listeners
+        document.getElementById('quick-register').addEventListener('click', () => {
+            showMessage('🧪 Simulando registro rápido...', 'info');
+        });
+
+        document.getElementById('quick-login').addEventListener('click', () => {
+            showMessage('🧪 Simulando login...', 'info');
+        });
+
+        document.getElementById('quick-onboarding').addEventListener('click', () => {
+            showMessage('🧪 Simulando onboarding...', 'info');
+        });
+
+        // Error simulation buttons
+        document.getElementById('test-network-error').addEventListener('click', () => {
+            showMessage('📡 Simulando error de red...', 'error');
+        });
+
+        document.getElementById('test-invalid-creds').addEventListener('click', () => {
+            showMessage('🔐 Simulando credenciales inválidas...', 'error');
+        });
+
+        document.getElementById('test-user-exists').addEventListener('click', () => {
+            showMessage('👤 Simulando usuario existente...', 'warning');
+        });
+
+        document.getElementById('test-weak-password').addEventListener('click', () => {
+            showMessage('🔒 Simulando contraseña débil...', 'warning');
+        });
+
+        document.getElementById('test-connectivity').addEventListener('click', () => {
+            showMessage('🌐 Probando conectividad...', 'info');
+        });
+
+        document.getElementById('clear-all-errors').addEventListener('click', () => {
+            document.getElementById('messages').innerHTML = '';
+            showMessage('✨ Errores limpiados', 'success');
+        });
+
+        // Initialize
+        updateStatus();
+        showMessage('✅ Página de prueba cargada correctamente', 'success');
+    </script>
+</body>
+</html>

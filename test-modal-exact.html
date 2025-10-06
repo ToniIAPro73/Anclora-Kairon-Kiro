@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Modal Exacto - Anclora Kairon</title>
+    <link rel="stylesheet" href="src/shared/styles/auth-theme-v2.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Header -->
+            <div class="auth-text-center auth-mb-6">
+                <h1 class="auth-title">¡Bienvenido de vuelta!</h1>
+                <p class="auth-subtitle">Inicia sesión para continuar con tus proyectos</p>
+            </div>
+
+            <!-- Login Form - Exact modal replica -->
+            <form class="auth-space-y-4 auth-mb-6">
+                <div class="auth-form-group">
+                    <label class="auth-label">Correo electrónico</label>
+                    <input type="email" class="auth-input" placeholder="tu@email.com" value="pm140979@gmail.com">
+                </div>
+                
+                <div class="auth-form-group">
+                    <label class="auth-label">Contraseña</label>
+                    <input type="password" class="auth-input" placeholder="••••••••">
+                </div>
+                
+                <div style="display: flex; align-items: center; justify-content: space-between; margin: 1rem 0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                        <input type="checkbox" style="margin: 0;">
+                        <span class="auth-text">Recordarme</span>
+                    </label>
+                    <a href="#" style="color: var(--modal-teal); text-decoration: none; font-size: 0.875rem;">¿Olvidaste tu contraseña?</a>
+                </div>
+                
+                <button type="submit" class="auth-btn auth-btn-primary auth-btn-full">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <!-- OAuth Section -->
+            <div class="auth-text-center auth-mb-4">
+                <p class="auth-text" style="margin-bottom: 1rem;">O continúa con</p>
+                <div class="auth-grid auth-grid-2">
+                    <button class="auth-btn auth-btn-secondary">
+                        🔍 Google
+                    </button>
+                    <button class="auth-btn auth-btn-secondary">
+                        🐙 GitHub
+                    </button>
+                </div>
+            </div>
+
+            <!-- Register Link -->
+            <div class="auth-text-center">
+                <p class="auth-text">
+                    ¿No tienes cuenta? 
+                    <a href="#" style="color: var(--modal-teal); text-decoration: none; font-weight: 600;">Regístrate</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
