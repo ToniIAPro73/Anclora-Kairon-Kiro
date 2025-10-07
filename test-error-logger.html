@@ -419,7 +419,7 @@
             errorLogger.logPerformanceMetric('oauth_login', duration, true, {
                 provider: 'google',
                 supabaseProvider: 'supabase',
-                redirectTo: window.location.origin + '/auth/callback'
+                redirectTo: window.location.origin + '/auth/callback.html'
             });
             showToast(`OAuth login logged (${Math.round(duration)}ms)`, 'success');
         };

@@ -566,7 +566,7 @@ class AuthService {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: provider,
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: `${window.location.origin}/auth/callback.html`,
             ...options.oauthOptions
           }
         });
@@ -580,7 +580,7 @@ class AuthService {
         errorLogger.logPerformanceMetric('oauth_login', duration, true, {
           provider: provider,
           supabaseProvider: 'supabase',
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback.html`
         });
 
         // OAuth redirect will handle the rest

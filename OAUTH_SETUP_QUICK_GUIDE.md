@@ -96,7 +96,7 @@ https://kfkubggvdbnrblfeukoz.supabase.co/auth/v1/callback
 ### Para Producción
 Cuando despliegues, agrega también:
 ```
-https://tu-dominio.com/auth/callback
+https://tu-dominio.com/auth/callback.html
 ```
 
 ### Testing

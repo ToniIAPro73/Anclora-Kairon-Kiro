@@ -47,9 +47,9 @@ VITE_GITHUB_CLIENT_ID=your_github_client_id
 2. En **Site URL**, agrega: `http://localhost:5173`
 3. En **Redirect URLs**, agrega:
    ```
-   http://localhost:5173/auth/callback
-   http://localhost:8000/auth/callback
-   http://127.0.0.1:5500/auth/callback
+   http://localhost:5173/auth/callback.html
+   http://localhost:8000/auth/callback.html
+   http://127.0.0.1:5500/auth/callback.html
    ```
 
 ### **Paso 6: Configurar OAuth (Opcional)**

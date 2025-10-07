@@ -10,7 +10,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         landing: resolve(__dirname, 'src/landing/index.html'),
-        app: resolve(__dirname, 'src/app/index.html')
+        app: resolve(__dirname, 'src/app/index.html'),
+        authCallback: resolve(__dirname, 'auth/callback.html'),
+        authReset: resolve(__dirname, 'auth/reset-password.html')
       }
     }
   },

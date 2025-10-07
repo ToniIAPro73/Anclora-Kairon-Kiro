@@ -11,6 +11,7 @@ vi.mock('../config/supabase.js', () => ({
   supabase: {
     auth: {
       signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(),
       signUp: vi.fn(),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }))
@@ -142,6 +143,21 @@ describe('Enhanced AuthService Methods', () => {
       expect(result.retryInfo.maxRetriesExceeded).toBe(true);
     });
   });
+
+  describe('OAuth redirect configuration', () => {
+    it('uses callback HTML endpoint for Supabase OAuth flows', async () => {
+      supabase.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: null })
+
+      await authService.loginWithGoogle()
+
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
+        provider: 'google',
+        options: expect.objectContaining({
+          redirectTo: `${window.location.origin}/auth/callback.html`
+        })
+      }))
+    })
+  })
 
   describe('Connectivity Testing', () => {
     it('should check connectivity successfully', async () => {

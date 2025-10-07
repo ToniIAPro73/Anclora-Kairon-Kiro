@@ -9,7 +9,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'src/app/index.html')
+        main: resolve(__dirname, 'src/app/index.html'),
+        authCallback: resolve(__dirname, 'auth/callback.html'),
+        authReset: resolve(__dirname, 'auth/reset-password.html')
       }
     }
   },
