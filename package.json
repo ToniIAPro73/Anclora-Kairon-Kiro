@@ -4,9 +4,10 @@
   "description": "Anclora Kairon MVP - Landing page and enhanced task management application",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:landing": "vite --config vite.landing.config.js",
-    "dev:app": "vite --config vite.app.config.js",
+     "setup": "node src/scripts/dev-setup.js",
+     "dev": "npm run setup && vite",
+     "dev:landing": "npm run kill-ports && npm run setup && vite --config vite.landing.config.js",
+     "dev:app": "npm run setup && vite --config vite.app.config.js",
     "build": "vite build",
     "build:landing": "vite build --config vite.landing.config.js",
     "build:app": "vite build --config vite.app.config.js",
@@ -20,7 +21,12 @@
     "test:integration": "node src/shared/test/runIntegrationTests.js",
     "test:integration:auth": "vitest --run src/shared/test/authErrorFlows.integration.test.js",
     "test:integration:recovery": "vitest --run src/shared/test/authErrorRecovery.integration.test.js",
-    "test:integration:oauth": "vitest --run src/shared/test/oauthErrorFlows.integration.test.js"
+    "test:integration:oauth": "vitest --run src/shared/test/oauthErrorFlows.integration.test.js",
+    "check-ports": "node src/scripts/dev-setup.js",
+    "kill-ports": "node src/scripts/kill-ports.js",
+    "test-setup": "node src/scripts/test-setup.js",
+    "dev:clean": "npm run kill-ports && npm run setup && npm run dev",
+    "dev:landing:clean": "npm run kill-ports && npm run setup && npm run dev:landing"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

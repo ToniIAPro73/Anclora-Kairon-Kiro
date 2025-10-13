@@ -47,3 +47,13 @@ dist/
 # OS generated files
 Thumbs.db
 .DS_Store
+
+# Image files in root directory
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.gif
+*.webp
+*.bmp
+*.ico

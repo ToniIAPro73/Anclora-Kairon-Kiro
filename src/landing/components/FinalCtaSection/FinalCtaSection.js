@@ -1,4 +1,5 @@
 // Final CTA Section Component
+import EmailService from '../../../shared/services/emailService.js'
 import i18n from '../../../shared/utils/i18n.js'
 
 export default class FinalCtaSection {
@@ -94,31 +95,39 @@ export default class FinalCtaSection {
     const successMessage = this.container.querySelector('#success-message')
     
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault()
-        
+
         const email = emailInput.value.trim()
         if (!email) return
-        
-        // Simulate form submission
+
+        // Show loading state
         submitBtn.textContent = 'Procesando...'
         submitBtn.disabled = true
         
-        setTimeout(() => {
+        // Send confirmation email
+        try {
+          await EmailService.sendBetaEmail(email)
+
           // Hide form and show success message
           form.style.display = 'none'
           successMessage.classList.remove('hidden')
-          
+
           // Store email in localStorage for demo purposes
           localStorage.setItem('beta-signup-email', email)
-          
+
           // Dispatch custom event
-          window.dispatchEvent(new CustomEvent('betaSignup', { 
-            detail: { email } 
+          window.dispatchEvent(new CustomEvent('betaSignup', {
+            detail: { email }
           }))
-          
-          console.log('Beta signup:', email)
-        }, 1500)
+
+          console.log('Beta signup with email confirmation:', email)
+        } catch (error) {
+          console.error('Error sending beta confirmation email:', error)
+          // Show error message but don't reset form
+          submitBtn.textContent = 'Error - Reintentar'
+          submitBtn.disabled = false
+        }
       })
     }
   }

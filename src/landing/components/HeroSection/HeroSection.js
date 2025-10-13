@@ -1,7 +1,6 @@
 // Hero Section Component with value proposition
 import Button from '../../../shared/components/Button/Button.js'
-import { authModalVanilla } from '../../../shared/components/AuthModalVanilla.js'
-
+import EmailService from '../../../shared/services/emailService.js'
 import i18n from '../../../shared/utils/i18n.js'
 
 export default class HeroSection {
@@ -28,12 +27,19 @@ export default class HeroSection {
         <div class="absolute bottom-20 right-10 w-96 h-96 bg-ambar-suave/20 rounded-full blur-3xl"></div>
         
         <!-- Hero Content -->
-        <div class="relative z-10 text-center text-white px-6 max-w-5xl mx-auto">
-          <!-- Main Headline -->
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 font-baskerville leading-tight">
-            ${t.heroTitle}
-            <span class="block text-ambar-suave">${t.heroTitleHighlight}</span>
-          </h1>
+         <div class="relative z-10 text-center text-white px-6 max-w-5xl mx-auto">
+           <!-- App Name -->
+           <div class="mb-8">
+             <h1 class="text-3xl md:text-4xl font-bold text-white font-baskerville tracking-wide">
+               Anclora Kairon
+             </h1>
+           </div>
+
+           <!-- Main Headline -->
+           <h2 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 font-baskerville leading-tight">
+             ${t.heroTitle}
+             <span class="block text-ambar-suave">${t.heroTitleHighlight}</span>
+           </h2>
           
           <!-- Value Proposition -->
           <p class="text-lg md:text-xl mb-6 max-w-4xl mx-auto font-inter leading-relaxed text-white/90">
@@ -61,12 +67,42 @@ export default class HeroSection {
             </div>
           </div>
           
-          <!-- CTA Buttons -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button id="cta-primary" class="bg-gradient-action text-negro-azulado px-8 py-4 rounded-anclora-sm font-bold text-lg hover:transform hover:-translate-y-1 transition-all duration-300 shadow-anclora-button hover:shadow-anclora-button-hover">
-              ${t.ctaPrimary}
-            </button>
-            
+          <!-- Email Signup Form -->
+          <div class="max-w-md mx-auto mb-8">
+            <form id="hero-beta-form" class="space-y-4">
+              <div class="relative">
+                <input
+                  type="email"
+                  id="hero-email-input"
+                  placeholder="tu@email.com"
+                  required
+                  class="w-full px-6 py-4 text-lg rounded-anclora-sm border-2 border-white/30 bg-white/90 backdrop-blur-sm text-negro-azulado placeholder-negro-azulado/60 focus:outline-none focus:border-azul-profundo focus:bg-white transition-all duration-300"
+                />
+              </div>
+
+              <button
+                type="submit"
+                id="hero-beta-btn"
+                class="w-full bg-gradient-action text-negro-azulado px-8 py-4 rounded-anclora-sm font-bold text-lg hover:transform hover:-translate-y-1 transition-all duration-300 shadow-anclora-button hover:shadow-anclora-button-hover"
+              >
+                ${t.ctaPrimary}
+              </button>
+            </form>
+
+            <!-- Success Message (Hidden by default) -->
+            <div id="hero-success-message" class="hidden mt-4 p-4 bg-green-100/90 backdrop-blur-sm border border-green-300 rounded-anclora">
+              <div class="flex items-center justify-center space-x-2 text-green-800">
+                <span class="text-2xl">🎉</span>
+                <div>
+                  <p class="font-bold">¡Bienvenido a la revolución!</p>
+                  <p class="text-sm">Te contactaremos pronto con los detalles de acceso.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary CTA -->
+          <div class="mb-8">
             <button id="cta-secondary" class="bg-transparent text-white border-2 border-white px-8 py-4 rounded-anclora-sm font-bold text-lg hover:bg-white hover:text-azul-profundo transition-all duration-300">
               ${t.ctaSecondary}
             </button>
@@ -87,17 +123,9 @@ export default class HeroSection {
       </section>
     `
     
-    // Add event listeners for CTA buttons
-    const primaryCTA = this.container.querySelector('#cta-primary')
-    const secondaryCTA = this.container.querySelector('#cta-secondary')
-    
-    primaryCTA.addEventListener('click', () => {
-      authModalVanilla.open('register')
-    })
-    
-    secondaryCTA.addEventListener('click', () => {
-      this.openDemoModal()
-    })
+    // Setup form and button event listeners
+     this.setupHeroForm()
+     this.setupSecondaryCTA()
     
     // Add parallax effect on scroll
     window.addEventListener('scroll', () => {
@@ -136,16 +164,60 @@ export default class HeroSection {
   }
 
   setupEventListeners() {
-    // Re-add event listeners for CTA buttons after re-render
-    const primaryCTA = this.container.querySelector('#cta-primary')
-    const secondaryCTA = this.container.querySelector('#cta-secondary')
-    
-    if (primaryCTA) {
-      primaryCTA.addEventListener('click', () => {
-        authModalVanilla.open('register')
+    // Re-add event listeners after re-render
+    this.setupHeroForm()
+    this.setupSecondaryCTA()
+  }
+
+  setupHeroForm() {
+    const form = this.container.querySelector('#hero-beta-form')
+    const emailInput = this.container.querySelector('#hero-email-input')
+    const submitBtn = this.container.querySelector('#hero-beta-btn')
+    const successMessage = this.container.querySelector('#hero-success-message')
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+
+        const email = emailInput.value.trim()
+        if (!email) return
+
+        try {
+          // Show loading state
+          submitBtn.textContent = 'Procesando...'
+          submitBtn.disabled = true
+
+          // Send beta confirmation email
+          await EmailService.sendBetaEmail(email)
+
+          // Hide form and show success message
+          form.style.display = 'none'
+          successMessage.classList.remove('hidden')
+
+          // Store email in localStorage for demo purposes
+          localStorage.setItem('hero-beta-signup-email', email)
+
+          // Dispatch custom event
+          window.dispatchEvent(new CustomEvent('heroBetaSignup', {
+            detail: { email }
+          }))
+
+          console.log('Hero beta signup:', email)
+        } catch (error) {
+          console.error('Error in hero beta signup:', error)
+          submitBtn.textContent = 'Error - Reintentar'
+          submitBtn.disabled = false
+
+          // Show error message to user
+          alert('Error al procesar la solicitud. Por favor, inténtalo de nuevo.')
+        }
       })
     }
-    
+  }
+
+  setupSecondaryCTA() {
+    const secondaryCTA = this.container.querySelector('#cta-secondary')
+
     if (secondaryCTA) {
       secondaryCTA.addEventListener('click', () => {
         this.openDemoModal()

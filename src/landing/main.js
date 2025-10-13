@@ -2,7 +2,7 @@ import './style.css'
 import '../shared/styles/anclora-design-system.css'
 
 // Import components
-import Navigation from './components/Navigation/Navigation.js'
+import FloatingControls from './components/FloatingControls/FloatingControls.js'
 import HeroSection from './components/HeroSection/HeroSection.js'
 import PainSection from './components/PainSection/PainSection.js'
 import EpiphanySection from './components/EpiphanySection/EpiphanySection.js'
@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize components
   try {
-    // Initialize Navigation
-    Navigation.init('#navigation')
-    console.log('✅ Navigation initialized')
+    // Initialize Floating Controls
+    FloatingControls.init('#floating-controls')
+    console.log('✅ Floating Controls initialized')
     
     // Initialize Hero Section
     HeroSection.init('#hero-section')
